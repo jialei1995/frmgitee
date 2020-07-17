@@ -15,9 +15,6 @@
 		3, vim   test.c
 		   光标移动到函数、宏、类型、等 ， ctrl + ]         进入
 			ctrl + o        退出
-		全缓冲大小4096字节，就是4M大小
-
-
 
 数字转字符串：c语言:atoi   itoa
 c++
@@ -30,15 +27,13 @@ c++
 		float stof(const strings str, size_t* pos = 0)
 		double stod(const strings str, size_t* pos = 0)
 		
-	在一个函数中int *p = (int *)malloc(sizeof int *100);函数执行完p会消失但是这100个int空间会保存下来，你可以在函数结束把p给return，然后在主函数中去free它。
-	一个函数申请空间，另一个函数释放。
 	
 	编译分为：预处理precompile【处理#将内容粘贴到文件中】--》编译compile【生成.s】--》汇编asseble【生成.o】
-	--》链接link【拼接多个.o生成可执行.elf此时包含调试信息（只能在linux中运行）】--》objdump：剥离无用的调试信息生成.bin可以在板子运行
+	--》链接link【拼接多个.o生成可执行.elf此时包含调试信息（只能在linux中运行）】--》objcopy：剥离无用的调试信息生成.bin可以在板子运行
 find：
 	find ./ -name *.sh     	find 路径 -name filename  
 	find ./ -type  c/d/p/s/l/b/f  		字符设备文件，普通文件f
-	ls /xx/xx/ |grep xx在某个目录下寻找某文件
+
 正则表达式：
 		egrep  “[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}”  filename 在filename查找ip地址
 			   注意“ 位数	 值范围		仅分割意思   .在正则中有别的意思
@@ -66,8 +61,8 @@ sed：
 	static int c  c只在本函数内生命周期变长，跟别的函数的c不一样。
 	makefile根据时间戳对新改变的文件进行编译。
 
-io：							或不在当前窗口，在另一个窗口  查看当前窗口对应的文件描述符
-	重定向：设置输入不从键盘输入，输出不在屏幕显示（例：ls > /dev/pts/5）		tty
+io：							
+	重定向：设置输入不从键盘输入，输出不在屏幕显示（例：ls > /dev/pts/5）		tty  /dev/pts/ 另一个窗口，每次新建都会加1个
 	平时打开一个文件，系统就会分配1个对应的文件描述符（从2往后排）
 	ls > /ls.out  将ls的内容放到 ls.out 的文件中（重定向到文件）
 	ls /1 /2 >f1 2>f2 将对的信息放f1，错的信息放f2
@@ -75,11 +70,9 @@ io：							或不在当前窗口，在另一个窗口  查看当前窗口对应
 	>>filename 不覆盖的创建新文件。如果源文件已存在，并不会覆盖。
 	
 
-	在vim 下， 可以16进制查看文件：%!xxd ---- 查看
-
 	获取文件长度简单的方法：
-		fseek（fp,0,SEEK_END）;
-		prinft(%d,ftell(fp))；
+		fseek（fp,0,SEEK_END）;	fseek成功执行返回0
+		prinft(%d,ftell(fp))；  ftell返回当前文件指针位置，当前偏移量
 		
 		lseek(fd,0,SEEK_SET);将指针放到开头		偏移量是负的表示向前移动
 					SEEK_END:  SEEK_CUR
@@ -145,19 +138,12 @@ io：							或不在当前窗口，在另一个窗口  查看当前窗口对应
 	进程回收 wait（&status） 成功返回子进程进程号，失败返回eof。wait会阻塞等子进程退出它才退，不然就一直等儿子，子进程的exit（10），父进程的status里面就会存10.
 	也可以wait（null）表示释放pcb就好，不接收返回值。
 	
-	gcc -D :(调试用要不也没啥用) 用的时候也可以直接在文件顶部#define就不用了编译的时候写-D 了
-	int main()
-	{
-		#ifndef DEBUG
-			printf("如果编译时带-D DBUG，这句话才被打印")
-		#endif
-		return 0
-	}								
+							
 	gcc a.c   ./a.out什么现象都没有
 	静态库：1：gcc -c bye.c bye.o   gcc -c hello.c hello.o
 			2:打包生成库  ar crs libtest.a hello.o bye.o        或把此库位置放入环境变量/lib和/usr/lib（系统库，用户库）的位置
 		试验-3: gcc test.c -L. -l test (不写lib .a)  如果把2步生成的库放入环境变量，第三部为 gcc test.c -ltest就可以 -L.哭的位置
-	动态库：1：gcc -fPIC -Wall -c hello.c(会生成忽略位置的hello.o)												-I 头文件位置
+	动态库：1：gcc -fPIC -Wall -c hello.c(会生成忽略位置的hello.o)												
 			2: gcc -shared -o libtest.so hello.o bye.o 
 			3:编译 gcc test.c -L. -ltest(去lib .so) 
 	静态库编译时用一下，执行就不用了；动态库，编译时不用，执行时要用。
@@ -193,6 +179,7 @@ io：							或不在当前窗口，在另一个窗口  查看当前窗口对应
 					  有名信号（线程、进程间通信都可以）
 				信号初始化：int sem_init(*sem,int pshared,int val)	sem是信号量对象	
 											  0线程间1进程间	初始化量大小
+											 有名信号量   无名信号量
 			要对一个读进程一个写进程进行PV操作，需要2个信号量，sem_r初始化为0   sem_w初始化为1
 		信号也可以当锁实现，信号是0不能操作，信号是1才可以操作。	
 							【有读信号才能读，有写信号才能写】	
@@ -207,6 +194,16 @@ io：							或不在当前窗口，在另一个窗口  查看当前窗口对应
 				(给共享资源枷锁)若：当前未锁，成功加锁
 									当前已锁，阻塞等待
 				pthread_mutex_destory（mutex）
+		线程创建的时候可以这样多个线程号都回调同一个线程处理函数。
+			pthread_create(&id[i],NULL,func,NULL);   id[0~n]线程都在执行fun函数，是可行的
+
+		信号是同步的：1个线程写入数据，另1线程读取。如果我不写，你不能读。是对两个动作的同步（你走一下我走一下）
+		锁是保护共享资源的，我访问你就不能访问。你访问我就不能访问。
+		信号量: 进程间或线程间(linux仅线程间)  两者作用域也不一样
+		互斥锁: 线程间 		*******************************************
+
+
+
 signal函数: 
 	void sig_alarm(int sig) 
 	{ 
@@ -599,28 +596,36 @@ English：
 		arm-none-linux-gnueabi-gcc -g -c -o start.o start.s
 		arm-none-linux-gnueabi-ld  start.o -Tmap.lds -o led.elf
 		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 
-
-		点灯：【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
+··		【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
 		异步通信：数据传送是以字符为单位的，字符间的传送是完全异步的，字符中位于位之间同步（字符间异步 字符内部各位同步）
 				不知道数据多会发，多会收，让你发就发，别人发就收
 		同步通信：传输以数据块为单位，字符之间，字符的位于位之间都是同步的。
-		uart2：【1】配置第6章一对管脚pin的con为uart模式【2】uart章节一共有好几个uart，配置对应的ulcon配置收发数据格式【3】波特率【4】数据收发方式-中断或轮训
+
+		每个uart模块都有这几个寄存器，就地址不一样，功能一样的
+		uart2：【1】配置第6章一对管脚pin的con为uart模式
+				【2】uart章节一共有好几个uart，配置对应的ulcon配置收发数据格式
+				【3】波特率   
+				【4】数据收发方式-中断或轮训
 				【5】收发存储数据寄存器，UTxHn 0x13820020把要发送的数据放到这个寄存器,【就算发出去了，后面不用管了】
 										 URxHn 0x13820024  【把数据放到这里就算读出来了，后面不用管了】
-				【6】何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
+				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
+		
+	*******************************timer**********************************	
 		为什么说看门狗与pwm都是定时器，因为他们配置的结果就是产生一个频率，实际就是产生一个固定的时间长度，
 		你配置输出频率的占空比还是基于这个时间，这个频率可以精准配置时间的。exynos配置的时候好几步都是弄频率的。
 		看门狗：WTCON = WTCON  |1 |0x7<<3 |249<<8;配置分频，产中断还是产复位信号。还是只当个定时器来用
 				WTCNT = 15625;   //不要老想着位操作	，赋值的时候直接赋值就好了。这个里面的数字会递减
 			****看门狗的设置跟管脚没有关系，是芯片内存本来就有的功能。喂狗是硬件来做的。而且软件设置的WTCNT一般也是硬件做的，
-			现在只是为了学习看门狗才简单的配置这个寄存器。配置好寄存器，板子上电5s会自动reset或执行中断。pwm就厉害在可以改变时间内高电平占空比
+			现在只是为了学习看门狗才简单的配置这个寄存器。配置好寄存器，板子上电5s会自动reset或执行中断。
+			counter计数器是8-16bit的，总大小是是有限的
+
 		pwm：（其实是可以通过高低电平延时来控制频率的，但是延时函数会占用cpu工作时间，在控制舵机的时候别的事情都干不了。
 			共有5个pwm定时器，其中4个外接到了管脚有驱动能力Xpw0-3TOUT0，
-				配置管脚为PWM输出，一般的gpio管脚不能直接驱动蜂鸣器的。配置的这个也不是普通的out，是TOUT（pwmout）
-			后面的配置都是pwm章节的配置：
+				
 				外部输入的频率是100mhz，经过2级分频25----4----变成1m，设置2个寄存器
 				TCNTB0 = 2500;  2500的波形个数实际就设置了输出的波形是400hz，1000000/400=2500。2500个1m的波形才能产生1个400hz的波形
 				TCMPTB0 = 1250;  //2500*1/2---实际就设置了占空比为1/2
+
 		软中断：（swi）是用户命令，得先切换到用户状态才能使用这条命令
 				1板子上电汇先运行b reset：我们需要在reset函数中设置好栈（给sp赋值栈底），svc模式栈就初始化好了
 			-->2现在改变状态为user态，直接执行swi（也可以随便给r0-r12寄存器赋值，等会中断完看能不能复原）就跳转到了swi的处理函数
@@ -644,9 +649,10 @@ English：
 					2.清除管脚中断标志位（在gpio章节EXT_INTXX_PENDD）
 					3.清除GIC的中断标志
 					4.结束中断
-	底层的寄存器。因为是靠硬件操作来变化的，【防止编译器优化】（每次拿值不要从内存中拿，要从寄存器拿）
-		比如下拉pin变1，是电路导致的变化，不是人为修改的（注意****） (*(volatile unsigned int*)0x11000c40)地址里的值是volatile的
-							提示编译器对象的值可能在编译器未监测到的情况下改变
+	底层的寄存器。【防止编译器优化】（每次拿值不要从内存中拿，要从寄存器拿）
+		(*(volatile unsigned int*)0x11000c40)地址里的值是volatile的
+							提示编译器对象的值可能在编译器未监测到的情况下改
+
 			1.需要宏定义串口相关寄存器：设置工作模式、波特率、状态寄存器buf满不满，能不能读能不能写
 		（一般状态寄存器用来读取的）、数据寄存器（要发的数据，读进来的数据--发送缓存寄存器，接受。。。）
 			2.定义串口初始化函数、void uart_init(void){
@@ -1029,25 +1035,77 @@ C++:c++98||c++11 ||c++14	11最多
 	隐式转换：swap(int a,int b);  传参swap（‘c’，17）；	调用自动将c转换成int型   a是97
 		但是 函数模板如果是自动类型推导，传进来char就会报错。并不会转换
 		但是如果显示T类型就可以了。swap<int>（‘c’，17）显示指定类型，则会发生隐式转换
-	string容器：int find(const string &str,int pos=0)
-				int find(const char c,int pos=0)		找谁，默认从头开始找
-				string& replace(int pos,n,const string& str)替换从pos开始的n个字符，替换为str的前n个
-				string& insert(int pos,const cahr* str)从pos位置插入str
-				string& earse(int pos,int n)删除从pos位置开始的n个字符
+*********************容器string************************
+	string容器：它是个类。
+		int find(const string &str,int pos=0)  查找str在本字符串中第一次出现的位置
+		int find(const char c,int pos=0)		找谁，默认从头开始找
+		string& replace(int pos,n,const string& str) 替换从pos开始的n个字符，替换为str的前n个字母
+
+		string& insert(int pos,const cahr* str)从pos位置插入str
+		string& earse(int pos,int n)删除从pos位置开始的n个字符
+		拼接：直接  str+str1+str2  或者 "asd"+"sadasd"就可以
+		compare（string str） >0 ==0 <0
+	**	string& substr(int pos,int n); 	返回从pos开始的n个字符组成的字符串
+
 
 	map容器：默认按照key从小到大排序，不管插入顺序。map<T,T> a;	默认构造，拷贝构造(map<int,int>&a)，赋值就是“=
 	map不允许插入重复的key元素。insert时自动忽略。
+			map插入的时候随便放进去就好了，它内部是无序的，没有头部尾部概念。
 			a.insert(pair<int,int>(1,10)).			(*it).first			it->second
 					make_pair(1,10)一样的
 			删除：earse(m.begin());迭代器方式   earse(m.begin()，m.end());区间方式删除
 				earse(3);按照key值方式删除
 		
 			查找：map<int,int>::iterator pos=m.find(3),	找到返回所在位置迭代器，找不到反回m.end
-	list:  list<int>L;	remove（val）是删除所有的val
+****************************************vector***********************
+**	vector单端数组	动态扩展可以随时插入新数据  不想数组一样，申请固定大小
+	只能push_back插入数据    可以pop_back删除
+	insert(迭代器，n，elem)，pos位置插入n个elem
+	insert(迭代器，elem)；pos位置插入elem
+
+	erase(迭代器)； erase(迭代器1，迭代器2)；
+
+**	vector的迭代器可以+3  +4 -2 这么移动
+	
+	赋值V2 = V1；直接容器赋值
+	empty();size();
+	resize(num,elem)指定长为num并用,var之前没值的位置以elem填充新位置;  resize(num）新位置用0填充；
+										若num小于原来大小变小，删除末尾元素
+
+	首元素V.front();    尾元素：V.back();
+
+**	这个容器里面没有排序、翻转的函数。这些通用函数是在algorithm中集成的
+
+
+**************************************c++*********list****************************
+
+	STL中的链表是个双向循环链表☆  支持两端的操作    
+			empty()是否为空;size()元素个数;resize(num,elem)指定长为num并用elem填充新位置;  resize(num）新位置用0填充；
+										若num小于原来大小变小，删除末尾元素
+			push_back(elem)；pop_back();
+			push_front(elem);pop_front();
+			list<int> L2(L1.begin(),L1.end()); list<int> L2(L1)拷贝构造；list<int> L2（10,1000）10个1000；
+		   	list<int>L;			
 			首元素L.front();    尾元素：L.back();  迭代器只能++  —-，不能+n   list不能随机访问，要自己移动迭代器去看
+			insert(pos,elem);insert(pos,n,elem); 		clear();
+			
+			erase(beg,end);删除[beg,end)数据，返回下个数据的位置
+			erase(pos)：   删除pos位置的数据，返回下个数据的位置
+			remove（val）根据值删除--是删除所有的val节点，如果没有val节点，就不删了
+			
 			reverse();反转，list的内部方法就可以调用
 			sort（）；排序，list的内部方法就可以调用@@@@@@但是他不能调用sort的algorithm算法，因为不支持随机访问
-					//人家的排序会根据你的数据量大小自动选底层的不同的排序算法
+					//人家的排序会根据你的数据量大小自动选底层的不同的排序算法、
+	【】因为不支持随机访问数据结构不支持标准算法。
+
+**************************queue***************
+	1.也不允许遍历
+		push(elem);pop();back()队尾元素；front()队头元素；empty()size()
+*************************8stack********************	
+	stack：
+		1.不允许遍历行为	2.可以判空、元素个数、
+			push(elem);pop();top();empty()是否为空;size()
+********************************************************8
 		降序规则：bool fun(int v,int v2){return v1>v2;}   L.sort(fun);给他一个规则他按照你的规则进行排序
 	
 		类对象排序排序规则：  bool fun(Person &p1,Person &p2)
@@ -1082,17 +1140,26 @@ C++:c++98||c++11 ||c++14	11最多
 	求和：int total = accumulate(v.begin(),v.end(),起始累加值);返回总数之和。
 	源码：最高位表示数的符号，其他位表示数值。例如+7= 0 0000111Bin.  -7=1 0000111Bin	0是正数
 	两容器交换数据：swap(v1,v2);类型必须相同。链表可以交换，vector也可以，要求<int>里面数据类型一样
-	栈：运用原理与实际案例：
-			1.逆序输出---->>>>进制转换
-			2.递归嵌套---->>>>括号匹配 只需要1个栈，在一堆不同种类的括号中，扫描一次，扫描过程中遇到左括号入栈，遇到
-		右括号出栈，刚好一对一对都能匹配，扫描完成如果栈为空，说明匹配成功。
-			3.栈式计算
 	
-	
-	
-	反码：正数的反码=源码      负数的反码=源码符号位不变，其他按位取反  -7=1 1111000BIN	
-	补码：正数的补码=源码		负数的补码=源码符号位不变，其他位取反，再+1		-7=1 1111001	
-		
+																													计算机这么存的
+	反码：正数的反码=源码      负数的反码=源码符号位不变，其他按位取反  -7=1 1111000BIN				源         反           补
+	补码：正数的补码=源码		负数的补码=源码符号位不变，其他位取反，再+1		-7=1 1111001	-1---1000001-----11111110------11111111
+	补码可以解决 -1+1=0的问题
+
+
+	函数对象-->又名仿函数
+		自己可以自己被调用了多少次。	类内部int count;构造函数初始化为0；每次调用时count++;成员属性记录状态；函数对象可做别的函数的参数
+		谓词：返回值是bool才能叫谓词。 重载的是bool operator() ( int val);（）  bool com(int v1,int v2);
+															有1个参数1元谓词     2个参数2元谓词
+		参数：Pred 就是谓词
+		类名+（）； person（）；这就是匿名函数对象。匿名对象
+
+		内建函数--include <functional>
+
+
+
+
+
 	多继承怎么赋值：
 			KindergartenKid::KindergartenKid(string name, int score, int year, int month, int day)
 				:Baby(name), Student(score), birthday(year,month,day),num(3)
@@ -1388,6 +1455,8 @@ git status后发现-	modified:   hello.c 表示暂存区的hello.c被修改了
 		
 		git remote add origin https://github.com/jialei-github/jialei.git
 		git push -u origin master
+
+		git fetch + git merge
 ********************************makefile********************************************
 		%.o:%.c:
 			$(cc) -c %.c -o %.o  自动将所有.c生成对应的.o
@@ -1405,16 +1474,6 @@ git status后发现-	modified:   hello.c 表示暂存区的hello.c被修改了
 *************************************************************************************		
 QT:
 	qt的lable还可以显示图片，gif，可跳转的域名
-		定义4个对象
-		LableGif
-			：QMovie * mymovie = new QMovie("://resource/d001563ac9b104b75890cbcef2769390.gif");
-				ui->labelGif->setMovie(mymovie);
-				ui->labelGif->setScaledContents(true);
-				mymovie->start();
-		LableUrl
-			：ui->labelUrl->setText("<h1><a href=\"https://www.baidu.com\"百度一下</a></h1>");
-				ui->labelUrl->setScaledContents(true);
-				ui->labelUrl->setOpenExternalLinks(true);//实现跳转
 		
 	qt中所有的事件类都继承与qevent	，bool event（QEvent* ev）函数不直接处理事件，而是按照事件类型分派给
 	特定的事件处理函数。在函数体内把自己想处理的事处理一下，其他事件交给父类处理，你不可能处理所有的事件。
@@ -1472,7 +1531,7 @@ vsdvdsvdss
 >>quit
 221 Bye.
 Connection closed by foreign host.
-	静态库编译时用一下，执行就不用了；动态库，编译时不用，执行时要用。
+
 	qt的静态库要自己编译所以一般使用动态库。
 	将写好的qt程序编译成release版本，copy生成的app.exe到一个新目录，在此目录中打开powershell，//powershell用起来？？
 			然后用windeployqt.exe ./app.exe操作，会将它需要的动态库文件都放到此文件夹
@@ -1486,7 +1545,7 @@ Connection closed by foreign host.
 
 **************************************驱动开发******************************************
 
-	内核目录执行：make modules  啥意思
+	内核目录执行：make modules  啥意思：往板子的rfs目录放个含linux的makefile的modules文件夹。
 				make modules_install INSTALL_MOD_PATH= ~/rootfs	将模块安装到rootfs中  
 					则   ~/rootfs/lib/ 下多了1个modules文件夹
 
@@ -1495,54 +1554,31 @@ Connection closed by foreign host.
 		module_init与module_exit相当于给入口函数出口函数重命名的
 		安装：insmod +demo.ko---------对应module_init(demo_init);入口函数【安装】 module_init;
 		卸载：rmmod+demo  ---------对应module_exit(demo_exit);出口函数【卸载】	module_exit();
-		要遵循GPL协议--------------MODULE_LICENSE("GPL");
 
 		模块安装完成可以$: lsmod | grep 模块名------>查看系统模块有没有，ismod就有了rmmod就没了
 		dmesg查看打印信息
 
 		modinfo ./hello.ko查看模块的相关信息
-		模块传参：
+		模块传参：  在源码中写好可以传参，然后模块安装的时候就可以传参进去
 				代码.c中也要有配置才行
 				int x；
 				module_param(x,int,0664); 变量名、类型、权限不能是0666
 				char y;
-				module_param(y,charp,0664)
+				module_param(y,charp,0664) char型指针，传字符串的
 			sudo insmod ./hello.ko x=1 y=“字符类的这么传” z=3...安装时才传，安装后以后这里面的变量就固定下来了
-		ls -lrt 按时间排序打印	
+	
 		多个.c的模块怎么写：
 				更改makefile：在obj-m:=hello.o  下一行+
 				还只能是objs：hello-objs := hello.o hehe.o  注意不能这么写，两个hello.o产生了递归了。生成的hello.ko卸载不了了
 									可以写成 hehe1.o hehe2.o
-			hehe1.c
-				#include <linux/init.h>
-				#include <linux/module.h>
-
-				void hello_exit(void)
-				{
-					printk("%s is called\n",__FUNCTION__);
-				}
-				MODULE_LICENSE("GPL");
-				module_exit(hello_exit);
-
-			hehe2.c
-				#include <linux/init.h>
-				#include <linux/module.h>
-
-				int hello_init(void)
-				{
-					printk("%s is called\n",__FUNCTION__);
-					return 0;
-				}
-
-				MODULE_LICENSE("GPL");
-				module_init(hello_init);
+			
 	模块导出：产生依赖A---->B  b中使用了a的函数与变量***（删除的时候先卸载b.ko才能卸载a.ko）
 			1.编写a.c时再变量后面加一行EXPORT_SYMBOL(变量名)；
 					函数名后面加一行EXPORT_SYMBOL(函数名)；	
 			2.编写b.c时先要声明extern int x;
 							extern int add(int a,int b);
 			3.编译a.c----->生成a.ko------>insmod a.ko
-			4.将a.c所在目录下的Module.symvers拷贝☞b.c所在目录，然后编译b.c----->生成b.ko---->insmod b.ko
+		方法一：4.将a.c所在目录下的Module.symvers拷贝☞b.c所在目录，然后编译b.c----->生成b.ko---->insmod b.ko
 		modprobe：
 			modprobe ：  模块探测 
 			把相关的模块 copy 到/lib/modules/3.123-gerneric  下 
@@ -1550,10 +1586,7 @@ Connection closed by foreign host.
 			sudo modprobe hehe  这个随便在哪里执行都可以安装模块2了
 
 		设备文件：
-			1.在linux-3.14顶层目录执行：make modules
-			2.在linux-3.14顶层安装模块：make modules_install INSTALL_MOD_PATH=/xx/xx/xx/rootfs 成功后rootfs/lib多了modules文件夹
-			     模块文件（.ko） 和linux内核的makefile 拷贝到/xx/xx/rootfs/lib/module/3.14.0
-
+			     
 			mknod /dev/xxx  c   222   0   
 
 			设备号：  设备号是一个纽带， 链接驱动程序 和  用户空间的设备文件，
@@ -1642,7 +1675,7 @@ Connection closed by foreign host.
 	eeprom是iic通讯芯片
 	iic速度一般都是400kbps
 	通讯开始之前sck一直是H电平
-	通讯开始：第1个clk为h的sda由高变低，start信号
+	通讯开始：第1个clk为h的时候sda由高变低，start信号
 	接下来的7个sck为h的时候，sda发1 0 1 0 0 0 0即从机地址
 	第8个sck为h时，主机发送r/w要求。
 	第9个sck为h的时候，从机给主机发ack信号。-------------建立好握手可以实现数据发送
@@ -1723,6 +1756,26 @@ Connection closed by foreign host.
 	/proc 此目录存放的所有进程的详细信息,内核的运行信息。虚拟的，这个文件夹目的就是让你观察系统运行状态
 	/sys 也是虚拟的目录，不会随硬盘转移。设备、驱动信息
 *************************************	adc：*****************************************************************
+		一般soc内部用的逐次逼近型。猜数字量转换成模拟量与实际模拟量对比，多猜几次结果就对了
+		soc内有多个ad转换模块，每个模块多个通道，理论上都可以与pin脚连接起来，但是1般只会引出部分pin脚。
+		采样有单端采样，差分采样模式
+		采样精度不高的adc基准源直接接ACC就可以。
+		采用不同采样分辨率，时钟设置不一样（分辨率高的采样慢）
+
+		编程配置：
+		1。打开adc模块时钟源（等会用的时候自己再分频）+pin脚对应的port组的时钟
+		2.pin脚功能设置为adc用（不是设普通gpio）
+		3.
+			1）adc时钟分频设置
+			2）采样时间（long time /short time）
+			3）用多少精度
+			mux1）选择哪个通道呢
+			trigger方式：软件/硬件
+			连续采样/1次采样（连续采样比较耗电，费cpu）
+			数据从adc0的14mux读
+			这条不是初始化设置的：观察采样完成的flag（采样1次是否完成），读数据后把这1bit擦除了
+
+
 		adccon： 分辨率、FLAG转换是否结束、时钟使能、分频、工作模式（省电standby、正常）、启动方式（置1转换开始，转换完自动为0）
 						exynos4412两种启动方式0bit  1bit都可以启动，我们选择0bit启动（启动后这bit自动清0）
 		adcdata：数据reg
@@ -2349,7 +2402,7 @@ arm处理器--------cortex-a------application应用型产品
 				coetex-r-------realtime-----汽车级，军工产品
 				cortex-m--------mcu --单片机
 	stm------st公司---microcontroller微控制
-keil（类似IAR）--编辑，编译，调试，下载于一体
+
 单片机使用：1.寄存器
 			2.库函数
 			3.HAl--硬件抽象层
@@ -2365,14 +2418,23 @@ cubemx：
 	sys->debug serial wire:启用下载调试口（不是uart）
 	串口每次采样16次  8M的串口时钟-----分频得到--->115200x16（1.7M左右）则波特率就成了115200（其实每次都是采样了16次的）除数4.4整数小数都要处理一下
 	打印函数printf的底层其实调用的futc函数，把它实现了就好了。
-	spi:LCD模块的通信（芯片之间的通讯）
+	spi:时钟是主机产生的，每个spi周期传输1bit数据
+		主机主动拉低cs，表示我要与某个spi设备进行通信
+
+		LCD模块的通信（芯片之间的通讯）
 		高速、串行（只有2根线是收发）、全双工、同步总线（总线就是多对多，usart就不是总线1对1）
-		极性：在未开始通信前（或者说空闲状态下）的sck的电平0/1
+		极性：在未开始通信前（或者说空闲状态下）的sck的电平0/1  可以设置
 		相位：0--->前沿采样后沿输出    1--->前沿输出（发送）后沿采样（获取）（通过这个双方同步）（沿：上升沿或下降沿）根据sck的沿
-		速度：目前最快3.4M/s  输入口速度48M，所以要预分频
+		速度：目前最快3.4M/s  输入口速度48M，所以要预分频。确定波特率
 		First bit：LSB/MSB
+		主机驱动mosi信号----采样miso信号
 		spi的通讯双方的极性与相位要一致（配置）
-	adc：分辨率----->数字量增加1时模拟量的变化量（多少bit）假设10位 5v 
+	编程时每个spi模块都有自己的一套寄存器，就地址不一样，名字功能都基本一样
+		配置conr：开启中断|使能spi|发完中断？|设主机还是从机|极性|相位|先lsb|msb
+		baud：bus总线过来的时钟 / 分频因子 = baud
+		状态reg：接收完成flag（接收缓冲区满）| 可以发送（发送buf空）
+
+	adc： 
 		adc的接收数组数据类型必须是volatile的。不然他不会变化了
 		stm32代码换行的时候要\r\n，只有\n有时候不能换行的
 	位数是soc内部的模块，与管脚无关，每个adc管脚都是n位的分辨率。soc的adc有几个模块，多少通道数有限，如果都启用，最多有几个
@@ -2390,13 +2452,6 @@ cubemx：
 	***函数以外不能直接调函数，函数的调用要在函数内部。
 
 	调试：
-		#define xxx  屏蔽这句话
-		#ifdef xxx
-		xxx
-		#endif
-		#ifndef xxx
-		yyy
-		#endif
 	1Word = 4byte
 	halfWord = 2byte
 
@@ -2525,31 +2580,502 @@ $:lizard weekday.c 可以显示圈复杂度
 
 
 
+**********************总复习********************
+针对指针判空：if(p == NULL) 或 if(p == 0) 其实NULL 就是0
+
+++i 与 i++与编译器有关
+
+或者用n>>1的方法做，不要用1 << 的方法
+正整数中1的个数 ：
+public class Solution {
+    public int NumberOf1(int n) {
+        int num = 0;  
+        while (n != 0) {  
+            n = n & (n - 1);  
+            num++;  
+        }  
+        return num;  
+    }
+}
+负数右移的时候左边补的是1；-4 / 2 = -2
+正数右移左边补的0
+
+老鼠试毒药1000瓶，给瓶编号1100 1101 1110 ....
+
+微软飞机油箱
+
+int main(){
+get(arr);			输入字符数量太多的话
+printf("%s",arr);
+return 0;        程序结束的时候会回收资源，发现越界
+}
+
+栈爆掉了？？
+局部变量不要写太大。
+int main()
+{
+	int arr[100000000];  消耗的是栈空间   
+	struct{int * arr；}变量中数据说如果太多，要自己分配内存
+}
+
+strncpy(p,q,x);  x要写sizeof(p) -1;防止目的p越界
+		目标，源		不能写strlen(q)-1.如果p比q小，这就越界了
+
+mkfifo同1pc的不同进程间。共享内存效率最高，消息队列（先进先出、按信号类型存取）
+***********************************函数类型*****************************8
+signal(int type,void(*pFun)(int arg))-----
+void (*)signal(int type,void(*pFun)(int arg))(int);
+void (*signal(int type,void(*pFun)(int arg)))(int);  signal返回函数指针，不是返回一般的char*指针（看着就很麻烦，所以要typedef）
+
+
+typedef void (int,int) ABC;
+typedef void ABC（int,int）;       
+
+typedef void (*handle_t)（int）;   函数指针，定义这句话的最重要的目的就是下一行写的时候简单点，没别的用了，因为咋们要调用的函数就是这种类型的
+handle_t signal(int sig,handle_t handlefun);
+
+
+typedef int (*pfunc)(int,int);
+int function(int a,int b)
+{
+	return a+b;	
+}
+int mytest(int a,int b,pfunc name)
+{
+	return name(a,b);
+}
+int main ()
+{
+  	printf("%d\n",mytest(10,5,function));
+}
+*********************************************************
+
+系统移植uboot指令：md----------------memory display
+
+#define API() printf("%s %s %d",__FILE__,__FUNCTION__,__LINE__)
+
+STATIC修饰局部变量，在程序结束前，这个变量会一直变化，每次调用值都会改变，只会初始化一次（程序每次运行）
+
+char (*p)[30] ;
+sizeof(p) 还是4
+
+
+*****
+char *getstr()
+{
+	char * tmp = "123"; 程序结束才会释放“123”
+	return tmp;  返回常量区的地址，常量区不会释放
+}
+可以得到“123”的地址。
+
+char *getstr()
+{
+	char p[] = "123";   函数分配空间，函数结束空间释放
+	return p;			局部变量地址，不可以返回。
+}
+**************
+
+那么要是想让 程序 跳转到 绝对地址是 0x100000 去执行
+    #include <stdio.h>
+    typedef  void (*ABC)();   函数类型指针
+    void swap()
+    {
+        printf("asda\n");
+    }
+    int main()
+    {
+        printf("%p\n",swap);
+        ( (ABC) 0x40057d  )  ();
+           类型   地址       参数
+        return 0;
+    }
+
+**********************8结构体定义同时赋值
+struct file_operaters var = { 部分初始化
+	.name = asdsa,
+	.age = 12,
+};
+
+struct stu p = {1,2,3,4};全部初始化，定义同时才可以这样
+
+结构体传参：
+	函数参数是栈段分配的，传结构体指针因为指针占用的内存小
+	如果值传递，系统得在栈中分配很大的空间。所以不管你改不改结构体中的内容，都建议传递结构体指针。
+	参数是栈段分配的
+	内存使用原则：小栈大堆
+
+位段结构体：
+	struct data{
+		uint year:5;
+		uint month:4;
+		uint day:5;
+	};     给每个参数规定占位，不浪费
+结构体默认4字节对齐，位段结构体也是4字节对齐
+
+gcc -L：库路径     -I：头文件路径 -l：库名
+
+1个字符串往另1个字符串里面赋值的时候注意“\0”也要复制过去；
+可以直接str[j] = mystr[i];  i指向mystr的最后1个字母后面的“\0”
+
+***************************************注意**************************************************
+1. char a[10]  = {“hello”};
+a++;  里就会报错,因为a是char[]类型的，它表示的是这个数组的首地址和第一个元素的地址，不能直接去操作a++去移动地址，
+如果想移动可以char *p = a；然后再操作p，p++这样是完全正确的。
+因为a是数组名,不能进行赋值操作,所以也不能++操作,如果对数组名进行了赋值操作就会报
+while(*p != '\0')  以后注意尽量不要直接判断p是否为NULL结束，应该*p取值取判断p指向的内存的数值取判断字符串是否到底了
+
+数据结构：
+	哈希表很重要。
+	顺序表大小固定，只能在现有空间中插入，数组插满就不能再插入了
+
+	线性表中至少有1个元素，错的。空的线性表也可以的。
+
+	根据中序 确定可能的 先序与后序顺序，技巧：看中序的较小的树
+		分析g-f分析他的排序可能，排除答案中的结果。
+	先序与后序中2个节点怎么摆放合适
+
+
+两个队列实现栈：
+
+void CStack<T>::appendTail(const T& node)//实现栈元素的插入
+{
+	//数据的插入原则：保持一个队列为空，一个队列不为空，往不为空的队列中插入元素
+	if (!q1.empty())
+	{
+		q1.push(node);
+	}
+	else
+	{
+		q2.push(node);
+	}
+}
+T CStack<T>::deleteHead()//实现栈元素的删除
+{
+	int ret = 0;
+	if (!q1.empty())
+	{
+		int num = q1.size();
+		while (num > 1)
+		{
+			q2.push(q1.front());
+			q1.pop();
+			--num;
+		}
+		ret = q1.front();
+		q1.pop();
+	}
+	else
+	{
+		int num = q2.size();
+		while (num > 1)
+		{
+			q1.push(q2.front());
+			q2.pop();
+			--num;
+		}
+		ret = q2.front();
+		q2.pop();
+	}
+	return ret;
+}
+
+☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞☞
+查找里面的分块查找：
+	分块有序.二维数组横有序纵有序。从右上角或左下角
+	遍历，移动坐标指针。
+
+*****重要点
+char *strcpy(char*dest,char *src)
+{
+	return &dest;错，不能返回入参的地址
+}
+
+char *strcpy(char*dest,char *src)
+{
+	char * p = str;
+	return dest;可以返回入参
+}
+
+链表逆序：
+	给原来的链表p--q指向第一个第二个节点；(保护起来)
+	ph->next = null;第一个节点拿出来，这个数据也并没有破坏
+	while{
+		p->next = ph->next;
+		ph->next = p;   头插法
+		p = q;q++;
+	}
+
+io：
+	errno其实是个全局变量。（在errno.h）发生异常会设置error值
+	perror：根据error值打印对应的错误信息。
+	switch（error）  case 2：打印“要打开的文件不存在”
+	strerror(error)；根据传入errno return 对应的字符串
+	
+	标准io：方便移植，只要#include<stdio.h>就好了
+	文件io：是内核里面的函数，移植困难
+
+	ls  ----->通过stat（&st_size）  查看var.st_size
+
+	库就是可执行的二进制代码，可被OS载入内存执行，windows与linux库不兼容
+	动态库运行时会调用库，如果库不在了，程序不能正常运行
+	静态库方便移植，生成的代码体积小。不需要库
+	动态库不方便移植，生成的代码体积小，需要下载库。
+
+	-lpthread  库名。他是第三方库。	最初linux没有线程，99年才被引入的。
+		linux内部的库都在环境变量中了，库也不需要-l...
+		
+		1.把库拷贝到/lib  或/usr/lib就不用加-L 库位置了
+		系统会在这里自己找库
+
+		2.在.bashrc改环境变量 
+
+	点亮灯：open设备文件ioctl点灯
+	获取传感器值：open设备，read读值
+	操作类的用ioctl  读写read write
+
+进程线程：
+	进程：程序执行，资源管理最小单位。
+		每个进程有个虚拟0-4g内存空间，每次运行1个进程，
+		系统就要分配1个0-4g虚拟内存
+	申请的内存没释放：内存泄漏
+
+	C++的智能指针：自己new了，不用程序员自己delete。后来添加的功能
+	QT：父对象死亡，子对象中内存自动释放。
+
+	 .bss + .data：静态区==全局变量+静态变量
+
+	 static：修饰c++类成员。该成员属于整个类，不属于对象
+
+	 交互进程：shell  敲个命令回应一下
+	 进程都是被进程创建出来的。看linux进程树，
+	 第一个进程init，分支分支分支形成多个进程
+
+	 批处理进程：gcc arm-none-linux-gnueabi-gcc
+	 需要预处理-....
+
+	 守护进程：系统起来他就启动，系统关闭它才关闭
+	 	TTY:?   说明它不属于某个终端 
+	 	tty：当前进程的控制终端
+	 	自己是自己进程组组长，会话组组长
+
+	 进程停止态：  其实是暂停状态
+	 死亡态： 也是僵尸态	
+
+	 task_struct 描述进程的状态的结构体
+
+	 1个cpu多个任务，那个任务抢到cpu那个任务执行，时间片轮转
+
+	 sigstop--->sigcont 被暂停--被继续
+
+	 用户模式，普通函数运行  系统调用  会进入到内核模式
+	 相应得cpu状态从user--svc
+
+	 创建子进程，父进程退出--setsid会话--改目录掩码--关闭文件描述符
+
+	 线程：pthread_detach(pthread_t th);	 		将线程设置为游离态  detach：使分开
+	 		退出的子线程会被系统回收线程资源。相当于linux内核调用的pthread_join();
+	 		成功返回0，失败返回错误号errno。
+
+	 共享内存：内核只有1个，但是不同进程都可以通过映射访问这个内核。 所以就可以实现进程间通讯
+
+	 shmget 创建   
+	 shmat  映射
+	 shmdt  取消映射
+	 shmctrl 删除
+	 共享内存需要同步互斥机制 配合sem
+
+
+网络：
+	传输层：
+	保证数据可靠传输--
+	语音与视频用的udp
+	网络层：路由用的
+
+服务器:
+accept 之前3次握手 已经完成的
+accept 只是为了获得新创建的套接字的
+ser能收能发     cli能收能发
+
+3次握手
+1：cli->我要发
+2:ser->我可以收-->我也要发
+3：cli->那我也收
+
+4次挥手
+1：cli我不发了
+2：ser我不收了  你等下我把我的数据发完
+3：ser我也不发了 
+4：cli 反正你都发完了，我也不收了
+
+
+端口号：寻找对应的进程
+字符串传输时不需要转换。
+listen：将socket主动--->变为被动套接字
+服务器ip与端口必须是固定的，必须bind
+	wireshark抓包
+
+
+epoll：红黑树方式
+	epoll_create(int size)；创建epoll句柄epollfd，监听数目。
+
+
+	
+	int  epoll_ctl(int  epfd,  int  op,  int  fd,  struct  epoll_event   *event); 
+					ep句柄      操作命令   操作的fd            包含fd的结构体
+								EPOLL_CTL_ADD
+								EPOLL_CTL_DEL
+	这个函数调用的时候其实已经初始化event了，是读事件还是别的事件在event结构体里面说明了。
+	select（maxfd+1,&rset,NULL,NULL,NULL);select函数才确定的事件类型
+
+
+	int epoll_wait(int epfd, struct epoll_event *eventarr, int maxevents, int timeout);
+								从内核得到事件集合			1次监听几个   超时时间  
+	
+	epoll流程：
+		socket+bind+listen得到监听套接字socketID
+		创建epollfd
+		根据socketID创造struct epoll_event event
+		将刚才用socketID创建的结构体EPOLL_CTL_ADD放进epollfd
+		while（1）
+		{
+			struct epoll_event eventArr[10] = {0};
+			ret = epoll_wait(epollfd,eventArr,10,15000);
+			返回值<0说明失败
+			返回值 = 0，超时，continue；
+			否则直接遍历eventArr数组
+			{
+				if(EPOLLIN == eventArr[i].events)
+				{	
+					//是监听套接子的事件
+					if(socketID == eventArr[i].data.fd)
+					{
+						getLink(eventArr[i].data.fd,epollfd);
+						int getLink(int socketID,int epollfd)
+						{
+							struct sockaddr_in addr;
+							newid = accept(socketID,(struct sockaddr*)&addr,&addrlen);
+							新的套接字连接上本服务器了
+							printf("server is connect by ip:%s,port:%d\n",inet_ntoa(addr.sin_addr),ntohs(addr.sin_port));
+							printf("newid = %d\n",newid);
+							要添加这个新的套接字，又得把他弄到一个结构体里面然后放进epollfd中
+							struct epoll_event event = {
+								.events = EPOLLIN,
+								.data = {
+									.fd = newid
+								}
+							};
+							epoll_ctl(epollfd,EPOLL_CTL_ADD,newid,&event);
+							return 0;
+						}
+					}else //是别的读事件
+					{
+						duevent = eventArr[i].data.fd;
+						recv(duevent,buf,1024,0);
+						printf("%s",buf);
+						ret = send(duevent,buf,strlen(buf),0);
+					}
+				}
+			}
+		}
 
 
 
+	等待事件的产生，类似select
+	遍历eventarr
+
+
+	需要监听的文件描述符放到1个链表中
+	线程池---
+
+	多线程/进程并发：适用于长链接
+
+	select：适用短连接。ex：浏览网页
+
+	广播：不管你想不想收，我都给你发过去了，反正传到你的传输层了
+	组播：加到我组里面你才能收到。没加进来，在数据链路层就丢掉了
+		群聊--不让别人看。就部分人看
+
+
+	广度优先：先处理自己四周的上下左右，在处理别的点..对于树，横着处理
+
+	深度优先：先紧着处理的点的某个方向，到了下1个点，又先处理这个方向，处理完再回去处理刚才点剩下的未处理的方向..对于树，纵向处理
+	1	1	1	0
+	0	0	1	0
+	0	1	1	1
+	1	0	0	0
+
+c++：
+	编程思想的不同，面向对象
+
+			不要改人家名字
+	extern C：还按照c的方式编译。不然你按照c++的方式编译，add被命名成了add_int_int，再调用时找不到函数了就
+
+
+	const：定义只读变量 生产
+	define  给常量取了个别名字
+
+	类内函数用const-----本质是const修饰的this指针
+	所以this指向的内容不能被更改
+
+	mutable：const修饰的又可以被修改了
+
+	封装：将想隐藏的隐藏起来，想暴露的暴露出来（给你接口）
+
+
+	对象大小：
+		空类：1字节大小（区分不同对象）
+		demo里面1个int 1个static int sizeof（demo）  4
+		编译的时候就分配好空间了，不在分配对象的时候分配
+					static在静态区
+								sizeof（变量）4
+	
+
+	深拷贝浅拷贝
+
+
+	static：
+	修饰局部变量
+	全局变量
+	普通函数 
+	类成员  成员属于类
+
+	子类is a 父类，子类才可以继承父类 学生is a 人
+
+
+	菱形继承：用虚继承解决问题（D里面有2份A）
+
+	重写：子类与父类函数 同名同参通返回 
+
+	多态：同一指针变量（父类指针指向子类对象） 调用同1个虚函数，产生的结果不同
+
+	c与c++那里不同:
 
 
 
+	内联函数。减少栈的使用。代码量，函数在调用处被展开。逻辑简单
+	编译时展开
 
+	宏预编译时展开，简单的文本替换
 
+	struct与class
 
+	static成员变量的使用，必须是public，不然外面调用不到了
 
+	c++的空类，默认会产生，默认构造、拷贝、析构、取址、赋值运算符函数
 
+	构造有参数可以重载，析构不能重载，没参数
 
+	构造函数public外面才可以调用
 
+	深浅拷贝：
 
+	自己写个string类。自己写个vector数组类：实现构造析构赋值
 
+	什么是多态。
 
+	虚函数怎么实现的？虚函数表---重新放个函数地址
 
-
-
-
-
-
-
-
-
+	
 
 
 
