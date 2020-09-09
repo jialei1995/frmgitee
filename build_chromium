@@ -1,3 +1,22 @@
+参考：https://blog.csdn.net/minucas/article/details/44750953
+    https://blog.csdn.net/zxc024000/article/details/79912720
+    https://www.cnblogs.com/xl2432/p/11582875.html   好点
 设置编译环境
-设置depot_tools
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git 下载失败
+设置depot_tools  获取一下google的代码获取工具
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git 下载失败，从别人的gitee中重新获取一个url去clone
+export PATH=/root/git/depot_tools:$PATH  可以配到.bashrc
+
+fetch --nohooks chromium 显示Running: gclient sync --nohook IOError: [Errno 2] No such file or directory: '/root/chromium/src'
+gclient sync --nohooks    失败：
+                        WARNING: subprocess '"git" "-c" "core.deltaBaseCacheLimit=2g" "clone" "--no-checkout" 
+                        "--progress" "https://chromium.googlesource.com/chromium/src.git"
+                        "/root/chromium/_gclient_src_OCNlh_"' in /root/chromium failed;
+                         will retry after a short nap...
+                       IOError: [Errno 2] No such file or directory: '/root/chromium/src'
+            此时应该生成src目录的。
+不能按照这种方法下载源码，直接在github上下载。
+安装依赖项 
+  执行$ ./build/install-build-deps.sh 失败，提示安装lsb-release
+  yum install lsb-release   又失败
+运行hook 
+编译
