@@ -85,6 +85,8 @@ lsblk  查看当前挂载的磁盘（硬盘）分区
 
 brctl  show:查看我的网桥连接的哪些网卡  ---桥接
 
+blkid 看磁盘uuid
+
 strings  xxx.so     在库中提取字符串并打印出来
 
 dd iflag=xxx oflag=yyy if=uImage of=/dev/sdb    seek=1000扇区号，将内核存储到1000扇区
@@ -92,6 +94,19 @@ dd iflag=xxx oflag=yyy if=uImage of=/dev/sdb    seek=1000扇区号，将内核�
 md.b  30008000 40 看内存中的数据
 
 memory display   yi  byte
+
+gzip -d xxx.gzip   解压
+
+list --dependencies  xx.target
+
+##### ctags
+
+- ctrl+]  调到定义处
+
+- ctrl+o 返回
+
+- 在有tags的目录执行vim才可以
+- vim -t 函数名、宏名 可以直接跳到定义处
 
 #### os的功能，向上对用户提供接口，向下操控硬件
 
@@ -143,3 +158,76 @@ make时有时候是需要联网的。
 
 + 桥接：虚拟机与宿主机在同一网段，外界能访问虚拟机虚拟机也能访问外界（同一网段内其他主机）
 + NAT：虚拟机可以访问外部其他主机，但是其他主机看不到它
+
+### git add过的文件修改后直接git commit -a 啥都不用加就好了
+
+---
+
+ ## python
+
++ os.getcwd()  获取当前路径
++ os.listdir(“路径”)     列出当前文件夹下所有文件与文件夹
++ os.path.isdir('filename')    判断filename是不是个文件夹
++ os.mkdir('xxx')   新建文件夹名字为xxx--单个文件夹
++ os.makedirs('1层/2ceng/3层/xxx')
++ os.path.exists('xxx')  判断文件是否存在
+
+```python
+strA.startswith(strB)  字符串A是否以字符串B开始，结束  
+strA.endswith(strB)
+```
+
++ glob
+
+  + ```python
+    print(glob.glob("lesson*.txt"))  打印所有lesson开头并且txt结尾的文件
+    ```
+
++ recursive  递归的
+
+```python
+import fnmatch   #子串匹配返回true or false
+print(fnmatch.fnmatch("lesson.py","l*.py"))   返回true
+
+--- 
+获取文件信息
+print(filename.stat())    创建时间
+
+---
+import time
+print(time.ctime(12345654))   将数字转换为人类可读的时间写法
+---
+读写文件
+f = open("1.txt",'r',encodeing='utf-8')
+text = f.readlines()		每行都读取进来
+f.close()	必须关闭
+更建议用以下方式：
+with open("1.txt",'r'，encoding='utf-8')  as f:
+    text = f.readlines()     这种方式自动关闭，不用自己关close
+f.write(字符串)     写的都是字符串
+
+----
+from tempfile import TemporaryFile
+f = TemporaryFile()
+---
+import shutil   移动文件
+shutils.copy('filename','./xxdir')  把文间移入dir
+shutils.copy('filename','./xxdir/newname')  把文间移入dir并重新命名为newname
+shutils.copytree('filedir','../')   递归复制本文件夹及文件夹内的所有到上个文件夹中
+shutils.move('可以是文件也可以是文件夹'，'移动到哪里呢')
+---  重命名文件
+os.rename('filename','newname')    可以时文件也可以是文件夹名字
+name = 'myadd'+'name'  字符串拼接赋值也可以重命名
+
+---  删除文件
+os.remove('filename')  只能删除文件
+shutils.rmtree('xxidr')  删除文件夹
+
+--- 读压缩包内的文件
+import zipfile      只针对zip文件
+with zipfile.ZipFile('xxx.zip','r')  as f:
+    print(f.namelist())   可以打印出来所有的压缩包内的文件名  
+    for i in f.namelist():
+        print(i.encode('cp437').decode('gbk'))  如果文件名有中文这么处理打印出来
+```
+
