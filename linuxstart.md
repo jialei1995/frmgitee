@@ -161,6 +161,8 @@ make时有时候是需要联网的。
 
 ### git add过的文件修改后直接git commit -a 啥都不用加就好了
 
+vim 查看二进制文件：：%!xxd + enter
+
 ---
 
  ## python
@@ -229,5 +231,30 @@ with zipfile.ZipFile('xxx.zip','r')  as f:
     print(f.namelist())   可以打印出来所有的压缩包内的文件名  
     for i in f.namelist():
         print(i.encode('cp437').decode('gbk'))  如果文件名有中文这么处理打印出来
+```
+
+
+
+
+
+### 系统移植
+
++ tftp 410000 uImage          movi write kernel 410000   先拉倒内存，再去写到emmc
++ tftp  410000 exynos.dtb    movi write dtb  4100000 
++ tftp  410000  ramdisk.img    movi write  rootfs 4100000 
++ emmc分几块：kernel  dtb   rootfs  还有3个好像
++ setenv bootcmd movi read kernel 410000;movi read dtb 420000;movi read rootfs 430000;bootm 41000 430000  42000;先加载内核，接下来fs，（没fs你在哪里存放设备树呀），最后设备树
+
+```c
+make mrproper    是清除，比make clean清除的更干净一些
+make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
+---
+加驱动在driver/char里面，加好还得修改char目录下的makefile，根据模块是否被选中对
+  它进行编译
+```
+
+```C
+参照自己/lib/moduels/uname-r/build/Makefile中的cross_compile去修改makefile
+
 ```
 

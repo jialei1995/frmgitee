@@ -1,5 +1,4 @@
-	如果你的人生起点不高，不曾有人为你走过人生中百步中的任何一步，不打紧，你尽管努力，多出来的步数不会被浪费掉，
-总有你在乎的人用得着，而你迟早会遇到你在乎的人。
+	
 	在一个函数中{
 		char rxbuf[1]; 定义一个只有1个字符的字符数组，所以是1
 		return rxbuf[0];	返回的的buf中的第0个元素，所以是0
@@ -11,13 +10,6 @@
 		3：库函数				**
 		4：/dev
 		5：文件格式/etc/passwd
-		6:游戏
-		7：不好归类的东西			**
-		8：系统管理员用的
-		9：内核规则     不怎么用
-
-	在main函数中{int a；int b}a的地址是低地址  b的地址是高地址
-
 
 	PS:ctrl+j 把色彩范围的复制出来，按住ctrl+点击抠出来的印章，前景色选成红色，alt+delete填充，ctlr+d取消选区
 
@@ -111,28 +103,11 @@
 							快排--不稳定 
 
 
-
-
-
-
-
-
-
-	数字显示的乱码的自己看不懂在vim 下， 可以16进制查看文件 ：%!xxd ---- 查看
-		ctags：
-
-		ctags是一个linux上很普遍的源码分析工具，可以将代码中的头文件以及函数变量等记录在一个名称为tags打文件。 tags文件的产出最简单的方法是在需要生成tags的工程项目的根目录下执行ctags -R命令, 这会调用tags递归的扫描当前目录以及所有子目录中可以被tags识别的文件所以文件数据信息都会汇集到tags文件
-
 		在/usr/include/目录下，   
 		执行ctags -R                生成tags 文件
 		2， vim  ~/.vimrc               编写家目录下的.vimrc 文件， 没有， 就创建 
 		 添加以下：
 			set  tags=/usr/include/tags
-
-		3, vim   test.c
-		   光标移动到函数、宏、类型、等 ， ctrl + ]         进入
-			ctrl + o        退出
-		查看当前系统最多能打开的文件数： cat /proc/sys/fs/file-max
 
 数字转字符串：c语言:atoi   itoa
 c++		string 不是char*传参的时候传string 并不会改变原来s的值，传string*才可以。。但是s[0]确实也是string的第一个字母
@@ -2498,12 +2473,10 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 
 
 ****************************************python*****************************************************
-	大蟒蛇 爬虫 遵循GPL协议：你用我的语言就必须开源	
 	pip安装更换为国内源：
 		matplotlib：图形化界面库
 		numpy：专门做张量运算的/矩阵运算的库
 		opencv-python：python的opencv库
-	pip install requests b
 	pip install numpy -i https://mirrors.aliyun.com/pypi/simple/
 	pip install matplotlib -i https://mirrors.aliyun.com/pypi/simple/
 	pip install opencv-python -i https://mirrors.aliyun.com/pypi/simple/
@@ -2514,9 +2487,6 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	中国科学技术大学：https://pypi.mirrors.ustc.edu.cn/simple
 	清华：https://pypi.tuna.tsinghua.edu.cn/simple
 			
-	缩进要注意，不能前面加空格，可以加table。一个.py文件写完直接就能运行		
-	first = int(input("input the first num")) #强转直接在前面加int后面括起来，不然接收的str	
-	from tkinter import * # 图形化界面包		
 	#创建widget窗体
 	root = Tk	
 	# 设置宽高，设置的时候乘号是’x‘字母，括号带双引号
@@ -2547,24 +2517,17 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 
 
 		'''
-		myStr = "jackkkk"
-		print(myStr)
 		print(myStr.capitalize())   # 不能改变原字符串，第一个字母大写输出
 		print(myStr.upper())    # 不能改变原字符串，只是以大写输出
 		#newstr = myStr.center(8,"*")    #打印到中间
 		newstr = myStr.upper()      #不能改变原字符串，但是可以将大写赋值给另一个字符串
-		print(newstr)
-		print(myStr.count("k"))       #k字符出现的次数
+
 		print(myStr.count("k",0,5))     # jackkk 还是左闭右开
 		'''
 		'''str = "01\t234\t56789"
 		print(str.endswith("3",0,4))    # true 01234 还是左闭右开，不算4
 		print(str)
-		print("1234567890")
-		print(str.expandtabs(tabsize=8))   # 空格转tab table默认是8个\t'''
-
-
-		'''
+		
 		#find方法：index方法
 		str = "0123456789"
 		print(str.find("3465"))      # 返回子串的下标位置，如果子串不存在返回-1
@@ -2576,13 +2539,10 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		mystr = "1234mk55"
 		print(mystr.isalpha())  #都是字母？
 		print(mystr.isdigit())  #都是数字？
-		mystr = "FFF"
 		print(mystr.isupper())  #都是大写？
 		print(mystr.islower())  #都是大写？
-		mystr = "a   "
 		print(mystr.isspace())  #都是空格？
 		'''
-
 		'''
 		mystr = "nihao"         # 多个英文单词，每个首字母大写，其他字母小写的字符串就是title格式
 		print(mystr)
@@ -2593,7 +2553,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		'''
 		my2 = ["a","b","c"]
 		mystr = "***"
-		newstr = mystr.join(my2)  #
+		newstr = mystr.join(my2)  #a***b***c 只把自己往对方中间插
 		print(newstr)
 
 		mystr = "          as   d     "
