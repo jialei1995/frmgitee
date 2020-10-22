@@ -99,6 +99,27 @@ gzip -d xxx.gzip   解压
 
 list --dependencies  xx.target
 
+```c
+ls > 1.txt ==== ls 1>1.txt 标准输出流到1.txt
+ls 1>file  2>&1  把标准错误流给标准输出流，把标准输出流 存到 file中
+ls 2>file  1>&2  把2给1，把1给file
+
+```
+
+静态库与动态库实际都是许多二进制的集合。
+
+```c
+addr2line  0x11111  -f -e  a.out  找地址对应的代码行
+size  a.out   看每个数据段大小
+ar crs libxx.a x.o  y.o  打包静态库
+ar -x  libxx.a  解压静态库
+objdump -d a.out  反汇编二进制为汇编代码
+objcopy -j .text  a.out  onlytexta.out   只抽出来.text段放到后面的文件中
+
+```
+
+解压.gz文件  gzip -d xxx.gz
+
 ##### ctags
 
 - ctrl+]  调到定义处
@@ -231,6 +252,44 @@ with zipfile.ZipFile('xxx.zip','r')  as f:
     print(f.namelist())   可以打印出来所有的压缩包内的文件名  
     for i in f.namelist():
         print(i.encode('cp437').decode('gbk'))  如果文件名有中文这么处理打印出来
+---numpy
+numpy.arange(10)   生成n个数字的一维数组
+data.reshape(2,5)  把它变成二维的
+data.reshape(2,5).T   再转置
+numpy.sqrt(data)   每个数字都开根
+
+
+----- zip压缩
+解压缩：
+with zipfile.ZipFile(xx.zip，‘r’) as zp:
+    zp.extrat('1.txt')   将压缩中的1.txt取出来
+    zp.extractall()   全部解压到当前目录
+压缩：
+with zipfile.ZipFile(xx.zip，‘w’) as zp:
+    for i in files:
+        zp.write(i)     1个1个文件塞进去
+ with zipfile.ZipFile(xx.zip，‘a’) as zp:
+        zp.write(‘3.txt’)   zip中已有，再往里压压  
+
+ ---- excel  openpyxl
+wb = load_workbook(filename='xx.xlsx')  只能加载已存在的
+wb.sheetnames
+sheet = wb['sheet1']
+wb.save(filename='xx.xlsx')
+cell = sheet('A1')  cell = sheet(row = 1,clumn = 1)
+data = cell.value
+cell.row  cell.column
+cell.corodinate   cell的坐标
+cells= sheet('A1:B6')  范围
+cells= sheet('1:5')
+cells= sheet('A:Z')
+
+```
+
+```c
+systemctl rescue  进入rescue模式，单用户
+systemd-analyze   查看开机启动耗时
+
 ```
 
 
