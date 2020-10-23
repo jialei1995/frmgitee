@@ -257,6 +257,12 @@ numpy.arange(10)   生成n个数字的一维数组
 data.reshape(2,5)  把它变成二维的
 data.reshape(2,5).T   再转置
 numpy.sqrt(data)   每个数字都开根
+np.genfromtxt('1.txt',delimiter=',')  提取1.txt中数据，1.txt中数据是以‘，’分割的
+data.astype(int)  data中每个数据都转化为int类型
+---pandas
+处理series 1列的数据
+处理dataframe  x列的数据
+切片是一段连续的数字才可以切片，切下来的数字是连续的
 
 
 ----- zip压缩
@@ -292,7 +298,36 @@ systemd-analyze   查看开机启动耗时
 
 ```
 
+---
 
+### LVM逻辑卷管理器
+
+```c
+物理存储介质：/dev/hda,vda,sda,。。。 最底层的存储单元
+物理卷（PV）：物理介质硬盘分区。再建立卷组时确定PE最小单元大小，确定后不可更改
+卷组（vg）：至少包含1个物理卷
+逻辑卷（LV）：建立在卷组里面，卷组中未分配的空间都可以用于建立新的逻辑卷，最大的好处就是可以动态扩容或缩小，不像物理硬盘，多大就多大。
+LE：逻辑区域，是逻辑分区中的可分配的最小单元 === PE，物理区域
+命令：
+创建物理卷：pvcreate /dev/sda1  sda1就是个物理卷，再往下分就是逻辑卷了
+查看物理卷：pvdisplay
+卷组：vgcreate lvmdisk /dev/sda1  /dev/sdb1  lvmdisk就是卷组名字，用两个物理卷做出来的
+		创建卷组的时候PE大小就确定了，	这个物理卷可以动态扩容的
+逻辑卷：lvcreate 逻辑卷中LE大小==卷组中PE的大小
+在lv中创建文件系统fs：mkfs -t ext2  /dev/lv的path  我们的根文件系统就挂载在这里
+创建好fs之后挂载：mount /dev/openeuler/root  /  挂载后即可使用，为了开机自动挂载修改/etc/fstab文件
+    			mount /dev/lvpath1  /home
+根目录空间不够了：如果此时vg还有剩余的PE，可以：
+lvextend  l+1122(空闲PE，可通过vgdiaplay查询)  /dev/openeuler/root   扩了硬件
+ext2online /    同时扩容fs，扩fs
+还可以这样扩硬件：lvextend L+55G  /dev/openeuler/root   ext2online  /
+
+若卷组空间不够了：
+vgextened  lvmdisk  /dev/sdd1   往卷组中增加物理卷-->之后再扩容lv
+
+```
+
+Elapesed time：运行时间
 
 
 
