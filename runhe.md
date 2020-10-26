@@ -352,3 +352,46 @@ make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
 
 ```
 
+---
+
+### 算法
+
+```c
+哈希表又称散列表：
+	把数据存储起来，根据数组下标，搜索起来速度O1，很方便
+取余法：经典
+如果数据跨度不大，可以直接建立数组，a[100]，将对应的需要存储的数字数组中下标置1.
+鸽巣原理：500只鸟存不到499个笼子里面。md5值理论上说不是唯一的，2^128次方
+
+二分搜索树：BST，就是二分法，理论上一球样的。搜索效率logn。
+
+```
+
+### gdb
+
+```c
+c : 继续运行程序，直到遇到下一个断点，若没有断点，程序就会运行完。
+set var 变量名=‘xxx’  或者数字  set var i=10
+./a.out arg1 arg2  程序如果运行时这样传参
+set args arg1 arg2  用gdb调试的时候就这样传   run 之前
+gdb里面的数字代表的是：行数 + 代码内容
+info  b:查看断点信息
+---进程：
+set follow-fork-mode parent  默认就是父进程，这个不用set
+set follow-fork-mode child
+设置调试模式：set detach-on-fork [on/off]默认是on
+on：调试一个进程另一个进程继续运行完
+off:调试一个进程另一个进程被gdb挂起 阻塞
+info inferiors  查看当前调试的进程信息
+inferior  进程id ：切换当前调试的进程  1/2
+---线程：
+info threads  查看线程
+thread 线程id:切换线程
+set scheduler-locking on只运行当前进程
+set scheduler-locking off 运行全部的线程
+thread apply 线程id  cmd  指定某线程执行某gdb命令，id是1、2、3不是系统的线程id
+thread apply all  cmd  指定全部的线程执行某gdb命令
+```
+
+
+
