@@ -18,6 +18,17 @@
   2. 比上面的高一些：/run/systemd/system 系统执行过程中产生的服务脚本
   3. 优先级最高：/etc/systemd/system 管理员建立的执行脚本
 
+```c
+grub2-editenv list == 列出来的就是grubenv里面的变量，可以通过grub2-set-default 去设置
+initramfs生成：dracut -H -f /path/initramfs-$(uname -r)  $(uname -r)
+    	其实安装内核的时候再post阶段就会有这个命令
+    	rpm -qa --scripts xxx包名
+lsblk：看硬盘挂载
+
+```
+
+
+
 ### unit类型
 
 + target unit  模拟运行级别的 xx.target===runlevelx
@@ -72,6 +83,12 @@ sed -i '/[0-9]/d'   删除包含数字的行
 调用时fun xx yy
 
 read -p 'xxxxx'  varname
+
+```shell
+$(( xxx ))  双层括号内可以进行数学计算
+```
+
+
 
 ### 软件包版本beta完美  alpha很多bug还在测试
 
@@ -376,6 +393,8 @@ set var 变量名=‘xxx’  或者数字  set var i=10
 set args arg1 arg2  用gdb调试的时候就这样传   run 之前
 gdb里面的数字代表的是：行数 + 代码内容
 info  b:查看断点信息
+display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
+watch:
 ---进程：
 set follow-fork-mode parent  默认就是父进程，这个不用set
 set follow-fork-mode child
@@ -391,7 +410,36 @@ set scheduler-locking on只运行当前进程
 set scheduler-locking off 运行全部的线程
 thread apply 线程id  cmd  指定某线程执行某gdb命令，id是1、2、3不是系统的线程id
 thread apply all  cmd  指定全部的线程执行某gdb命令
+---gcc
+-I ：如果不指定，默认从/usr/include 中寻找.h
+-L：如果不指定，默认从/usr/lib 中寻找.so
+-O：优化选项，不能与-g 一同使用
+-Wall：将warning视为error，有warning就退出，不会继续运行
+time ./a.out 计算a.out的运行时间
 ```
+
+---
+
+### coredump
+
+```c
+sleep 100 & ：将此程序运行放后台 此时会显示他的进程号 通过jobs也可查看
+kill -11 pid：将pid触发coredump
+coredump gdb pid:去调试这个dump的进程
+coredumpctl list：列出来当前的coredump事件
+watch：gdb调试的时监控某个变量    *****显示的更详细，还带的上次的值类似： dispaly num1
+    Hardware watchpoint 3: j
+    Old value = 104
+    New value = 105
+LD_PRELOAD=/home/xxx.so   优先加载这里面的库文件，即使lib里面有，先从这里找
+ldd  /lib/xx.so   查看库文件的依赖关系
+更改了/usr/lib/systemd/system/xx.service 后要systemctl daemon-reload  xx.service 再重启服务
+这个service 中的Limitcore=xxx 就是限制调用栈的大小
+cat /proc/pid(进程号)/limits   看进程的调用栈限制****
+systemd  资源控制初探，看看文章。
+```
+
+#### 断言assert 调用栈（很重要）
 
 
 
