@@ -98,6 +98,15 @@ EOF  可以将中间的内容放到文件当中
 
 ## linux基本命令
 
+```c
+head -n file   查看前n行
+
+tail -n file  查看后n行
+
+tail -f/F  file  动态的查看文件file的后n行
+
+cal  -1 输出本月日历  -3上月本月下月日历
+
 realpath  fielname    filename的绝对路径
 
 who 显示在那个终端ttyx
@@ -120,7 +129,23 @@ gzip -d xxx.gzip   解压
 
 list --dependencies  xx.target
 
-```c
+id     查看useid、groupid
+
+hostname -f 查看主机名
+uptime:查看开机到现在持续了多久，单位是hour+min
+计算机挂起相当于睡眠并不是关机，就是暂时不用用的时候很快连上就能用
+netstat -tnlp 查看网络状态
+	-t 只列出tcp协议的链接（protocol）
+	-n 将ip地址从字母组合转化为ip点分十进制，将协议转化为端口号（不加-n可以看一下再+-n去对比）
+	-l 过滤state列状态为LISTEN列的链接。监听
+	-p 显示发起链接的进程的pid与进程的名称
+
+top  后   P：cpu从高到底显示
+
+​				M：内存从高到低显示
+
+​				1：多个cpu信息都显示出来
+
 ls > 1.txt ==== ls 1>1.txt 标准输出流到1.txt
 ls 1>file  2>&1  把标准错误流给标准输出流，把标准输出流 存到 file中
 ls 2>file  1>&2  把2给1，把1给file
@@ -303,7 +328,7 @@ wb = load_workbook(filename='xx.xlsx')  只能加载已存在的
 wb.sheetnames
 sheet = wb['sheet1']
 wb.save(filename='xx.xlsx')
-cell = sheet('A1')  cell = sheet(row = 1,clumn = 1)
+cell = sheet['A1']  cell = sheet(row = 1,clumn = 1)
 data = cell.value
 cell.row  cell.column
 cell.corodinate   cell的坐标
@@ -316,6 +341,15 @@ cells= sheet('A:Z')
 ```c
 systemctl rescue  进入rescue模式，单用户
 systemd-analyze   查看开机启动耗时
+systemd 解决fs的依赖
+		接触Dbus的依赖-依赖Dbus的进程可以直接启动，Dbus会假启动。
+crypt：加密相关的工作
+.service怎么制作
+写好.sh脚本放到某个目录-->在/usr/lib/systemd/system中配置相应的test.service的
+Execstart = /usr/lib/systemd/system/test.sh 
+修改service之后，要执行systemctl daemon-reload xx.service 可以重新加载文件
+multi-user.target wants 谁，谁就会被放到/usr/lib/systemd/system/multi-user.target/
+    目录中，只要到了这个目录中，必定会开机启动，才能启动到这一级别。
 
 ```
 
@@ -509,5 +543,54 @@ crontab -r  删除任务  执行成功没有输出log，若再执行就会输出
 每分钟
 
 
+```
+
+### 20201101
+
+```c
+cat /dev/mice   当鼠标移动、按键按下的时候便会输出log
+/boot 挂载点挂载的（hd0,1） 如果将/boot umount系统依然可以启动进入grub界面，因为此阶段是bios或efi硬件控制的，bios可以找到第一个启动盘的位置，就可以进入grub
+但是如果将（hd0,1）里面的内容修改掉，就进不去grub界面了，因为grub文件彻底没有了。
+/dev 目录中的文件拷贝粘贴用：dd if xxx  of yyy 
+若扇区中grub丢失，都进不了grub界面，得通过挂载iso去以rescue模式启动：
+修复扇区的方法：grub-install  /dev/sda  产生grub文件
+			 setup  (hd0)  安装至hd0扇区
+
+```
+
+## c++
+
+```c++
+string1.compare(str2)   ==0  相等
+						 >0  string1 大
+						 <0  string1 小
+
+```
+
+### /proc
+
+```c
+linux中的/proc   是虚拟文件系统，里面的文件大多大小都是0，随时刷新，掉电消失
+/proc/processN    进程消失则对应的进程消失
+对于进程文件夹中：
+/proc/processN/cmdline    启动该程序的完整cmd
+environ：当前proc的环境变量
+exe：软连接到可启动当前程序的可执行文件
+fd:当前进程打开的fd 指向实际的文件的软连接
+limits:当前进程的资源受限
+task:当前进程中各个线程的相关信息
+/proc/version ：当前运行的内核
+/proc/partitions: 块设备的每个分区的主次设备号，每个分区的block数量
+/proc/modules：当前装入内核的所有模块   也可以通过：lsmod查看
+/proc/mounts  当前挂载的所有fs
+/proc/filesystem: 系统支持的fs列表
+```
+
+### 截屏软件（超级好用）
+
+```c
+snipaste.exe   打开之后，F1截屏
+						F3粘贴
+						ESC退出
 ```
 

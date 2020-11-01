@@ -194,17 +194,11 @@ io：
 	静态库编译时用一下，执行就不用了；动态库，执行时要用。1>>应把此库位置放入环境变量/lib和/usr/lib（系统库，用户库）的位置
 							2>>环境变量设置vim ./.bashrc    export LIBRARY_PATH=$LIBRARY_PATH:.........
 								$:source ~/.bashrc  （更新设置好的环境变量）
-	ldd命令可以查看一个可执行程序依赖的共享库
 ****************************************进程**线程****************************************************
 进程间通信：在用户空间是不可能的。进程在用户空间是相互独立的。
 					得通过内核中的对象。因为进程都可以访问同一内核的。
 		内核对象都不在用户空间：
 			无名管道：无文件名	pipe是系统调用所以包含unistd.h，
-					创建管道后返回2个文件描述符，1个读端1个写端。底层是个队列
-					如果没有给写端write，则读端会阻塞。读不到东西。
-					如果管道已经写满了，没有读，则会写阻塞。
-					读的过程中，管道中的数据就会消失掉。出队操作。
-					无名管道创建在内存中，程序结束空间释放。
 					所以必须用标准io才能进行通信，因为操作的是文件描述符，不是流指针。
 					得是父子进程或有亲缘关系的进程，因为要得到fd[]才能通信。此时用的同一个管道。
 			有名管道：有文件名存在于文件系统中
@@ -240,13 +234,8 @@ io：
 											IPC_SET
 											IPC_RMID
 										buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
-
-
-并发：☞在同一时刻，只能有1条指令被执行到，但多个进程指令被快速轮换执行，使得在宏观上具有多个进程同时执行的效果。看起来的同时发生的。  单核
-并行：同一时刻，多条指令在多个处理器上同时执行。  真正的同时发生。
 同步：彼此有依赖关系的调用不应该同时发生，同步就是阻止那些‘非要同时发生’的事件
 
-可以写一个c.h往里面放很多头文件，以后用的时候只用包含c.h就好了。不用每次都找头文件了。
 一个只有main的程序，既是线程也是进程，可以通getpid()与pthread_self().获取线程号与进程号。
 
 字符串定义的时候可以直接赋值。char a[] = 'sadas';
@@ -254,17 +243,10 @@ io：
 					.name = "123",
 					.mystr = "sdfgds",	结构体定义的时候字符串也可以直接赋值。
 				}
-
-在线程代码中如果main程序结束，进程就结束了，子线程是进程做来的，则子线程也就结束了，进程内的所有线程都结束了。
 **如果主线程调用	pthread_exit函数退出，这样的话，main进程会等所有线程结束时才会终止。不然一直阻塞住
 
-主线程即main可以通过argc与argv传参，而普通 的线程只能通过1个void*的参数传参
-
 新线程可能在pthrad_create返回之前就已经结束了的。不一定说函数有了返回值新线程才开始运行。
-线程状态：就绪，万事俱备，只等cpu轮到自己
-		运行，在单核系统中同一时刻只能有1个线程处于运行态
-		阻塞，线程等待处理器以外的其他条件。信号--数值输入--。有了资源，会到就绪态，而不是运行态。
-		终止，线程退出。
+
 线程回收：1.分离
 		 2.pthread_join 如果子线程return或pthread_exit退出，这个可以收到退出码。如果子线程被取消，就收不到退出码了。
 线程的退出：在线程函数中不要调用exit函数，会导致整个进程结束。
@@ -278,10 +260,6 @@ system（“ls”）；可以在程序中执行命令。
 线程间通信：可以在用户空间就通信，通过全局变量。
 进程：ps -ef |more  所有进程一瓶一瓶显示或者|grep查找想看的进程 如：test
 	ppid：父进程号
-	linux在新建一个进程的时候，会创建3个描述符，0 1 2
-	top：隔上3秒更新查看进程的动态信息。
-	/proc 此目录存放的所有进程的详细信息,内核的运行信息。虚拟的，这个文件夹目的就是让你观察系统运行状态
-	-20 是优先级最高的 +19最低
 	nice -n 2 ./test 改变优先级（只针对没有运行的进程）
 	renice 可以更改正在运行的 进程优先级
 	jobs  查看所有的后台进程
@@ -612,9 +590,6 @@ epoll原理概述
 观察list链表里有没有数据。有数据就返回，没有数据就sleep，等到timeout时间到后即使链表没数据也返回。而且，通常情况下即使我们要监控百万计的句柄，大多一次也只返回很少量的准备就绪句柄而已，所以，epoll_wait仅需要从内核态copy少量的句柄到用户态而已。
 
 总结如下：
-
-一颗红黑树，一张准备就绪句柄链表，少量的内核cache，解决了大并发下的socket处理问题。
-
 执行epoll_create时，创建了红黑树和就绪链表； 
 执行epoll_ctl时，如果增加socket句柄，则检查在红黑树中是否存在，存在立即返回，不存在则添加到树干上，然后向内核注册回调函数，用于当中断事件来临时向准备就绪链表中插入数据; 
 执行epoll_wait时立刻返回准备就绪链表里的数据即可。
@@ -676,7 +651,6 @@ sqlite数据库:
 		insert into stu values(100,"zhangsan",80);
 		insert into stu (name,score)values("sss",89);
 	查询记录：
-		select * from stu; //查询所有字段结果
 		select name，score from stu；
 		select * from stu where score=80 and name=“dsadsa”；
 	删除一条记录：
@@ -768,7 +742,6 @@ c阶段：
 			调到。main （大部分硬件初始化）
 
 电脑几核：
-	SOC：cpu+片内sdram+片内flash
 	cpu可以直接访问内存（存当前正在执行的程序与data），但不能直接访问外存。
 	3级存储：cache--->主存（内存）---->外存（辅助存）
 	r0-r12：保存数据临时变量
@@ -780,7 +753,6 @@ c阶段：
 	
 	
 串口裸机驱动：
-		arm-none-linux-gnueabi-gcc -g -c -o start.o start.s
 		arm-none-linux-gnueabi-ld  start.o -Tmap.lds -o led.elf
 		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 
 ··		【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
@@ -793,7 +765,7 @@ c阶段：
 					使能gpio引脚，引脚就能用了，使能uart，uart就能用了。但是要注意uart的时钟，与gpio时钟的频率要合适。不能说
 					uart的总线时钟是20M，你gpio的时钟设置的1M。这样数据还会有问题。
 
-			【1】配置第6章一对管脚pin的con为uart模式
+				【1】配置第6章一对管脚pin的con为uart模式
 				【2】uart章节一共有好几个uart，配置对应的ulcon配置收发数据格式
 				【3】波特率   
 				【4】数据收发方式-中断或轮训
@@ -1144,7 +1116,6 @@ C++:c++98||c++11 ||c++14
 
 		string& insert(int pos,const cahr* str)从pos位置插入str
 		string& earse(int pos,int n)删除从pos位置开始的n个字符
-		拼接：直接  str+str1+str2  或者 "asd"+"sadasd"就可以
 		compare（string str） >0 ==0 <0
 	**	string& substr(int pos,int n); 	返回从pos开始的n个字符组成的字符串
 
@@ -1334,29 +1305,19 @@ linux内核移植：
 	arch目录：
 		5大子系统：进程管理、内存管理、文件系统、网络协议、设备管理【重点掌握】
 
-	● arch ：包含和硬件体系结构相关的代码，每种平台占一个相应的目录，如i386、arm、
-	arm64、powerpc、mips 等。Linux 内核目前已经支持30 种左右的体系结构。在arch
-	目录下，存放的是各个平台以及各个平台的芯片对Linux 内核进程调度、内存管理、
-	中断等的支持，以及每个具体的SoC 和电路板的板级支持代码。
-	● block：块设备驱动程序I/O 调度。
 	● crypto：常用加密和散列算法（如AES、SHA 等），还有一些压缩和CRC 校验算法。
 	● documentation：内核各部分的通用解释和注释。
-	● drivers ：设备驱动程序，每个不同的驱动占用一个子目录，如char、block、net、
-	mtd、i2c 等。
 	● fs：所支持的各种文件系统，如EXT、FAT、NTFS、JFFS2 等。
 	● include：头文件，与系统相关的头文件放置在include/linux 子目录下。
 	● init：内核初始化代码。著名的start_kernel() 就位于init/main.c 文件中。
-	● ipc：进程间通信的代码。
 	● kernel ：内核最核心的部分，包括进程调度、定时器等，而和平台相关的一部分代码
 	放在arch/*/kernel 目录下。
-	● lib：库文件代码。
 	● mm：内存管理代码，和平台相关的一部分代码放在arch/*/mm 目录下。
 	● net：网络相关代码，实现各种常见的网络协议。
-	● scripts：用于配置内核的脚本文件。
 	● security：主要是一个SELinux 的模块。
 	● sound：ALSA、OSS 音频设备的驱动核心代码和常用设备驱动。
 	● usr：实现用于打包和压缩的cpio 等。
-	● include：内核API 级别头文件。
+
 	
 	子目录Makefile：
 		obj-y:编译进内核
@@ -1437,8 +1398,6 @@ linux内核移植：
 		CROSS_COMPILE	?= arm-none-linux-gnueabi-
 		•	导入 默认 配置
 		$ make   exynos_defconfig 只是配置不是编译
-		•	配置内核
-		$ make menuconfig
 		•	编译内核make uImage
 		arch/arm/boot目录下生成一个uImage文件（如果编译过程中提示缺少mkimage工具，uboot源码中的tools/mkimage拷贝到ubuntu的/usr/bin目录下）******************************
 		弄设备树
@@ -1520,14 +1479,6 @@ linux内核移植：
 		git checkout 666eb6c hello.c弄回来最旧的版本的hello.c
 	如果本地代码库中有a.txt，工作区也有a.txt，rm a.txt后，status会显示你deleted a.txt，你需要git add a.txt + git commit-m“delete a.txt”这条记录就会被更新到本地代码库，表示git记录了你有过删除a.txt的一条记录
 
-	git commit -m 每次执行，本地代码库就会有一条记录与之对应
-	总之git管理有3种状态：工作区--暂存区--本地代码库
-
-	新创建出来的feature_A分支相当于复制了一份master内容
-	git status：会告诉你On branch master还是在其他分支上
-	git branch -v查看你现在有几个分支
-
-
 
 	tag：git tag v0.9 315f9fe相当于给315f9fe重命名
 	版本删除：rm readme.txt + git commit -a 从仓库删除readme.txt 不然git status显示的删除只是工作区的删除，不是本地仓库的删除 
@@ -1539,14 +1490,7 @@ linux内核移植：
 	work_hello.c
 	work_readme.txt
 
-	linux@ubuntu:~/work$ git branch 查看分支结构
-	dev  
-	* master：*表示目前所在分支
-
 	git branch dev：创建分支 dev-------git branch feature_A创建featur_A分支
-	切换分支：
-		git checkout dev
-			Switched to branch 'dev'
 	一般主分支用来打补丁，改bug的。
 	合并分支：合并之前要切换回对应要合并的主分支（不一定是master）。
 		git checkout master
@@ -1565,7 +1509,6 @@ linux内核移植：
 	敏捷开发流程：					（迭代）
 		做一段先上线，有问题改问题，一个一个阶段来。每个阶段不会出大问题。根据客户需求改动
 
-	 git remote:远程同步 git clone https://gitee.com/jl_git/intelligent_warehouse.git
 	 建立远程连接git remote add origin https://gitee.com/jl_git/intelligent_warehouse.git
 	 删除远程git remote rm origin https://gitee.com/jl_git/intelligent_warehouse.git 相当于给网站取别名	
 	 push到这里git push
@@ -1573,14 +1516,6 @@ linux内核移植：
 		工作区->缓存区->本地代码库->远程代码库
 	 * [new branch]      master -> master表示将本地的master推送到了远程代码库master
 
-	 git clone  https://gitee.com/luyuxingit/intelligent_storage_system.git复制别人的整个项目
-	 写wiki：项目的详细介绍
-
-		先将服务器的数据下载到本地git 
-		clone 仓库地址：自己在下载的那里赋值一份download
-		git config --list   git clone开始下载
-		先将自己的文件保存到本地仓库然后push
-		git push：将本地仓库提交到远程仓库
 		
 		git remote add origin https://github.com/jialei-github/jialei.git
 		git push -u origin master
@@ -1779,9 +1714,6 @@ Connection closed by foreign host.
 		安装：insmod +demo.ko---------对应module_init(demo_init);入口函数【安装】 module_init;
 		卸载：rmmod+demo  ---------对应module_exit(demo_exit);出口函数【卸载】	module_exit();
 
-		模块安装完成可以$: lsmod | grep 模块名------>查看系统模块有没有，ismod就有了rmmod就没了
-		dmesg查看打印信息
-
 		modinfo ./hello.ko查看模块的相关信息
 		模块传参：  在源码中写好可以传参，然后模块安装的时候就可以传参进去
 				代码.c中也要有配置才行
@@ -1821,13 +1753,13 @@ Connection closed by foreign host.
 
 
 			  
-			静态申请设备号：
+		静态申请设备号：
 			int register_chrdev_region(dev_t from, unsigned count, const char *name
 				成功0   失败负值			设备号        几个         名字“name”
 			注销设备号   			注册的第一个设备号（注意这个不是主设备号）可以传MKDEV(ma,mi)
 			void unregister_chrdev_region(dev_t from, unsigned count)
 
-			动态申请设备号：
+		动态申请设备号：
 			int alloc_chrdev_region(dev_t * dev,从设备号，count，char*name)；根据/proc/device看那个号没用就可以用
 			注销：注销方式一样的，就申请方式有点不一样
 			void unregister_chrdev_region(dev_t from, unsigned count)
@@ -2555,13 +2487,6 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		mystr = "***"
 		newstr = mystr.join(my2)  #a***b***c 只把自己往对方中间插
 		print(newstr)
-
-		mystr = "          as   d     "
-		print(mystr.lstrip().rstrip())       # 截掉左边空格,然后再截掉右边空格
-		print(max(mystr))           # 打印最大字符以ASCII比较
-		mystr = "abcdddddefg"
-		mystr.replace("b","4")      #原字符串都不会变，但是可以通过str = str.jjj去改
-		print(mystr.replace("d","4",2))
 		'''
 
 		#mystr = "192.168.1.23"
