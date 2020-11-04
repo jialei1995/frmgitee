@@ -11,6 +11,13 @@
 		4：/dev
 		5：文件格式/etc/passwd
 
+	useradd jl;增加用户
+	userdel jl；删除用户  之后还要rm /home/jl
+
+	chown root /home/test  把这个目录或文件的属主设为root，别人就不能访问
+	chown jl:jl 1.c   目录或文件属主root group：root
+
+
 	PS:ctrl+j 把色彩范围的复制出来，按住ctrl+点击抠出来的印章，前景色选成红色，alt+delete填充，ctlr+d取消选区
 
 	预处理：作用就是删除注释，插入#include包含的文件内容，替换宏定义，判断条件编译等
@@ -1530,14 +1537,20 @@ linux内核移植：
 		*******************************************
 		git reflog 取代git log --oneline
 		git log 多屏显示时space 向下翻页 b向上翻页
-		重置版本：git reset --hard
-		git branch -v 查看分支树
 		git push origin master/fenzhi1/fenzhi2/xx
 		如果想直接往别人的url提交代码，需要加入别人的团队，让别人set collaborations + 自己的账号
 
 		git fetch origin master+git merge origin/master
 		git checkout origin/master 切换到远程分支
-		git checkout master        切换到本地master
+
+		合并两次提交：
+		（1）：若远程都已经提交完事了，现在想合并其中的某几个commit，可以通过
+		git rebase -i commitid   更改除了第一个pick之外的其他pick为squash   ：wq保存
+		再更改合并之后的commit描述   ：wq
+		git push -f  得强推
+		（2）：若刚刚提交了一个commit，现在更改了文件再提，想跟刚才的commit合并为同一个commit
+		git add 1.c  后 直接git commit --amend   直接写合并之后的commit描述就好了
+		最后也得git push -f
 
 ********************************makefile********************************************
 		%.o:%.c:
