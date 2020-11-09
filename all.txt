@@ -3689,7 +3689,8 @@ ls 1>file  2>&1  把标准错误流给标准输出流，把标准输出流 存�
 ls 2>file  1>&2  把2给1，把1给file
 
 pstree -p  显示pid以父子关系  -u显示所属user
-sshd 监听22号端口
+sshd 监听22号端口  ssh -p root@ip   远程登录ip的某个端口
+				  ssh root@ip   远程登录ip
 httpd 监听80端口
 
 iptables == firewalls  防火墙   看下哪些端口是启用的
@@ -3779,7 +3780,11 @@ vim 查看二进制文件：：%!xxd + enter
 ------
 
 ## python
-
+数组的大小是定的但是数据可变化，元组的大小与元组内的数据都在初始化的时候定下来了，列表大小与数据都是可以动态变化的
+所以数组介于元组与列表之间。
+string s = “aaa”；则s的大小就定下来的，在c++中。除非申请空间的时候就弄大点。
+stack在python中对应的是list，push->append;pop->pop;top()->list[-1]  顶端
+对于链表，python中的list底层就是链表
 - os.getcwd()  获取当前路径
 - os.listdir(“路径”)     列出当前文件夹下所有文件与文件夹
 - os.path.isdir('filename')    判断filename是不是个文件夹
