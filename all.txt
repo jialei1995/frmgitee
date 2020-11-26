@@ -191,16 +191,27 @@ io：
 	fwrite(buf, size, 1, fp);fread 成对使用并且一般用于结构体数组，因为是一块一块的
 						*******返回值不是字节数， 是读成功（写成功）的块数
 
-	gcc a.c   ./a.out什么现象都没有
-	静态库：1：gcc -c bye.c bye.o   gcc -c hello.c hello.o
-			2:打包生成库  ar crs libtest.a hello.o bye.o        
-		试验-3: gcc test.c -L. -l test (不写lib .a)  
-	动态库：1：gcc -fPIC -Wall -c hello.c(会生成忽略位置的hello.o)												
-			2: gcc -shared -o libtest.so hello.o bye.o 
-			3:编译 gcc test.c -L. -ltest(去lib .so) 
-	静态库编译时用一下，执行就不用了；动态库，执行时要用。1>>应把此库位置放入环境变量/lib和/usr/lib（系统库，用户库）的位置
-							2>>环境变量设置vim ./.bashrc    export LIBRARY_PATH=$LIBRARY_PATH:.........
+	静态库： 1：gcc -c *.c    生成的.o与位置有关
+			2:打包生成库  ar crs libtest.a *.o   
+
+	库的使用： gcc test.c -L. -l test (不写lib .a)  
+		     或：gcc test.c ./lib/libtest.a
+		    优点：依赖静态库编译自己的程序。程序运行的时候不在需要静态库。程序运行速度快。
+		    缺点：若库要改变了，程序需要重新编译，可能很耗时间，很麻烦
+	动态库：1：gcc -fPIC -Wall -c hello.c  (会生成忽略位置的hello.o）
+			2: gcc -shared -o libtest.so hello.o bye.o  生成库
+			优点：客户的程序不用改变，只需要改变动态库里面的实现即可，客户的程序不用重新编译，直接调用新编译的库就行了
+	库的使用：编译 gcc test.c -L. -ltest(去lib .so) 
+	两种库编译的时候都要指定库的位置。
+			动态库，执行时要用要库。
+			1>>把此库位置放入环境变量/lib和/usr/lib（系统库，用户库）的位置
+			2>>环境变量设置vim ./.bashrc    export LIBRARY_PATH=$LIBRARY_PATH:修改后重启终端才会有效。
 								$:source ~/.bashrc  （更新设置好的环境变量）
+			3>>找动态连接器的配置文件/etc/ld.so.conf 写入动态库的路径--ldconfig更新连接器。之后就会自动链接动态库
+	ldd a.out查看a.out运行需要哪些库，如果库链接不到，程序就无法运行。
+	用户需要.h+动/静态库就可以用了，不需要源代码。.h里面写了库里面有哪些函数。
+
+
 ****************************************进程**线程****************************************************
 进程间通信：在用户空间是不可能的。进程在用户空间是相互独立的。
 					得通过内核中的对象。因为进程都可以访问同一内核的。
@@ -1145,6 +1156,12 @@ C++:c++98||c++11 ||c++14
 			erase（pos）删除迭代器位置的元素  erase（s.begin(),s.end()）区间删除
 			erase（elem）
 ****************************************vector***********************
+	输入不定长的vector
+	{
+		v.push_back(x);
+		if（getchar()=='\n'）
+		或者写if(cin.get()=='\n')  break;
+	}
 **	vector单端数组	动态扩展可以随时插入新数据  不想数组一样，申请固定大小
 	只能push_back插入数据    可以pop_back删除
 	insert(迭代器，n，elem)，pos位置插入n个elem
@@ -2423,9 +2440,6 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		numpy：专门做张量运算的/矩阵运算的库
 		opencv-python：python的opencv库
 	pip install numpy -i https://mirrors.aliyun.com/pypi/simple/
-	pip install matplotlib -i https://mirrors.aliyun.com/pypi/simple/
-	pip install opencv-python -i https://mirrors.aliyun.com/pypi/simple/
-	例如：pip install sklearn -i https://mirrors.aliyun.com/pypi/simple/
 
 	豆瓣 ：https://pypi.douban.com/simple/ 
 	阿里 ：https://mirrors.aliyun.com/pypi/simple/ 
@@ -2444,11 +2458,8 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	root.mainloop()		
 ********************************************python***str**************************************8			
 		#mystr = "0123456789"
-		#for i in range(5,10):   # 左闭右开打印56789 \t结尾
+		
 		#   print(i,end="\t")
-		#print(mystr[0:5])   #打印0-4位置
-		#print(mystr[0:])    #print all
-		'''
 		print(mystr[-1:])   #只打印9
 		print(mystr[-1::-1]) #前面第一个给-1代表逆序截取
 		print(mystr[-1:4:-1])  #逆向截取
@@ -2521,6 +2532,13 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		print(str.swapcase())           # 大写转小写，小写转大写
 
 		'''			
+
+		字符串列表的输入：
+		s = input().split()    "1,2,3,4,5"
+		split() 默认以空格分隔，割完形成列表  strip() 默认删除开头与结尾的空格
+		if i in list:可以直接判断i是不是在list中，不用循环判断了，用起来很简单。
+		newlist = sorted(oldlist)  新的列表会排序
+		list = [int(i) for i in s]  则list就是对应的列表存的int数据
 ********************************python***list************************************************************					
 		
 			'''
@@ -2676,7 +2694,9 @@ class Cat:
 		起始下标：从0开始
 				  -1：最后1个元素
 		步长：正数向后跳跃；负数向前跳跃
-***************************************************list*************************************		
+***************************************************list*************************************
+	b = eval(input().strip());程序从终端输入任意长度的元素
+	[[1,2],[3,4],[x,x]...]  b就是个列表了 		
 	list.append()
 	list.pop()	
 	list的遍历：for
@@ -2796,6 +2816,8 @@ cubemx：
 	adc： 
 		adc的接收数组数据类型必须是volatile的。不然他不会变化了
 		stm32代码换行的时候要\r\n，只有\n有时候不能换行的
+		\r 表示return到行首
+		\n表示换行，不一定会让光标到行首
 	位数是soc内部的模块，与管脚无关，每个adc管脚都是n位的分辨率。soc的adc有几个模块，多少通道数有限，如果都启用，最多有几个
 		转换速率：完成1次ad转换的v
 		量化误差：由于ad的有限分辨率引起的误差
@@ -3701,11 +3723,9 @@ netstat -anp  查看有哪些外部登录
    
 ```
 
-静态库与动态库实际都是许多二进制的集合。
 
 ```c
 addr2line  0x11111  -f -e  a.out  找地址对应的代码行
-size  a.out   看每个数据段大小
 ar crs libxx.a x.o  y.o  打包静态库
 ar -x  libxx.a  解压静态库
 objdump -d a.out  反汇编二进制为汇编代码
@@ -4005,7 +4025,13 @@ set var 变量名=‘xxx’  或者数字  set var i=10
 set args arg1 arg2  用gdb调试的时候就这样传   run 之前
 gdb里面的数字代表的是：行数 + 代码内容
 info  b:查看断点信息
+b 15 if i==15 按条件设置断点，不是一到15行就停止了，还得i=15，才会断住。
+b filename:15/function   跳到文件名为filename的文件的15行，或者函数名字处
 display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
+undisplay  变量i的编号。编号的获取info display//i d
+finish：从函数中跳出来。
+ptype a：打印变量a的类型
+del  4：删除编号为4的断点
 watch:
 ---进程：
 set follow-fork-mode parent  默认就是父进程，这个不用set
@@ -4217,7 +4243,24 @@ ARP学习：
 免费arp：检测同局域网内是否有别的IP与自己一样，如果有，就可以收到返回的信息，如果没有就不会收到。
 
 
+route -n 
+destination为默认或0，0，0，0 表示默认网关，所有数据都会发送到此
+gateway为0，0，0，0表示与本地同一网段，通信时不需要网关  这个就是路由器的ip。gateway就是路由器ip，网关的ip
+traceroute ipaddr检测到达此ip需要经过多少跳-
 
+当前进程的所有环境变量：env（ker:value）
+
+vsftpd：ftpserver软件
+1.更改配置文件/etc/vsftpd.conf  anonymos表示启动匿名登录
+2.重启服务
+client：安装vsftpd此软件安装后既有server，也有clinet。
+实名登录：ftp ipaddr
+		root  +  密码		   实名登录可以看到服务器的所有目录
+匿名登录：ftp ipaddr
+		anonymous + enter即可  匿名登录只能看见server配置文件里的anon_root目录就是自己看到的根目录
+		上传：put filename
+		下载：get filename
+tree  dirname：看此目录的结构
 
 
 
