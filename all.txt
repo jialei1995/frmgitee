@@ -3562,7 +3562,17 @@ print("{0} de {1} {2}".format(n1,n2,n3))
 - 进入终端后update-grub
 
 ### 启动过程
+bios/uefi->bootloader->kernerl->initramfs->systemd->switchroot->rootfs->systemd
+  bios:上电自检+找bootloader(bios芯片，固件程序)
+  bootloader：加载kernerl+文件系统
+  initramfs：内存中的fs--内存中的systemd
+  switchroot:切根--重新起systemd拉起别的服务
 
+console=tty0  + rd.break  -->switch_root#:
+			  + rd.break=pre-moune --->pre-mount
+			  + rd.shell
+			  + systemd.debug-shell=1
+mount -o remount,rw /sysroot
 - 现在centos7的启动1个systemd接管所有的unit，即使b依赖a。在a还没启动的时候就会发出1个a已经启动成功的信号，所以b就可以直接启动了。这样所有unit都一起启动。
 - 启动配置文件
 - 1. 优先级最低：/usr/lib/systemd/system 每个服务的启动脚本
