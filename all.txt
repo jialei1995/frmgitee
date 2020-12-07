@@ -268,9 +268,19 @@ io：
 **如果主线程调用	pthread_exit函数退出，这样的话，main进程会等所有线程结束时才会终止。不然一直阻塞住
 
 新线程可能在pthrad_create返回之前就已经结束了的。不一定说函数有了返回值新线程才开始运行。
-
+线程的生成：
+		pthread_create();
+初始化线程属性：(应先初始化线程属性，再去create线程)-----可以通过修改线程的属性使线程分离，不需要detach了
+		int pthread_attr_init(pthread_attr_t * attr);attrubute(属性)成功0失败errno
+		int pthread_attr_destroy(pthread_attr_t * attr) 销毁线程属性所占用的资源
 线程回收：1.分离
 		 2.pthread_join 如果子线程return或pthread_exit退出，这个可以收到退出码。如果子线程被取消，就收不到退出码了。
+		 		阻塞等待子线程退出、
+		 如果之前的线程用了datach就不要在去join了，都已经自己回收了，用join会收谁去呀？会出错的。
+线程杀死：
+		pthread_cancle(pthread_t pid)---->对应进程中的kill函数--成功0，失败errno
+		线程中得有syscall才能取消，有取消点（函数的底层会调syscall）
+		杀死的进程得回收资源，此时join到的线程的返回值是-1.(固定的，死记住)
 线程的退出：在线程函数中不要调用exit函数，会导致整个进程结束。
 		****线程可以被同一进程中的其他线程取消
 			调用pthread_exit(void*val)与return x；这2种类似
@@ -318,6 +328,24 @@ system（“ls”）；可以在程序中执行命令。
 		WIFSIGNALED(status)  子进程被信号打断，返回true
 		WTERMSIG(status)     得到子进程被那个信号终止
 	
+	ps  -Lf  pid:查看进程中的线程
+	火狐浏览器一打开：就可以看到分配了几十个线程（线程池）
+	nLwp:多少个线程
+	Lwp：线程号（线程号不是线程id，cpu轮换就是根据线程号轮换的
+				线程id：进程内区分pthread_self()获取线程号）
+	线程共享的资源：
+		文件描述符表；
+		signal的处理方式					尽量不要将线程与signal混这用，比较麻烦，不稳定
+		当前进程的工作目录
+		用户id与组id
+		内存中除了栈的地址（text,data,bss,heap,共享库）
+	私有的资源：
+		errno变量
+		线程id
+		栈空间，栈指针
+		信号屏蔽字
+		调度优先级（跟进程的优先级一样）
+
 	ps-aux	//WIFSTPEPED(status)   子进程被信号停止，返回true
 	才能看	//WSTOPSIG(STATUS)      返回让子进程停止的信号
 不能printf 出来		//WIFCONTINUED(STATUS)	如果子进程被信号重启，返回true
@@ -420,9 +448,13 @@ signal函数:
 	SIGKILL SIGSTOP不能被忽略 也不能被捕捉
 	SIGSTOP是暂停进程信号，不是终止
 	函数kill(pid,sig)  pid可以指定getppid给父进程。。。。
-		raise(sig)只能给自己所在的进程发
+		raise(sig)只能给自己所在的进程发---
+		void abort();自己给自己发SIGABRT信号，终止进程并产生core文件。
 	SIGALRM：alarm（5）到时间就会发出的信号，发出信号如果有注册过这个信号的处理函数，就会跳过去执行
+		一个进程有且只有一个定时器，无论进程处于哪种状态，alarm都在计时****
 	SIGINIT：在终端执行Ctrl+c会触发此信号，发出信号如果有注册过这个信号的处理函数，就会跳过去执行	
+	ctrl+z：sigstop信号
+	ctrl+\：退出信号
 	SIGCHILD：有子进程退出会发这个信号，可以提醒父进程去回收啦。
 	SIGSEGV 段错误
 	 进程收到信号的三种处理方式：
@@ -491,7 +523,7 @@ SYSTEM-V IPC 通讯机制：
 			（3）设置文件权限 umask（0） 				1是标准输出
 			（4）关闭所有文件描述符 close 循环 关闭0,1,2,3，---关闭1之后就不能打印了
 			（5）进入需要的循环while（1）			避免浪费资源，0,1,2开着没啥用	
-		
+
 进程组的概念：只有父进程的进程组是自己，子进程的进程组是父进程。
 		kill -9 -pgid   一次杀死所有进程组的进程    （区别父进程与进程组的概念）
 
@@ -501,6 +533,21 @@ SYSTEM-V IPC 通讯机制：
 		普通用户不能改变root用户的进程的进程组
 
 网络编程：
+	C/S模型：
+		优点：协议灵活，缓存数据（为啥大型游戏第一次启动慢--拉数据到内存），
+			数据量比较大，可以提前缓冲大量数据
+			应用程序稳定
+		缺点：客户端装在用户电脑，威胁用户的安全
+			 还需要写服务器，开发麻烦
+	B/S模型：浏览器作为客户端--不会安装第三方软件
+		优点：安全，只需要开发server端就可以了，每个用户都有浏览器客户端，不需要再开发了，
+			跨平台。浏览器嘛，linux也有，都能访问(不像lol只能在windows上玩)。
+		缺点：协议选择http协议不能修改，必须完整的支持http协议
+			 都是小型程序，大型游戏在浏览器上玩，卡死了就(不能传输大量数据)
+
+	我们平时写的网络编程只要设计到tcp、udp协议，说明这是自定义的协议，
+	真正的应用层开发的协议使不会用到这种函数的，下面的6层都由os帮你做（tcp/ip模型）
+
 		#include <netinet/in.h>：sockaddr_in 头文件
 		DNS域名解析服务
 		典型协议：
@@ -1457,6 +1504,9 @@ linux内核移植：
 **************************************************************************************************
 	交叉编译工具集：arm-linux-	
 		size xxx：显示可执行文件的数据段、代码段、bss段大小  注意：没有堆栈，堆栈在内存中的
+				数据段：全局var，静态var   可读可写
+				bss：未初始化的全局var静态var
+
 		nm xxx：符号标签	显示代码与地址的对应关系表
 		strip xxx：剔除xxx中 代码与地址的对应关系表，剔除了mn 命令就查不到了
 		strings xxx：查看此二进制文件中 的字符串  就是printf对应的打印信息
@@ -1598,6 +1648,13 @@ linux内核移植：
 		:= 是覆盖之前的值
 		?= 是如果没有被赋值过就赋予等号后面的值
 		+= 是添加等号后面的值
+
+		其实make是个软件，makefile只是个配置文件，make 命令没有makefile也能执行的
+			例如在有xx.c的目录中直接执行make xx，就会自动根据xx的名字找对应的.c然后生成对应的xx可执行文件
+			CC xx.c -o xx  隐士规则
+		目标：依赖
+			sh xx.sh    这里其实可以执当前目录的的shell脚本（用sh去运行此脚本）
+		默认执行make命令其实是make的makefile中的第一个目标
 *************************************************************************************		
 QT:
 	Qwidget:是其他两个的父类，最简单的空窗口，他的父类是所有对象的祖宗QOBJECT.
@@ -2890,76 +2947,11 @@ markdown文件：
 xmind：
 	table：拓展出来子系列
 	enter：拓展同级内容
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-------补丁-----
+热补丁：不用停os或者软件，直接在运行的时候就能把补丁打进去的就是热补丁。
+普通的补丁是根据源文件做补丁，然后停止软件或os去打补丁，打完之后重新编译，然后运行软件。
+普通的补丁是src代码做补丁
+热补丁：对src修改后编译出二进制，此二进制与之前的二进制对比做二进制patch，这就是热补丁
 
 
 
@@ -2997,13 +2989,6 @@ www.lizard.ws  代码拖进去，可以看代码圈复杂度
 sudo apt-get install python-pip
 pip install lizard
 $:lizard weekday.c 可以显示圈复杂度
-
-公司项目分工--谁分工---周期多久---公司技术部人数--试用期多久，试用期薪资
-职业规划：3年以后可以有自己的小组，独立完成项目。希望以后能转硬件，希望能做产品架构师
-
-***************************V4L2 video for linux 2***************************
-
-
 
 **********************总复习********************
 针对指针判空：if(p == NULL) 或 if(p == 0) 其实NULL 就是0
@@ -3276,7 +3261,7 @@ io：
 	 创建子进程，父进程退出--setsid会话--改目录掩码--关闭文件描述符
 
 	 线程：pthread_detach(pthread_t th);	 		将线程设置为游离态  detach：使分开
-	 		退出的子线程会被系统回收线程资源。相当于linux内核调用的pthread_join();
+	 		退出的子线程会被自动系统回收线程资源。相当于linux内核调用的pthread_join();
 	 		成功返回0，失败返回错误号errno。
 	 		线程也可以自己分离自己。在子线程内部调用此函数。
 网络：
@@ -3709,8 +3694,25 @@ dup：复制文件描述符，本来一个打开的文件只对应1个文件描�
 	int dup(int oldfd);  直接返回新的文件描述符（文件描述表中没被占用的最小的fd）
     int dup2(int oldfd, int newfd); 
 
-strace ./a.out  查看a.out中有哪些系统调用  read->sysread   write->syswrite
+strace ./a.out  查看a.out中有哪些系统调用（此时的a.out不用+-g参数就可以）
+strace -e open,close ./a.out 只查看a.out中的open，close这两种syscall
+strace ./a.out   查看每个syscall花费的时间
+strace ping baidu.com   查看此过程中的syscall
+
 access  判断文件是否存在的系统调用
+strace ./a.out  查看a.out的系统调用，可以查看各个系统调用的参数返回值，消耗的时间
+ltrace （lib trace）查看库的调用，跟踪库的调用(查看每个函数的来源在那个动态库中，每个函数的位置)
+gdb -p pid 调式已在运行的进程
+gdb 中backtrace：查看当前的调用栈。
+gdb怎么知道程序在哪里死了呢？（段错误）-->其实就是看的进程死的时候产生的core文件
+
+backtrace:出现好多栈帧
+frame 栈帧编号：查看此帧的相关信息
+0xnnnnn：in function(m=0xmmmmm(入参的地址),<入参参数>)  at 某个文件某个函数的第几行；
+
+
+SDK：GCC 类似gcc的编译工具链，是个链
+
 
 /dev/zero  可以是一个任意大的文件
 /dev/null  可以吸收任意大的数据
@@ -3838,13 +3840,24 @@ pcb的本质就是个400多行的结构体描述进程
 	进程可用的资源：ulimite -a
 				  (open files:1024 最多能同时打开这么多文件)
 				  (stack size：栈大小)
+				  用户栈一般是8M
+				  内核是8K
+
 	mmu负责进程的虚拟内存与物理内存的映射，每个进程一旦运行，它就开始工作了
+	mmu的三级映射：
+	a.out-->页目录-->页表-->物理内存地址
 
 ### 开机自动挂载在/etc/fatab设置
+
+crush>:help  查看crush中的指令
+bt：显示调用栈
+bt pid显示对应的进程的调用栈
 
 ### mount -t iso9660 -o ro /dev/cdrom /mnt
 
 ​                    类型 ISO           挂载方式   只读  
+
+进程上下文，中断上下文
 
 ### make
 
@@ -3866,6 +3879,8 @@ make时有时候是需要联网的。
 ### git add过的文件修改后直接git commit -a 啥都不用加就好了
 
 vim 查看二进制文件：：%!xxd + enter
+^ + e:光标位置不变，文件向上移动
+home/end 跳到行首行尾
 
 ------
 
@@ -4092,14 +4107,15 @@ make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
 c : 继续运行程序，直到遇到下一个断点，若没有断点，程序就会运行完。
 set var 变量名=‘xxx’  或者数字  set var i=10
 ./a.out arg1 arg2  程序如果运行时这样传参
-set args arg1 arg2  用gdb调试的时候就这样传   run 之前
+set args arg1 arg2  用gdb调试的时候就这样传   run 之前  对应./a.out arg1 arg2
+show args  查看传入的参数
 gdb里面的数字代表的是：行数 + 代码内容
 info  b:查看断点信息
 b 15 if i==15 按条件设置断点，不是一到15行就停止了，还得i=15，才会断住。
 b filename:15/function   跳到文件名为filename的文件的15行，或者函数名字处
 display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
 undisplay  变量i的编号。编号的获取info display//i d
-finish：从函数中跳出来。
+finish：从函数中跳出来，回到上一层函数。并不是一下就跳回到main。跳到上一层继续调试
 ptype a：打印变量a的类型
 del  4：删除编号为4的断点
 watch:
@@ -4151,6 +4167,15 @@ systemd  资源控制初探，看看文章。
 
 ```c
 assert (a>5); 断言判断成功，程序继续向下进行，断言失败，程序退出
+assert只判断一个条件比较好，程序一旦出错就知道是哪里的问题
+
+一般的运用函数之前可以判断一下，x>10程序继续
+assert(x>0);
+...
+
+或者进入函数前判断入参
+assert(p != NULL);
+...
 ```
 
 ### tmux
