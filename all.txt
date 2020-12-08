@@ -11,16 +11,17 @@
 		4：/dev
 		5：文件格式/etc/passwd
 
+	PCI总线：外设部件互联总线（显卡，网卡），pci主要链接显卡网卡
+
 	useradd jl;增加用户
 	userdel jl；删除用户  之后还要rm /home/jl
 
-	chown root /home/test  把这个目录或文件的属主设为root，别人就不能访问
+	chown root /home/test  把这个目录或文件的属主设为root，别人就不能访问(还看对other的访问权限0664.)
 	chown jl:jl 1.c   目录或文件属主root group：root
 
 
 	PS:ctrl+j 把色彩范围的复制出来，按住ctrl+点击抠出来的印章，前景色选成红色，alt+delete填充，ctlr+d取消选区
 
-	预处理：作用就是删除注释，插入#include包含的文件内容，替换宏定义，判断条件编译等
 	
 	在while（）循环里面定义的变量之后定义一次，不会每次进入循环都定义一次（****）
 		并且循环里面定义的变量在循环外不能访问，它已经释放了。每轮循环完成后定义的变量就会被析构，下一轮重新定义的
@@ -131,7 +132,6 @@ c++		string 不是char*传参的时候传string 并不会改变原来s的值，�
 	编译分为：预处理precompile【处理#将内容粘贴到文件中】--》编译compile【生成.s】--》汇编asseble【生成.o】
 	--》链接link【拼接多个.o生成可执行.elf此时包含调试信息（只能在linux中运行）】--》objcopy：剥离无用的调试信息生成.bin可以在板子运行
 find：
-	find ./ -name *.sh     	find 路径 -name filename  
 	find ./ -type  c/d/p/s/l/b/f  		字符设备文件，普通文件f
 	whereis + 目录名
 
@@ -256,7 +256,6 @@ io：
 											IPC_SET
 											IPC_RMID
 										buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
-同步：彼此有依赖关系的调用不应该同时发生，同步就是阻止那些‘非要同时发生’的事件
 
 一个只有main的程序，既是线程也是进程，可以通getpid()与pthread_self().获取线程号与进程号。
 
@@ -266,8 +265,17 @@ io：
 					.mystr = "sdfgds",	结构体定义的时候字符串也可以直接赋值。
 				}
 **如果主线程调用	pthread_exit函数退出，这样的话，main进程会等所有线程结束时才会终止。不然一直阻塞住
+				要想主线程退出其他线程不退出，主线程退出的时候应该用pthread_exit
+				return ：返回调用它的函数
+				exit：退出当前进程-->底层调的_exit()
+				pthread_exit():退出当前进程
+				线程退出是值是（void*）的类型
+		如何避免僵尸线程：
+			pthread_join
+			pthread_detach
+			pthread_create之前先设置线程的分离属性
 
-新线程可能在pthrad_create返回之前就已经结束了的。不一定说函数有了返回值新线程才开始运行。
+新线程可能在pthrad_create返回之前就已经结束了的。不一定说函数有了返回值新线程才开始运行。***
 线程的生成：
 		pthread_create();
 初始化线程属性：(应先初始化线程属性，再去create线程)-----可以通过修改线程的属性使线程分离，不需要detach了
@@ -279,7 +287,7 @@ io：
 		 如果之前的线程用了datach就不要在去join了，都已经自己回收了，用join会收谁去呀？会出错的。
 线程杀死：
 		pthread_cancle(pthread_t pid)---->对应进程中的kill函数--成功0，失败errno
-		线程中得有syscall才能取消，有取消点（函数的底层会调syscall）
+		线程中得有syscall才能取消，有取消点（函数的底层会调syscall）可以自己加一行pthread_testcancle();取消点
 		杀死的进程得回收资源，此时join到的线程的返回值是-1.(固定的，死记住)
 线程的退出：在线程函数中不要调用exit函数，会导致整个进程结束。
 		****线程可以被同一进程中的其他线程取消
@@ -426,6 +434,17 @@ system（“ls”）；可以在程序中执行命令。
 		锁是保护共享资源的，我访问你就不能访问。你访问我就不能访问。
 		信号量: 进程间或线程间(linux仅线程间)  两者作用域也不一样
 		互斥锁: 线程间 		*******************************************
+
+	读写锁：pthread_rwlock_xxx
+	条件变量：pthread_cond_xx  
+			 pthread_cond_wait();难
+	信号量：互斥锁的升级版(可用于进程线程间)
+
+	同步：不同行业有不同的理解
+		设备间：同一时间参考--usart uart
+		编程中：按照先后预定的次序执行代码就是同步。1个线程调某个函数时函数不返回，别的线程不能调用函数去读写全局变量（保护了全局变量）
+			彼此有依赖关系的调用不应该同时发生，同步就是阻止那些‘非要同时发生’的事件
+
 
 
 signal函数: 
@@ -1847,6 +1866,10 @@ Connection closed by foreign host.
 
 			 写设备驱动程序， 首先申请设备号：
 			cat /proc/devices   查看可用的设备号（主设备）  
+		
+		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
+		     input/output 设备系统
+
 
 
 			  
@@ -2491,7 +2514,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		睡眠与while1：程序阻塞的时候是睡眠，cpu不会升高，只会卡住程序
 		while1cpu升高，卡死程序
 		sleep是延时运行（程序也在运行，滴答定时器，中断弄得）
-	【】【】睡眠与sleep函数不是1个东西
+		unistd中的usleep（n）---us级的延时
 *******************************************驱动多路复用**************************************
 	应用层的select，epoll，select--->驱动层的helo_poll（）
 	select检测fd对应的io通道上是否有数据传过来，若有数据把相应的读集合位置1.然后处理此事件
@@ -3694,10 +3717,14 @@ dup：复制文件描述符，本来一个打开的文件只对应1个文件描�
 	int dup(int oldfd);  直接返回新的文件描述符（文件描述表中没被占用的最小的fd）
     int dup2(int oldfd, int newfd); 
 
-strace ./a.out  查看a.out中有哪些系统调用（此时的a.out不用+-g参数就可以）
+strace ./a.out  查看a.out中有哪些系统调用（此时的a.out不用+-g参数就可以）显示的整个程序的syscall
+backtrace 看当前位置使从main几层过来的，调用栈
 strace -e open,close ./a.out 只查看a.out中的open，close这两种syscall
 strace ./a.out   查看每个syscall花费的时间
 strace ping baidu.com   查看此过程中的syscall
+strace dmesg：查看dmesg是怎么打印到屏幕上的
+
+dlopen:man一下
 
 access  判断文件是否存在的系统调用
 strace ./a.out  查看a.out的系统调用，可以查看各个系统调用的参数返回值，消耗的时间
@@ -3842,6 +3869,13 @@ pcb的本质就是个400多行的结构体描述进程
 				  (stack size：栈大小)
 				  用户栈一般是8M
 				  内核是8K
+
+				  用户栈：fun运行提供空间
+				  内核栈：保存register的值
+
+				  ulimit -c：如果是0，程序宕的时候不会产生core文件
+				  ulimit -c unlimit  这样程序down的时候就会在某个目录下产生core文件（/var/lib/systemd/coredump）
+				  coredumpctl list：查看down掉的程序的进程号-coredumpctl gdb pid调试down的进程(有core文件才能调)
 
 	mmu负责进程的虚拟内存与物理内存的映射，每个进程一旦运行，它就开始工作了
 	mmu的三级映射：
@@ -4356,6 +4390,18 @@ client：安装vsftpd此软件安装后既有server，也有clinet。
 		上传：put filename
 		下载：get filename
 tree  dirname：看此目录的结构
+
+### linux宕机
+
+```c
+crush/crash vmlinux-xxxdefault.gz vmlinux-xxdefault.debug  vmcore
+观察PANIC与COMMAND的描述(就是在command命令执行的时候宕机的)
+mod -S /path/自己编写的模块的路径   导入模块的符号表(函数名字与变量)
+bt：查看调用栈
+	[exception RIP:funname+12]:宕机的函数
+dis -r funmane+12   反汇编
+sym  0xnnnnnnnn 查看该地址下的变量名
+```
 
 
 
