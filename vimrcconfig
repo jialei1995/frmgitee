@@ -1,3 +1,13 @@
+centos的配置
+set hlsearch
+set nu
+set tabstop=4
+set shiftwidth=4
+set cindent
+
+
+
+以下是ubuntu的配置
 " .vimrc - Vim configuration file.
 "
 " Copyright (c) 2010 Jeffy Du. All Rights Reserved.

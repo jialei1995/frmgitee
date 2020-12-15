@@ -391,7 +391,7 @@ system（“ls”）；可以在程序中执行命令。
 				访问之前申请锁，访问之后释放锁
 			mutex：锁子（互斥量）			表示不可读阻塞		表示可写，写完后应该v操作	
 				int pthread_mutex_init(pthread_mutex_t *restrict mutex,const pthread_mutexattr_t *restrict attr);	锁子一定要在线程创立之前初始化，不然线程刚开始还是乱的
-			
+
 				pthread_mutex_lock（&mutex）
 				(给共享资源枷锁)若：当前未锁，成功加锁，当前已锁，阻塞等待
 				pthread_mutex_trylock（&mutex)  若当前未锁成功枷锁，当前已锁则直接返回(所以这种需要轮询)
@@ -406,7 +406,7 @@ system（“ls”）；可以在程序中执行命令。
 				2.在访问共享数据之前迅速枷锁，访问完成就迅速解锁--建议这么做。不要访问完了还干别的事情
 				3.stdout也是共享数据，在线程中printf也是访问共享资源(底层是write到2号fd，print的时候不枷锁，
 				有可能每个线程打印的话都搅和到一起，打印的话都不通顺了)
-				4.解锁后稍微睡一下usleep（），让别的线程可以抢占到锁，不然他们不好抢
+				4.解锁后稍微睡一下usleep（），让别的线程可以抢占到锁，不然他们不好抢。容易易主
 		死锁产生的例子：
 			1.同一线程内部2次获得同一个锁，该锁子只有一个
 			2.p1有A锁请求B锁，p2有B锁请求A锁
@@ -452,8 +452,26 @@ system（“ls”）；可以在程序中执行命令。
 	读写锁：pthread_rwlock_xxx
 		口诀：写独占，读共享（各线程都是读的时候才共享**）
 			 写锁优先级高（如果别的线程有请求写锁的有读锁的，则读锁就不共享了，先让写线程获得写锁）
-	条件变量：pthread_cond_xx  
+			pthread_rwlock_init();  只有一个锁
+			pthread_rwlock_destroy
+			pthread_rwlock_rdlock pthread_rwlock_rdtrylock
+			pthread_rwlock_wrlock pthread_rwlock_wrtrylock
+			pthread_rwlock_unlock
+
+	条件变量：pthread_cond_xx  本身不是锁，但是可以造成线程阻塞，通常与互斥锁配合使用
 			 pthread_cond_wait();难
+			 pthread_cond_init
+			 pthread_cond_destroy
+			 pthread_cond_wait
+			 		1.使用前定义mutex 初始化mutex 锁住mutex 定义cond 初始化cond
+			 		2.阻塞等待条件变量满足+释放已掌握的mutex
+			 		3.被唤醒，函数返回时，接触阻塞，重新lock互斥锁
+			 pthread_cond_signal
+			 		1.唤醒至少一个阻塞在条件变量上的线程
+			 pthread_cond_broadcast
+			 		1.唤醒所有阻塞在cond上的线程
+			 静态初始化cond方法：不需要init函数，只要：pthread_cond_t mycond=PTHREAD_COND_INITIALIZER
+
 	信号量：互斥锁的升级版(可用于进程线程间)
 
 	同步：不同行业有不同的理解
@@ -604,6 +622,7 @@ SYSTEM-V IPC 通讯机制：
 			局域网外：路由器中还有个路由表：可以查看要发送的信息的目的ip是否在本局域网内，如果不在，就将数据放到局域网对外接口，相当于wan口，然后数据就发出去了
 		交换机：本网段通信，基于mac地址转发数据，内部有个mac地址表。所以可以在局域网内定向传输数据，不能与互联网交换。
 		路由器：有广域网接口，不同网段直接收据收发。本质是个gateway，只接受数据包that包含在本ip表内的ip的数据
+			在传数据的-路上-经由的东西就是路由器
 		通信的时候路由器看一下数据包的ip，如果在本局域网内，就不从wan口发了，如果是别的局域网内的数据，则
 		tcp/ip 4层模型
 			网络接口：网络：传输：应用层   ip		端口
@@ -888,6 +907,8 @@ c阶段：
 				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
 		
 	*******************************timer**********************************	
+	硬件时钟源：RTC->独立于CPU与其他硬件，由纽扣电池供电，会一直运行
+	linux开机时读取的时间就是rtc中的时间，关机时再将当前os的时间同步到rtc中。
 		为什么说看门狗与pwm都是定时器，因为他们配置的结果就是产生一个频率，实际就是产生一个固定的时间长度，
 		你配置输出频率的占空比还是基于这个时间，这个频率可以精准配置时间的。exynos配置的时候好几步都是弄频率的。
 		看门狗：WTCON = WTCON  |1 |0x7<<3 |249<<8;配置分频，产中断还是产复位信号。还是只当个定时器来用
@@ -1836,6 +1857,8 @@ Connection closed by foreign host.
 	qt中函数alt+enter自动补全
 
 **************************************驱动开发******************************************
+	普通软件的安装:./config + make + make install
+	类型为M的驱动：make modules + make install
 
 	内核目录执行：make modules  啥意思：往板子的rfs目录放个含linux的makefile的modules文件夹。
 				make modules_install INSTALL_MOD_PATH= ~/rootfs	将模块安装到rootfs中  
@@ -2392,6 +2415,10 @@ int munmap(void *addr, size_t length);
 6.文件的偏移量必须是4K的整数倍(mmu映射的内存就是4K 4K的映射的)
 7.一定要检查返回值(mmap成功返回void*指针，失败返回MAP_FAILED宏)
 
+用户空间的页面允许中断，内核空间的不允许中断。
+
+
+
 
 驱动里：
 实现mmap 方法,
@@ -2472,9 +2499,10 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 			HZ：决定多长时间+1  决定每s产生多少次定时器中断
 		***jiffies每隔 1/HZ 时间 +1  即1/(1s/100)  是个时间段数（这个HZ不是Hz单位）
 			HZ = 1s/100		
+		内核的HZ决定jiffies计数，一般1s增加250次
 驱动中断：在dtb中指明那个脚要中断，中断触发方式
 		fs4412-key {
-			compatible = "fs4412,key";
+			compatible = "fs4412,key"; 
 			interrupt-parent = <&gpx1>;  gpx1的2脚，第二个2是触发方式：下降沿
 			interrupts = <2 2>;
 		};
@@ -3815,6 +3843,7 @@ ls 2>file  1>&2  把2给1，把1给file
 pstree -p  显示pid以父子关系  -u显示所属user
 sshd 监听22号端口  ssh -p root@ip   远程登录ip的某个端口
 				  ssh root@ip   远程登录ip
+				  如果链接不断断线，可能因为ip或mac重复了，可以直接在xml中更改mac的几位。
 httpd 监听80端口
 
 iptables == firewalls  防火墙   看下哪些端口是启用的
@@ -4298,6 +4327,7 @@ cat /dev/mice   当鼠标移动、按键按下的时候便会输出log
 但是如果将（hd0,1）里面的内容修改掉，就进不去grub界面了，因为grub文件彻底没有了。
 /dev 目录中的文件拷贝粘贴用：dd if xxx  of yyy 
 若扇区中grub丢失，都进不了grub界面，得通过挂载iso去以rescue模式启动：
+		iso文件：都是只读的，挂载到某个目录下的时候此目录也是只读的，无法更改目录内的东西，可以考出去更改（因为是对目录没有权限）
 修复扇区的方法：grub-install  /dev/sda  产生grub文件
 			 setup  (hd0)  安装至hd0扇区
 
@@ -4435,8 +4465,14 @@ B->ping a的ip                       上面的a的界面收到消息，不阻塞
  tcpdump -n dst host ip -r 1.txt  只显示目的ip的ip的信息
 
 
-
-
+计算机的资源：计算、           存储、          网络
+			cpu与内存      不在本地()
+						  在移动硬盘中
+						  共享存储
+热迁移：
+某台CNA过载(虚拟机太多了)则这些虚拟机上的服务就会很卡，客户体验不好
+或发生故障，
+则可以将部分虚拟机迁移到另一台CNA上
 
 
 
