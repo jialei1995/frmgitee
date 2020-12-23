@@ -150,6 +150,16 @@ find：
 		
 		$:匹配行末尾			;$ 匹配行末是；的行
 		^$：空行
+	\bth：表示以th开头的行
+	th\b：表示以th结尾的行
+	？：紧跟在它前面的单元匹配0或1次ex: [0-9]?\.[0-9]-->x.[0-9] x可有可无  ‘.’需要转义
+	正则中‘’ 与“”一样的
+	+：紧跟在它前面的单元匹配1或多次
+	*：紧跟在它前面的单元匹配0或多次
+	{N}：紧跟在它前面的单元匹配N次
+	{N,}:紧跟在它前面的单元匹配至少N次
+	{M,N}：紧跟在它前面的单元匹配至少M次，至多N次
+	
 		
 vim中的字符串替换： 命令行模式下：  ：%s/echo/printf/g	将echo字符串换成printf，不带g也行
 sed：
@@ -473,6 +483,8 @@ system（“ls”）；可以在程序中执行命令。
 			 静态初始化cond方法：不需要init函数，只要：pthread_cond_t mycond=PTHREAD_COND_INITIALIZER
 
 	信号量：互斥锁的升级版(可用于进程线程间)
+			互斥锁只能供1个线程使用，信号量初始化为N，就可以供N个线程使用，因为每次抢占只会-1，
+				互斥锁减1下就没了，信号量可以减N次
 
 	同步：不同行业有不同的理解
 		设备间：同一时间参考--usart uart
@@ -601,6 +613,8 @@ SYSTEM-V IPC 通讯机制：
 
 	我们平时写的网络编程只要设计到tcp、udp协议，说明这是自定义的协议，
 	真正的应用层开发的协议使不会用到这种函数的，下面的6层都由os帮你做（tcp/ip模型）
+	tcp的稳定不是不会丢包，是丢了会重传。
+	listen:其实不是监听，是限制同一时刻最多有多少client可以同时发起connect
 
 		#include <netinet/in.h>：sockaddr_in 头文件
 		DNS域名解析服务
@@ -660,7 +674,9 @@ SYSTEM-V IPC 通讯机制：
 	
 	addr.sin_addr.s_addr = inet_addr(ip) 点分十进制->网络字节序
 	inet_ntoa(addr.sin_addr.s_addr)  网络字节序-》点分十进制会报错warning但是可以运行
-	
+	htonl  uint->网络字节序
+	inet_pton 点分十进制->网络字节序
+	inet_ntop 网络字节序->点分十进制
 	fcntl:改变已打开的文件属性：
 		
 	文件描述符：设为不阻塞的，设为阻塞怎么设
@@ -2846,10 +2862,6 @@ class Cat:
 ***************************************************list*************************************
 	b = eval(input().strip());程序从终端输入任意长度的元素
 	[[1,2],[3,4],[x,x]...]  b就是个列表了 		
-	list.append()
-	list.pop()	
-	list的遍历：for
-				range()
 	list[起始下标:终止下标:步长]
 	del(a[2])  删除a的第二个
 		
@@ -2863,7 +2875,8 @@ class Cat:
 	#from pack.pack_test import pack_func        #从包里面的那个文件导入文件中某个function可以将函数名字as 为fun
 	#pack_func()						
 		
-																											   文件夹
+	还可以import 对象，则可以在文件中直接调对象的方法----
+		obj.fun()																										  
 	import cls 		类也可以导入然后供子类继承	，这里导入的是文件名。同一级目录下也可以直接导入，不在同目录也可以：from 面向对象 import myclass
 	Stu k("jialei",99) 		#python里面实例化得用一个变量去接受，不能这样做	
 	k = Stu();		上面是c++的写法	
@@ -3669,6 +3682,7 @@ grub2-editenv list == 列出来的就是grubenv里面的变量，可以通过gru
 initramfs生成：dracut -H -f /path/initramfs-$(uname -r)  $(uname -r)
     	其实安装内核的时候再post阶段就会有这个命令
     	rpm -qa --scripts xxx包名
+解压rpm包：rpm2cpio xx.aarch64.rpm |cpio -div  这个不是安装，就是解压
 lsblk：看硬盘挂载
 
 mbr分区：古老的分区方法
@@ -4493,9 +4507,21 @@ B->ping a的ip                       上面的a的界面收到消息，不阻塞
 混合云：上面的混合
 
 
+fusion computer:融合计算
+nfv：网络虚拟化
+trace：跟踪
+pendding：待处理
+bond：网卡
+nic：网卡
+raise：失败用例
+cdrom：光驱
+submission：服从
 
+cd xx || cd yy  前面成功则后面的不执行
 
-
+@property  python的只读属性
+将某个方法当成只读属性看待，例如:get_name()方法调用的时候可以直接obj.get_name即可，不需要加括号
+把此方法当成属性看待
 
 
 
