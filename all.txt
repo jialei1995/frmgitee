@@ -484,7 +484,7 @@ system（“ls”）；可以在程序中执行命令。
 
 	信号量：互斥锁的升级版(可用于进程线程间)
 			互斥锁只能供1个线程使用，信号量初始化为N，就可以供N个线程使用，因为每次抢占只会-1，
-				互斥锁减1下就没了，信号量可以减N次
+				互斥锁减1下就没了，信号量可以减N次9
 
 	同步：不同行业有不同的理解
 		设备间：同一时间参考--usart uart
@@ -4523,8 +4523,65 @@ cd xx || cd yy  前面成功则后面的不执行
 将某个方法当成只读属性看待，例如:get_name()方法调用的时候可以直接obj.get_name即可，不需要加括号
 把此方法当成属性看待
 
+网卡有板载方式有PCI连接方式
+RAID卡：多块独立硬盘通过不同的组合方式形成一个硬盘组，提高存储性能。组合方式就是RAID级别
+直通：虚拟化里面，直接将硬盘、网卡、USB不通过host，直接给虚拟机使用的方式就是XX直通
+PXE启动方式就是通过网络从PXE的主机下载开机需要的资源去启动机器，例如内核与ramfs
+我们安装虚拟机的时候启动方式一般是光驱，安装后启动方式就是硬盘了
 
 
+c&&c++考试：
+可重入函数：只使用自己栈上的变量，连static都不用的函数
+			strcpy/read/fork/socket
+			怎么实现可重入：要用全局变量尽量用reg的值，堆中的全局变量
+			对全局变量进行枷锁，信号量
+不可重入函数：使用了全局变量的函数。函数内用static数据，用malloc，free，IO函数的函数
+			rand/getenv/setlocal
+			strtok/strerr/tmpname
+			asctime/ctime/gethostbyname/inet_ntoa
+内联函数：10行内 圈复杂度不超过5 
+函数嵌套不超过4层  函数不超过50行   文件不超过200行
+todo要逐个评估
+全局变量 文件头部要注释
+如果代码外部开源，不必遵守华为规范
+函数式宏：缺乏类型检验-难打断点，不能调试--
 
+https://github.com/jialei-github/Vundle.vim.git  vim配置
+find  . -name \*.py -print | xargs ptags.py
+比如在.vimrc 中添加：
+set tags+=tags
 
+java中  >> :表示右移的时候左边补符号位
+		>>>:表示右移的时候左边补0
+交换两个数不借助tmp：假设a=甲  b=乙  相同为0不同为1
+a = a^b           a=甲^乙  b=乙
+b = a^b           a=甲^乙  b=甲^乙^乙=甲^0=甲
+a = a^b           a=甲^乙^甲=乙
 
+squence：顺序
+
+shell中的[]与(())还是不一样的：
+实验：[ $i eq "123" ]  语法错误
+     （（$i == "123"））正确
+
+python函数定义中有默认参数的，默认参数放最后
+Python中任意类型的实例都是对象，如int a=5,a也是对象。这与c++。java不同
+
+python：属于1个对象或类的变量成为“域”----类内定义的变量
+class myclass：
+属于对象的变量调用时：self.var
+属于类的变量调用时：myclass.var
+
+对象函数：self指向调用此函数的对象
+类函数：声明之前@classmethod  如果调用者是类，则cls指向类，如果是对象，则cls指向对象
+静态函数：声明之前@staticmethod  无类似self，cls的隐形参数
+
+__init__(self,xx,xx) 构造函数
+__del__():析构函数
+
+制作模块，打包的方法：
+1.在此包(文件夹)中写个空的__init__.py 将此包的路径放到python的默认调用路径
+2.在此包的路径中写setup.py 中包含要打包的模块  执行python setup.py build即可
+
+模块的名称一定是.py结尾。
+import的一定是个模块import a.b.c.modulename(最终还是模块)
