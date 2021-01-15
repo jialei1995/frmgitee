@@ -623,6 +623,8 @@ SYSTEM-V IPC 通讯机制：
 		应用层：http、ftp、nfs、ssh
 		网络层：ip、igmp、icmp
 		网络接口层：arp、rarp、以太网帧协议
+		arping -I ifens0 -D ip
+		arping -I br0 IP    检测ip是否冲突，或者mac是否冲突
 		tcp：传输控制协议-面向连接的可靠的基于字节流的
 		udp：用户数据报-无连接的传输层协议，不可靠
 		ip：Internet 互联协议
@@ -1121,13 +1123,6 @@ C++:c++98||c++11 ||c++14
 				int & r = 200; //错的，r不分配内存，不能直接存放200
 				但是const int & r = 200;是对的。编译器将这句话解释为--int temp = 100;const int &r = temp;
 			
-			例： 
-				int num = 9;
-				int data = 3;
-				int &r = num; //给num定义一个引用(别名)
-				r = data;     //用data的值修改num的值
-				int * p = &num; //指针p指向num
-				p = &data;    //指针p指向data
 			例：
 				int num[10] = {0};
 				int * p = &num[0];//p = num; //定义一个指针指向数组的第0个元素
@@ -1148,12 +1143,6 @@ C++:c++98||c++11 ||c++14
 					return r + h;
 				}
 				
-				void swap(int &a, int &b) //使用引用来传参，实现两个数交换
-				{
-					int t = a;
-					a = b;
-					b = t;
-				}
 			引用和指针的区别
 				1. 引用必须初始化，指针可以不初始化
 				2. 引用在修改的时候，实际上是修改被引用的变量的值；指针的修改，可以修改指向的变量。
@@ -1607,7 +1596,7 @@ linux内核移植：
 				sudo etc/init.d/nfs-kernel-server restart 
 				root=/dev/nfs 	nfsroot=ip地址（ubuntu）：/挂载目录 	ip=ip号不能与linux一样
 
-		/etc/init.d/xxx  各种服务的启动脚本都在这里放着
+		/etc/rc.d/init.d/xxx  各种服务的启动脚本都在这里放着
 		/etc/rc.local    开机后自动执行的脚本，可以自己写个啥进去，每次开机自动就执行了(例如mount)
 				
 				
@@ -1626,7 +1615,9 @@ linux内核移植：
 	git commit -a -m "//adas"  -a参数要求hello.c已经在暂存区了（之前必须已经git add过了）更新暂存区的hello.c
 					这个操作直接将工作区的代码添加到代码库，不再需要先加到暂存区
 	比较版本的差异：git log 查看提交日志
-				git log --oneline  少量信息显示（**用的更多）  
+				git log --oneline  少量信息显示（**用的更多） 
+				git log + filename  显示此文件的log
+				git show + commitid 显示此commitid的更改文件 
 				git reflog：显示信息中多了Head版本的HEAD{X},HEAD{Y}
 		git diff 315f9fe 666eb6c比较版本1与版本2
 		git diff 315f9fe 比较当前版本与版本315f9fe
@@ -1937,10 +1928,13 @@ Connection closed by foreign host.
 				成功0   失败负值			设备号        几个         名字“name”
 			注销设备号   			注册的第一个设备号（注意这个不是主设备号）可以传MKDEV(ma,mi)
 			void unregister_chrdev_region(dev_t from, unsigned count)
+			cat /proc/device   查看当前os中的设备号。 
 
 		动态申请设备号：
 			int alloc_chrdev_region(dev_t * dev,从设备号，count，char*name)；根据/proc/device看那个号没用就可以用
-			注销：注销方式一样的，就申请方式有点不一样
+			注销：注销方式一样的，就申请方式有点不一样                              
+			/proc/device这个文件中的设备好是主设备号，一般总设备号32bit是个很大的数字
+			 我们通常描述设备用主设备号与次设备号去描述
 			void unregister_chrdev_region(dev_t from, unsigned count)
 			
 
@@ -1986,10 +1980,12 @@ Connection closed by foreign host.
 			0.注册设备号【2中方法】
 				[1]自动分配
 				[2]指定设备号注册						弄设备号
-			1.struct cdev * cdev_alloc();			就是创建字符设备。	cdev就是字符设备
+			1.struct cdev * cdev_alloc();			就是创建字符设备。	cdev就是字符设备,申请一段空间存字符设备
 			2.void cdev_init(&cdev,&ops操作集);		初始化cdev结构体ops可以操作cdev【系统完成的】  申请失败cdev_del(pdev);
-	****	3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理
+	****	3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理，某个设备号有哪些operations，就定下来了。
+	此时用户怎么使用这个驱动呢？得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。一个设备文件对应一个具体的设备，设备号与设备文件通过mknode的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
 			4.void cdev_del(&cdev);					注销cdev结构体
+
 
 			pcls = class_create(THIS_MODULE,"hello");//类 创建成功再创建设备文件
 					class_destroy(pcls);
@@ -2561,6 +2557,10 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 
 	自旋锁：在操作全变变量的过程前后加锁解锁*****保证操作全局变量的过程即使被打断，别人也没办法操作这个全局变量，
 		对共享资源枷锁，保护共享资源（注意只是在全局变量操作前后加解锁，不能中间隔得太远，不然别的程序获取不了锁，会卡死）
+		spin_lock();自旋锁
+		spin_unlock();解锁
+		down(&sem);内核的信号量
+		up(&sem);
 ****如果只用1个全局变量，不用锁，open一个文件后，还来不及修改全局变量，另一个进程也可以打开这个文件，这样就会有问题了
 	$:gnome-system-monitor---任务管理器
 	信号量要点：在驱动中全局变量定义：struct semaphore mysem;
@@ -3062,7 +3062,7 @@ xmind：
 	     在最后一行下面添加
 	     export PATH=$PATH:/home/farsight/gcc-4.6.4/bin
 	     :wq 保存退出
-	   $ source .bashrc
+	   $ source .bashrc  /etc/profile :TMOUT=0
    切换到别的目录， 输入arm-n ，按tab键能补全为arm-none-linux-gnueabi- 说明OK
 
 ****************************************圈复杂度***************************************************8
@@ -3523,6 +3523,7 @@ int main()
 	关键字$ :以关键字结尾
 	-v 取反打印
 	-v -x -n ====-vxn
+	-w 精确匹配关键词
 列过滤工具：
 	cut：
 		cut -d':' -f1 passwd:查找以':'分割的第一列字符串
@@ -3858,8 +3859,10 @@ ls 1>file  2>&1  把标准错误流给标准输出流，把标准输出流 存�
 ls 2>file  1>&2  把2给1，把1给file
 
 pstree -p  显示pid以父子关系  -u显示所属user
-sshd 监听22号端口  ssh -p root@ip   远程登录ip的某个端口
+sshd 监听22号端口  ssh -p root@ip   远程登录ip的某个端口(记住关闭防火墙，设置/etc/ssh/sshd_config PermitRootLogin)
 				  ssh root@ip   远程登录ip
+				  ssh -vvv ip 显示登录的异常
+
 				  如果链接不断断线，可能因为ip或mac重复了，可以直接在xml中更改mac的几位。
 httpd 监听80端口
 
@@ -4324,7 +4327,8 @@ tmux ls:查看挂起的会话有几个
 
 ------
 
-### LINUX任务调度crontab---/etc/crontab
+### LINUX任务调度，定时任务 crontab---/etc/crontab
+	/var/log/cron  定时日志
 
 ```c
 crontab -e  添加任务
@@ -4584,4 +4588,49 @@ __del__():析构函数
 2.在此包的路径中写setup.py 中包含要打包的模块  执行python setup.py build即可
 
 模块的名称一定是.py结尾。
-import的一定是个模块import a.b.c.modulename(最终还是模块)
+import的一定是个模块import a.b.c.modul
+
+虚拟机的创建需要virsh命令：
+virsh有很多有用的功能：
+生成磁盘镜像qemu-img create -f xxx   40G
+热插磁盘：virsh attach-device 虚拟机名字 xxx.xml（此xml中就是普通xml中的device中的描述磁盘的那部分内容）
+热拔磁盘：virsh detach-device 虚拟机名字 xxx.xml
+virsh reboot/shutdown virtname
+热插网卡：virsh attach-device virtname  net.xml  
+热迁移：就是将HOST1中的virtA在运行状态迁移到HOST2上去运行
+      本质就是将virtA所在的目录在HOST1与HOST2中共享。共享目录必须包含此虚拟机的磁盘，镜像，iso，不然迁移不过去，HOST2看不到磁盘，iso的位置了就
+xml文件中屏蔽:<!-- xxxxxxx -->   z中间内容被屏蔽
+
+try:xxx
+except:异常执行这部分
+else：如无异常执行这部分
+
+英语单词：
+implict	隐士转换
+
+删除远程分之：git push origin --delete 远程分之名
+删除本地分之：git branch -d 分之名（先切到别的分之，才能删除本分之）
+
+c中使用正则：
+1-转换
+int regcomp(regex_t *compile,const char *pattern,int cflags);
+1.struct (编译-子串-->结构体)   c语言不认识正则串，可以用struct存起来，这就是编译了
+2.正则串
+3.标志：扩展正则--忽略大小写--识别换行符号
+2-
+int regexec(regex_t *compiled,char * string,size_t len,regmatch_t add[],int eflags)
+1.compiled是上面转换后的结构体指针
+2.待正则的表达式
+3+4：存正则的数组
+
+
+删除文件后磁盘空间并没有减少：lsof |grep delete 删除相关进程。
+readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
+
+ip route:查看当前机器的路由是谁
+动态分配ip的虚拟机的路由与掩码不用自己设置，所以以后就用动态分配吧 dhcp默认指定了路由
+修改/etc/sysconfig/netcork-scripts/ifensn后
+需要执行：nmcli con reload enp1s0
+		nmcli con up enp1s0     重新加载配置文件
+		或者ifdown enp1s0
+			ifup enp1s0  重启网卡
