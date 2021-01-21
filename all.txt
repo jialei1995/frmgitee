@@ -136,7 +136,7 @@ find：
 	whereis + 目录名
 
 正则表达式：字符串匹配
-		基础正则：grep
+		基础正则：
 		扩展正则：egrep
 		egrep  “[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}”  filename 在filename查找ip地址
 			   注意“ 位数	 值范围		仅分割意思   .在正则中有别的意思
@@ -624,8 +624,8 @@ SYSTEM-V IPC 通讯机制：
 		网络层：ip、igmp、icmp
 		网络接口层：arp、rarp、以太网帧协议
 		arping -I ifens0 -D ip
-		arping -I br0 IP    检测ip是否冲突，或者mac是否冲突
-		tcp：传输控制协议-面向连接的可靠的基于字节流的
+		arping -I br0 IP    检测ip是否冲突，或者mac是否冲突，若有回应说明确实冲突了，会返回别的mac
+		tcp：传输控制协议-面向连接的可靠的基于字节流的(可靠的意思是每次发送后都能收到ack信号，证明收到了)
 		udp：用户数据报-无连接的传输层协议，不可靠
 		ip：Internet 互联协议
 		icmp：Internet控制报文 ip主机、路由器之间传输控制信息
@@ -2281,7 +2281,9 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 		End of conversion flag(Read only)  当它置1，值才可读
 挂载：
       $ sudo mount -t nfs localhost:/source/rootfs    /mnt
-      $ sudo umount /mnt/      
+      $ sudo umount /mnt/  
+      umount卸载时显示：busy--
+       fuser  -vm /mnt(挂载点)  看看那个进程占用了此目录，kill掉就可以umount了    
 
       inode结构体:
       		每个文件（包含字符设备文件）都有自己的inode结构体
@@ -3363,12 +3365,16 @@ ser能收能发     cli能收能发
 1：cli->我要发
 2:ser->我可以收-->我也要发
 3：cli->那我也收
+不是物理上的连接：本质是S端与C端为之后的通信开辟资源 ***
 
 4次挥手
 1：cli我不发了
 2：ser我不收了  你等下我把我的数据发完
 3：ser我也不发了 
 4：cli 反正你都发完了，我也不收了
+为啥要有4次挥手：连接会占用socket==ip+port port数量有限
+		如果光连接不通信，port的65535用完就不能继续建立连接了，不能通信了
+
 
 	需要监听的文件描述符放到1个链表中
 	线程池---
@@ -3523,7 +3529,8 @@ int main()
 	关键字$ :以关键字结尾
 	-v 取反打印
 	-v -x -n ====-vxn
-	-w 精确匹配关键词
+	-w 精确匹配关键词  grep -w 'xx' filename
+	-o 只打印匹配到的字符 grep -o '[0-9]' 只打印匹配到的行中有0-9的字符 
 列过滤工具：
 	cut：
 		cut -d':' -f1 passwd:查找以':'分割的第一列字符串
@@ -3723,6 +3730,7 @@ gpt分区：现在用的比较多-windows64 位以后基本都用的这种方式
 ### sed 默认时对每一行都要处理的
 
 sed -i '/xxx/d'  file  删除
+sed -i '88 r b.file'  filename:在filename的第88行后+b.file的内容
 
 sed -n '/xxx/p'  file   打印
 
@@ -3817,8 +3825,9 @@ cal  -1 输出本月日历  -3上月本月下月日历
 
 realpath  fielname    filename的绝对路径
 
-who 显示在那个终端ttyx
-
+who 显示当前哪些windows的ip在登录本机器。
+tty：终端设备(ctl+alt+F1~F7)前6个是文本吧，第7个是界面。命令行直接输入tty，可以看到当前是ptsx几号终端
+pty：虚拟终端(它只是主机的/dev/ptsn在winows的映射)
 lsblk  查看当前挂载的磁盘（硬盘）分区
 
 brctl  show:查看我的网桥连接的哪些网卡  ---桥接
@@ -3840,6 +3849,7 @@ list --dependencies  xx.target
 id     查看useid、groupid
 
 hostname -f 查看主机名
+hostnamectl set-hostname  jl：更改主机名为jl，reboot生效
 uptime:查看开机到现在持续了多久，单位是hour+min
 计算机挂起相当于睡眠并不是关机，就是暂时不用用的时候很快连上就能用
 netstat -tnlp 查看网络状态
@@ -3847,6 +3857,8 @@ netstat -tnlp 查看网络状态
 	-n 将ip地址从字母组合转化为ip点分十进制，将协议转化为端口号（不加-n可以看一下再+-n去对比）
 	-l 过滤state列状态为LISTEN列的链接。监听
 	-p 显示发起链接的进程的pid与进程的名称
+只有S端才有监听态：LISTEN
+1个电脑可以有多个页面可以连接百度，但是百度给每个页面的返回界面都不一样，因为port不一样。他们发给百度的port都是80
 
 top  后   P：cpu从高到底显示
 
@@ -4149,6 +4161,9 @@ ext2online /    同时扩容fs，扩fs
 vgextened  lvmdisk  /dev/sdd1   往卷组中增加物理卷-->之后再扩容lv
 
 ```
+增加根分区：
+lvresize -l + 100%FREE -r /dev/mapper/xxx
+
 linux的硬盘分为：SCSI  类型，现在用的比较广泛
 				IDE   类型，现已淘汰
 UUID：分区初始化后就会有对应的UUID号，是针对分区的不是硬盘的。（分区出事化mkfs后就会有）
@@ -4481,7 +4496,7 @@ dis -r funmane+12   反汇编
 sym  0xnnnnnnnn 查看该地址下的变量名
 ```
 host www.baidu.com  查看域名对应的ip(底层怎么查的：看/etc/resolve.conf DNS域名解析server)
-												此server是可以改的
+												此server是可以改的可以设置多个dnsx：
 
 tcpdump 命令怎么用
 A----------------B
@@ -4592,11 +4607,14 @@ import的一定是个模块import a.b.c.modul
 
 虚拟机的创建需要virsh命令：
 virsh有很多有用的功能：
-生成磁盘镜像qemu-img create -f xxx   40G
+生成磁盘镜像qemu-img create -f qcow2 xxx   40G  这个也可以是磁盘镜像，也可以是虚拟机 看你的xml是什么了
 热插磁盘：virsh attach-device 虚拟机名字 xxx.xml（此xml中就是普通xml中的device中的描述磁盘的那部分内容）
+动态添加：virsh attach-disk 机名 xx.qcow2 vda
 热拔磁盘：virsh detach-device 虚拟机名字 xxx.xml
 virsh reboot/shutdown virtname
-热插网卡：virsh attach-device virtname  net.xml  
+热插网卡：virsh attach-device virtname  net.xml 
+热插cpu：virsh setvcpus 机名 2 --live
+热插内存：  virsh attach-device virtname  mem.xml
 热迁移：就是将HOST1中的virtA在运行状态迁移到HOST2上去运行
       本质就是将virtA所在的目录在HOST1与HOST2中共享。共享目录必须包含此虚拟机的磁盘，镜像，iso，不然迁移不过去，HOST2看不到磁盘，iso的位置了就
 xml文件中屏蔽:<!-- xxxxxxx -->   z中间内容被屏蔽
@@ -4625,6 +4643,10 @@ int regexec(regex_t *compiled,char * string,size_t len,regmatch_t add[],int efla
 
 
 删除文件后磁盘空间并没有减少：lsof |grep delete 删除相关进程。
+文件系统中有些文件是看不到的但是还在占用磁盘空间。
+inode：icount--正在打开此文件的进程数量
+	   inlink：硬连接数，给dir目录下增加文件就会增加dir的硬连接数，删除文件就会删除dir的硬连接数
+	   		就是通过dir可以访问到多少文件，就是dir的硬连接数
 readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
 
 ip route:查看当前机器的路由是谁
@@ -4634,3 +4656,18 @@ ip route:查看当前机器的路由是谁
 		nmcli con up enp1s0     重新加载配置文件
 		或者ifdown enp1s0
 			ifup enp1s0  重启网卡
+*******************8suse*****************
+zypper ar -c file:///iso
+zypper refresh：更新repo源
+zypper ls:看repo有几个
+zypper packages:看repo中提供哪些包
+
+scp重复拷贝同一文件名到det的相同目录会覆盖之前的文件。
+
+fsck.ext4 -y /dev/mapper/root  会修复文件系统，按照ext4格式
+df -h  查看磁盘空间
+du -h --max-depth=n 查看几层目录结构的文件占用
+du -sh .
+df -i 查看磁盘的inode使用情况，inode用完的话就不可以再创建文件了
+
+
