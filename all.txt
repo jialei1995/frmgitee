@@ -3889,6 +3889,9 @@ netstat -anp  查看有哪些外部登录
 
 ```c
 addr2line  0x11111  -f -e  a.out  找地址对应的代码行
+addr2line -e 文件名 -f ：显示对应的fun对应的行数
+
+gdb vmlinux-debug： b 0x000000 ，在这里打断点就知道对应的地址的代码行了
 ar crs libxx.a x.o  y.o  打包静态库
 ar -x  libxx.a  解压静态库
 objdump -d a.out  反汇编二进制为汇编代码
@@ -4041,6 +4044,8 @@ print(fnmatch.fnmatch("lesson.py","l*.py"))   返回true
 --- 
 获取文件信息
 print(filename.stat())    创建时间
+stat + filename：Modify time--文件数据最后一次变更时间
+				 Change time--文件元数据最后一次变更时间(权限-所属者)
 
 ---
 import time
@@ -4136,19 +4141,23 @@ multi-user.target wants 谁，谁就会被放到/usr/lib/systemd/system/multi-us
 ------
 
 ### LVM逻辑卷管理器
-
+lvm是建立于磁盘与分区之上，FS之下的一个逻辑层。
 ```c
 物理存储介质：/dev/hda,vda,sda,。。。 最底层的存储单元
-物理卷（PV）：物理介质硬盘分区。再建立卷组时确定PE最小单元大小，确定后不可更改
+物理卷（PV）：物理介质硬盘分区。再建立卷组时确定PE最小单元大小，确定后不可更改(fdisk /dev/sda 执行此命令进行分区)
 卷组（vg）：至少包含1个物理卷
-逻辑卷（LV）：建立在卷组里面，卷组中未分配的空间都可以用于建立新的逻辑卷，最大的好处就是可以动态扩容或缩小，不像物理硬盘，多大就多大。
+逻辑卷（LV）：建立在卷组里面，卷组中未分配的空间都可以用于建立新的逻辑卷，最大的好处就是可以动态扩容或缩小，不像物理硬盘，多大就多大。LVM可以由1或多个VG组成，1个VG也可以创建1或多个LVM。
 LE：逻辑区域，是逻辑分区中的可分配的最小单元 === PE，物理区域
+          fdisk           pvcreate        vgcreate      lvcreate        mkfs
+/dev/sda介质------>物理分区--------->物理卷--------->卷组---------->逻辑卷------>逻辑分区去挂载
 命令：
-创建物理卷：pvcreate /dev/sda1  sda1就是个物理卷，再往下分就是逻辑卷了
+创建物理卷：pvcreate /dev/sda1  sda1就是个物理卷，
 查看物理卷：pvdisplay
-卷组：vgcreate lvmdisk /dev/sda1  /dev/sdb1  lvmdisk就是卷组名字，用两个物理卷做出来的
+卷组：vgcreate lvmdisk -s 16M  /dev/sda1  /dev/sdb1  lvmdisk就是卷组名字，用两个物理卷做出来的
 		创建卷组的时候PE大小就确定了，	这个物理卷可以动态扩容的
 逻辑卷：lvcreate 逻辑卷中LE大小==卷组中PE的大小
+       lvcreate -L 500m vgname
+       lvcreate -L 5G   vgname
 在lv中创建文件系统fs：mkfs -t ext2  /dev/lv的path  我们的根文件系统就挂载在这里
 创建好fs之后挂载：mount /dev/openeuler/root  /  挂载后即可使用，为了开机自动挂载修改/etc/fstab文件
     			mount /dev/lvpath1  /home
@@ -4671,3 +4680,28 @@ du -sh .
 df -i 查看磁盘的inode使用情况，inode用完的话就不可以再创建文件了
 
 
+lsscsi：查看bus总线是scsi的磁盘信息
+
+python：CDLL("/usr/lib/xxx")  加载动态库
+几个网卡会组成bond：增加带宽
+
+expect：需要安装
+脚本第一行：#/bin/expect
+set timeout 30(-1为永不超时)
+spawn(用来传递交互指令)--产卵
+send：执行交互命令命令的结尾要加+'\r'  \r是回车 \n是换行
+expect :判断输出的字符里是否包含某字串
+脚本：
+set ipaddr "192.168.1.1"
+set name "root"
+set passwd "12321"
+spawn ssh $name@$ipaddr
+expect{	
+	"yes/no"{send "yes\r";exp_continue}:如果出现yes/no 我就输入yes+enter
+	"passwd"{send" $passwd\r"} :如果出现passwd，我就输入$passwd+enter
+}
+expect "#" :如果出现#则立即返回程序继续，否则一直等待知道超时
+send xxx
+send xxx
+expect eof   结束程序
+程序的执行：expect ssh.exp 里面不能写注释，这个不是shell脚本，是exp脚本，#不是注释符
