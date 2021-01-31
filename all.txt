@@ -1904,6 +1904,7 @@ Connection closed by foreign host.
 		modprobe：
 			modprobe ：  模块探测 
 			把相关的Module.symvers模块 copy 到/lib/modules/3.123-gerneric  下 
+			把ko拷贝到/lib/modules/3.123-gerneric的update目录下就能直接通过modprobe探测到了
 			sudo depmod -a     建立模块之间的关系 
 			sudo modprobe hehe  这个随便在哪里执行都可以安装模块2了
 
@@ -4353,6 +4354,7 @@ tmux ls:查看挂起的会话有几个
 
 ### LINUX任务调度，定时任务 crontab---/etc/crontab
 	/var/log/cron  定时日志
+	修改完/etc/crontab文件后要重启crond.service服务你的任务才会生效
 
 ```c
 crontab -e  添加任务
@@ -4705,3 +4707,14 @@ send xxx
 send xxx
 expect eof   结束程序
 程序的执行：expect ssh.exp 里面不能写注释，这个不是shell脚本，是exp脚本，#不是注释符
+
+
+lspci:域+总线号+设备号+功能号(一台计算机默认0号域) 01：00.0
+可在/sys/bus/driver/找类似01:00.0的目录里面的resource目录就显示了映射的物理地址
+lspci -vv -s 00:01.0查看此设备的相关信息，最下方是它的驱动名字(os中用的那个驱动)
+/proc/iomem:看pci设备与物理地址的映射关系
+40000000-4000003ff   0000：00：1f.0(最多256个总线-每个总线上最多32个设备-每个设备最多8个功能)
+0域的0号总线的1f设备的0号功能在内存中占的1M内存
+
+多个网卡bond后增加带宽，吞吐量。绑定后这几个网卡的mac地址就成一样的了
+cat /proc/ney/bording/bondname  查看对应的bond信息
