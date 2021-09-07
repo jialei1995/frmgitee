@@ -61,6 +61,7 @@ Q_OBJECT 有这个宏表示允许使用信号和槽机制
     connect信号可以连接信号的***，触发信号1则触发信号2
 	
     QString转char*；s.toutf8().data(); qstring->qbytearray->char*
+	QString str = QString("abc %1 ^_^ %2").arg(123).arg("mike");  格式化字符串
 	qstring打印时默认带“”，char *打印时不带“”
 
 	对于重载的signal函数与slot函数调用的时候函数名字都一样怎么区分呀？
@@ -131,3 +132,22 @@ Q_OBJECT 有这个宏表示允许使用信号和槽机制
      在当前类的.cpp文件中访问当前类的成员，可以通过this->shuxing（fun）或者直接调用成员属性（方法），不加this都可以。
 
 串口收发参考连接：https://blog.csdn.net/qq_39017187/article/details/88935705
+
+定时器：
+1.QTimer * timer=new QTimer(this);
+    timer->start(500);
+    connect(timer,&QTimer::timeout,this,[=](){
+        qDebug()<<"shijiandao";
+    });
+2.监听timerEvent();事件，不推荐哦
+
+ctrl+i：全选后，所有行自动对齐
+QT_CHARTS_USE_NAMESPACE：首行需要加命名空间	
+直接参考example文件中的c文件。
+
+QLineSeries定义的变量series要add到QChart定义的变量chart中去，charts最后要加到QChartView chartView变量中去，
+最后chartView又要加到QMainWindow  window.setCentralWidget(chartView)中去。
+
+可以参考QT左上角的欢迎->示例
+
+绘制各种图形举例：https://blog.csdn.net/lwbeyond/article/details/41479809?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-16.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-16.control
