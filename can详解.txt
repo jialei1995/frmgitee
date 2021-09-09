@@ -13,3 +13,36 @@ CAN2.0B:支持收发11位id的标准帧或者29位id的扩展帧
 can通信案例：
 https://blog.csdn.net/z609932088/article/details/84061467
 https://blog.csdn.net/weixin_30576859/article/details/95213928?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control
+
+
+bms应用层需要实现的功能：
+1.测量电压，温度，湿度
+2.对relay的控制
+3.充放电策略实现
+4.针对不同测量量的故障检测处理
+4.SOC/SOH的检测->针对不同电芯算法不同
+5.热管理
+
+驱动层实现的相对改动很小。
+
+SOC的检测：电流积分--最简单的的办法
+影响因素：温度，电芯一致性
+SOC=SOC0+/- K*容量变化量
+获得的不同的最大最小单体电压，消除一致性后获得整包电池的SOC
+显示的SOC不能跳变，给用户感觉不好->需要仲裁，显示哪个值到界面
+
+电芯用久了，内阻会变大
+SOH--->估测内阻
+
+SOP=（OCV-最小U）/内阻 *当前U
+瞬时内阻计算：电压的变化量/电流的变化量
+
+通信方式：
+CAN：抗干扰  BMU-->lecu
+				-->lecu
+				-->lecu
+菊花链：BMU-->LECU-->LECU--LECU
+成本低，每个lecu不需要cpu，抗干扰弱
+
+33771：采样芯片-->相比分立器件好处就是可以同一时刻采样多节电池电压，速度极快
+认识继电器控制的高边驱动与低边驱动方式的特点--看图
