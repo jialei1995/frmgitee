@@ -2887,6 +2887,12 @@ class Cat:
 	[[1,2],[3,4],[x,x]...]  b就是个列表了 		
 	list[起始下标:终止下标:步长]
 	del(a[2])  删除a的第二个
+
+	二维数组初始化：
+	[[0 for i in range(10)]for j in range(9)] ; 也可以用numpy
+
+	global关键字，若想在python的函数内部对全局变量做修改，需要在函数内部先global var;
+声明一下，否则函数内部修改的变量是局部变量，不是全局变量。
 		
 	tkinter:Button(command=def_name,)通过command设置按钮的响应事件	
 	包的调用
@@ -3866,22 +3872,9 @@ backtrace:出现好多栈帧
 frame 栈帧编号：查看此帧的相关信息
 0xnnnnn：in function(m=0xmmmmm(入参的地址),<入参参数>)  at 某个文件某个函数的第几行；
 
-
-SDK：GCC 类似gcc的编译工具链，是个链
-
-
-/dev/zero  可以是一个任意大的文件
-/dev/null  可以吸收任意大的数据
-
 head -n file   查看前n行
 
-tail -n file  查看后n行
-
-tail -f/F  file  动态的查看文件file的后n行
-
 cal  -1 输出本月日历  -3上月本月下月日历
-
-realpath  fielname    filename的绝对路径
 
 who 显示当前哪些windows的ip在登录本机器。
 w -i显示当前每个console在干啥，who的升级版
@@ -5439,3 +5432,17 @@ c中true，false 直接包含stdbool.h即可。这里true=1lfalse=0
 一个程序可以通过运行的时候监听某个端口去工作（服务端监听6666端口），
 若无客户端访问，则它处于listing状态，若有客户端访问，则增加一个established状态的项，同时那个listen状态的条目也在。
 这个server端就是看有没有程序连接6666端口，则它去处理这个端口发来的数据并返回数据给client。
+
+
+深度优先搜索：dfs
+{
+	满足条件：
+		操作退出
+	dfs（修改新的入参）
+
+}
+
+shell中${} 可以利用%截断
+var1=xx.zip
+var2=${var1%.zip}  则var2=xx 将.zip截断了
+
