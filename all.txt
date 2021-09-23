@@ -5446,3 +5446,22 @@ shell中${} 可以利用%截断
 var1=xx.zip
 var2=${var1%.zip}  则var2=xx 将.zip截断了
 
+a=[1,2,3] b=[4,5,6] c=[7,8,9]
+zip(a,b,c) [(1,4,7),(2,5,8),(3,6,9)]
+将a，b，c这3个1维数组按列压成1个3行的二维数组
+
+.img文件与.iso文件一样，只是命名不一样而已
+
+map(fun,列表，...) 将fun作用于每个输入的列表中的数据上
+exp：
+	a=[1,2,3,4] b=[1,2,3,4]
+	map(square,a)  ->[1,4,9,16]
+	map(lambda x:x*x,a) ->[1,4,9,16]
+	map(lambda x,y:x+y,a,b) ->[2,4,6,8]
+
+x=dict()
+x={'key1':1,'key2':2,...}
+访问：x['key']
+增加：x['newkey'] = xxx
+修改：x['key'] = xxx
+删除：del x['key']
