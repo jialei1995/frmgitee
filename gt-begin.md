@@ -299,7 +299,7 @@ SH30x_IICPort_Init(IICNum)； 初始化
 
 ---
 
-##### 一、iic本身是主机占据主导地位，由主机发起开始或者结束信号的，主机也可以不结束，马上发起起始信号进行对另一个从机的寻址。
+##### iic本身是主机占据主导地位，由主机发起开始或者结束信号的，主机也可以不结束，马上发起起始信号进行对另一个从机的寻址。
 
 在总线的一次传输过程中，数据串数方向在整个过程中不变方向
 
@@ -309,22 +309,191 @@ SH30x_IICPort_Init(IICNum)； 初始化
 
 ![image-20210929161958795](C:\Users\X1 YOGA\AppData\Roaming\Typora\typora-user-images\image-20210929161958795.png)
 
-
+## stm32的每个管脚都可以开启中断，但是不可以同时开启，因为A1,B1,C1,D1这种序号一样的管脚只有一个管脚可以用来开启，不能同时将这几个管脚开启中断。
 
 ```c
 IIC作为从机怎么配置使用
-stm32的每个管脚都可以开启中断，但是不可以同时开启，因为A1,B1,C1,D1这种序号一样的管脚只有一个管脚可以用来开启，不能同时将这几个管脚开启中断。
-
 #define 每个管脚的时候也需要define出相应管脚的port组。
+需要定义的var：
+/*---------IIC1---------------*/
+uint8_t  Buffer_Rx_IIC1[40];//接收缓存，接收buf
+uint8_t  Rx_Idx_IIC1=0;    //接收计数，记下当前读到哪里了
+uint8_t  Flag_RcvOK_IIC1 = 0;// 接收完成标志 
+uint8_t  Tx_Idx_IIC1=0;    //发送计数，记下当前发到哪里了
+u8 Response_Message[40];  //发送缓存，发送buf
 
+RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); 使能port组时钟与iic外设时钟
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
+
+# GPIO配置初始化
+GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;//必须设置为开漏输出，实现iic的线与逻辑
+GPIO_InitStructure.GPIO_PuPd =  GPIO_PuPd_NOPULL;
+//管脚配置中GPIO_InitStructure.GPIO_PuPd必须配置为GPIO_PuPd_NOPULL，若配置为 GPIO_PuPd_UP或GPIO_PuPd_DOWN，IIC总线会一直繁忙，导致总线出错，检测不到IIC从机。
+
+void I2C1_Configuration(void)
+{
+    I2C_InitTypeDef 定义iicinit结构体;
+    NVIC_InitTypeDef 定义nvicinit结构体;
+
+    I2C_DeInit(I2C1);
+    .I2C_Mode = I2C_Mode_I2C;
+    .I2C_DutyCycle = I2C_DutyCycle_2;
+    .I2C_OwnAddress1 = I2C1_Slave_Address; //从机地址，一定要设置正确                          
+    I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+    I2C_InitStructure.I2C_AcknowledgedAddress= I2C_AcknowledgedAddress_7bit;
+    I2C_InitStructure.I2C_ClockSpeed = 100000;
+    I2C_Init(I2C1, &I2C_InitStructure);  初始化iic结构体
+        
+    NVIC_InitStructure.NVIC_IRQChannel    = I2C1_EV_IRQn;//事件中断
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);  初始化iic事件中断
+
+    NVIC_InitStructure.NVIC_IRQChannel = I2C1_ER_IRQn;//错误中断
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;                 
+    NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);   初始化iic的err中断
+
+    I2C_ITConfig(I2C1, I2C_IT_BUF | I2C_IT_EVT |I2C_IT_ERR, ENABLE);   
+    I2C_Cmd(I2C1, ENABLE);                                             
+}
+
+从机的中断处理程序：
+void I2C1_EV_IRQHandler(void)
+{
+  SR1Register = I2C1->SR1;
+  SR2Register = I2C1->SR2;
+
+    /* I2C1是从机(MSL = 0) */
+  if((SR2Register &0x0001) != 0x0001)  //判断当前是从机模式
+  {
+    /* 主机已发送地址，地址为被置位·(ADDR = 1: EV1(包括发送和接收)) 
+       从模式下：地址匹配-0：地址不匹配或没有收到地址；1：收到的地址匹配
+       表示有主机要与自己通信*/
+    if((SR1Register & 0x0002) == 0x0002)
+    {
+        /* 清除标志位 */
+        SR1Register = 0;
+        SR2Register = 0;
+
+        Rx_Idx_IIC1=0;
+        Tx_Idx_IIC1=0;
+    }
+
+    /* 接收数据(RXNE=1: EV2) rxne接收数据reg，0（数据寄存器为空），1（数据寄存器非空）*/
+    if((SR1Register & 0x0040) == 0x0040)
+    {
+        Buffer_Rx_IIC1[Rx_Idx_IIC1++] = I2C1->DR; 把数据reg中的数据放到接收buf
+        SR1Register = 0;
+        SR2Register = 0;
+    }
+    /* 检测到停止条件(STOPF =1: EV4)
+    0（没有检测到停止条件），1（检测到停止条件*/
+    if(( SR1Register & 0x0010) == 0x0010)
+    {
+        I2C1->CR1 |= 0x0001;（PE-I2C模块使能，定义：0（禁用I2C模块），1（启用I2C模块：根据SMBus位的设置，相应的I/O口需配置为复用功能）
+    注：如果清除该位时通讯正在进行，在当前通讯结束后，I2C模块被禁用并返回空闲状态。由于在通讯结束后发生PE＝0，所有的位被清除。
+        在主模式下，通讯结束之前，绝不能清除该位。）
+        SR1Register = 0;
+        SR2Register = 0;
+        Flag_RcvOK_IIC1 = 1;            
+    }
+
+    /* 发送数据(TxE = 1: EV3、EV3-1) 
+    TxE数据寄存器是否为空(发送时)，定义：0（数据寄存器非空）,1（数据寄存器空）-注意：在发送数据时，数据寄存器为空时该位被置’1’，在发送地址阶段不设置该位*/
+    if((SR1Register & 0x0080) == 0x0080)
+    {
+        I2C1->DR = Response_Message[Tx_Idx_IIC1++]; 把发送buf中的数据拷贝到tx发送reg
+        SR1Register = 0;
+        SR2Register = 0;
+    }
+    /* 检测到非应答(AF =1: EV3-2) --0（无起始或停止条件出错），1（起始或停止条件出错）*/
+    if(( SR1Register & 0x0400) == 0x0400)
+    {
+        I2C1->SR1 &= 0xFDFF;
+        SR1Register = 0;
+        SR2Register = 0;        
+    }       
+  }
+
+}
+上述中断程序中，当主机读取和写入数据时，都会引起地址位被置位，即发生EV1事件（即本中断处理程序中将发送和接收的EV1合并了）；
+　　当主机写入数据时，中断的执行顺序是EV1—>EV2—>EV4，其中有多个数据EV2会多次执行；
+　　当主机读取数据时，中断的执行顺序是EV1—>EV3—>EV3-2，本中断程序中将EV3和EV3-1合并了，若有多个数据，EV3将多次执行。
+
+    
+void I2C1_ER_IRQHandler(void) {
+
+  __IO uint32_t SR1Register =0;
+  __IO uint32_t SR2Register =0;
+  SR1Register = I2C1->SR1;
+  SR2Register = I2C1->SR2;
+
+    if(I2C_GetITStatus(I2C1,I2C_IT_SMBALERT)) {
+    }
+    else if(I2C_GetITStatus(I2C1, I2C_IT_TIMEOUT)) {
+    } 
+    else if(I2C_GetITStatus(I2C1, I2C_IT_PECERR)) {
+    } 
+    else if(I2C_GetITStatus(I2C1, I2C_IT_OVR)) {
+    }
+    else if(I2C_GetITStatus(I2C1, I2C_IT_AF)) {
+        I2C_ClearITPendingBit(I2C1, I2C_IT_AF);
+    }
+    else if(I2C_GetITStatus(I2C1, I2C_IT_ARLO)) {
+    }
+    else if(I2C_GetITStatus(I2C1, I2C_IT_BERR)) {
+    }
+        I2C1->CR1 |= 0x0001;
+        SR1Register = 0;
+        SR2Register = 0;    
+}发送各种错误进行错误中断不做对应的处理，最后只进行清除寄存器（SR1和SR2）操作。
 ```
 
 ---
 
+### 几种时钟的区别
+
 ```c
 rtc定时器是用来计时从1997年开始的时间到现在，这个是个低频的时钟，一般不在系统里面用，只用来显示年月日的。
 time定时器：
-systick：类似timer，都是有个reload值，向上计数达到此值触发中断然后处理中断。可以通过定义一个全局变量每次出发中断的时候加1，这个数值可以记下来开机到现在的时间长短。
+systick：类似timer，都是有个reload值，向上计数达到此值触发中断然后处理中断。可以通过定义一个全局变量每次出发中断的时候加1，这个数值可以记下来开机到现在的时间长短。timer与systick还有个功能计算任务耗时时长，任务开始时记录全局变量的值，任务结束时记录全局变量的值，相减即可知任务耗时。
     
+```
+
+---
+
+### 联合体与结构体大小
+
+```c
+union长度怎么计算
+    struct的大小计算根据成员的对齐，大小肯定是对齐字节的整数倍。
+    union的长度取决于其中的长度最大的那个成员变量的长度。即union中成员变量是重叠摆放的，其开始地址相同。union(共用体)的各个成员是以同一个地址开始存放的,每一个时刻只可以存储一个成员
+   union   mm{   
+  char   a;//元长度1   
+  int   b[5];//元长度4   
+  double   c;//元长度8   
+  int   d[3]; //元长度4
+  };   
+本来mm的空间应该是sizeof(int)*5=20;但是如果只是20个单元的话,那可以存几个double型(8位)呢?两个半?当然不可以,所以mm的空间延伸为既要大于20,又要满足其他成员所需空间的整数倍,,因为含有double元长度8，故大小为24。
+```
+
+----
+
+#### 很多电池组成的pack再去组，就是电池簇。
+
+----
+
+### 不同型号电池特性
+
+```py
+18650
+	2.7--3.7--4.2   容量1000mAh以上，目前松下可达到3000mAh
+	笔记本用的18650电芯通常2200mAh
+磷酸铁锂
+	（2-2.5）--3.2--3.65
+	
 ```
 
