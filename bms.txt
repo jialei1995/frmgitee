@@ -48,6 +48,72 @@ uart+电平转化芯片就可以变成 232 485
 can：每个can设备都可以是主设备，也可以是从设备。
 usb：速度也很快可以达到：12M/s，注意时钟必须由外部高速晶振产生。
 
+基本定时器是内部资源，可以不连接外部的gpio
+高级定时器有链接外部的gpio输出pwm信号
+hse 外部高速时钟
+hsi 内部高速时钟，有温漂不稳定，当hse失效时系统自动切换成his
+
+芯片中的icode总线，就是instruction总线，我们写好的程序二进制在flash中，cpu读取就通过icode总线，它是专门用来取指令的总线。
+常量是存放在flash中的，变量存放在sram中 
+
+寄存器存在于每个外设中，编程就是通过cpu配置各种外设的reg的值
+给有特定功能的内存单元取别名，这个别名就是reg，给这个特定内存单元取别名的过程就是reg映射。
+
+reg的映射过程演变：
+1.直接操作地址：
+	*(unsigned int)(0x12345678) = 0xffff
+2.可以通过操作给每个地址取个名字，例如51单片机中的操作
+	sfr p0=0x80；
+	sfr tlo=0x40；
+	写数据的时候可以直接 *p0=0xffff
+3.在stm32中:不是通过sfr，而是通过define给每个地址取个名字。
+	#define GPIOB_ODR (unsigned int)(0x12345678)
+	操作： *GPIOB_ODR=0xffff；  这种方法往地址写数据
+4.为了更方便：
+	#define GPIOB_ODR *(unsigned int)(0x12345678)
+	操作： GPIOB_ODR=0xffff；   
+	c语言对总线外设基地址的映射通过头文件，这里的都是地址的映射，都没有带*
+		define ahb  0x1
+		define apb ahb+x
+		define gpioB apb+x
+		define gpidB_date gpioB+x
+		define gpioB_ctl gpioB+y
+	增加struct后呢？
+	typedef struct{
+		reg1;reg2;reg3;
+	}gpio_typedef;
+	只需定义一个gpio_typedef*变量就可以访问通过->访问相关reg。
+
+	这种封装已经在固件库中封装好了，以上是封装的过程，原理。
+
+不同的数据左右移位之后的数据变化
+int i=1 有符号： 000001 右移之后成0000
+                       左移之后成00010
+int i=-1 有符号： 11111  左移之后右边补0后成11110  这个是-2
+                        右移之后左边补1,还是11111 还是-1，右移几bit都一样是-1
+unsigned int i=1 无符号：000001，右移之后左边补0变成00000
+						左移之后还是变成2
+unsigned int i=-1，这个也是可以的，意思是i=2^64-1如果用%u输出
+如果用%d输出还是-1，左移还是变成-2。%d会将原数据默认转换成signed int
+
+固件库分析：
+1.startup—stm32-hd.s hd表示flash大小，设置堆栈，pc指针，初始化中断向量表，配置sys时钟，调用_main进入c的世界
+2.system-stm32f10x.c 时钟配置文件,倍频外部时钟8-72m
+3.外设相关 stm32f10x.h  实现内核之外的外设的reg映射
+	stm32f10x_xx.c 外设的初始化struct，外设的驱动函数库文件（这个文件很多
+	种类例如：stm32f10x_gpio.h stm32f10x_uart.h stm32f10x_iic.h等等）
+4.内核相关 core_cm3.h 实现内核里面的外设的reg映射 
+5.头文件的配置文件 stm32f10x_conf.h 
+	头文件的头文件，这个头文件中已经include了所有外设用的头文件
+	例如：stm32f10x_gpio.h stm32f10x_uart.h stm32f10x_iic.h但是都是屏蔽的
+	所以我们只需要包含这个一个头文件，将这个文件中的相关的include去掉屏蔽即可。
+6.专门存放中断服务程序的c文件 stm32f10x_it.h  方便管理。
+  nvic嵌套向量中断控制器，系统滴答定时器--misc.h
+
+nvic中断分为系统级的与外设级的：
+系统级的有10个：例如reset，nmi,未定义指令，取指令失败，systick
+外设级的有60个：各种外设
+nvic是嵌套中断向量控制器，属于内核的外设，管理所有的片上的中断相关的功能。
 
 
 
