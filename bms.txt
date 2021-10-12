@@ -115,11 +115,11 @@ nvic中断分为系统级的与外设级的：
 外设级的有60个：各种外设
 nvic是嵌套中断向量控制器，属于内核的外设，管理所有的片上的中断相关的功能。
 --------------------------------------
-stm32对flash读写：
+stm32对flash读写：falsh操作的途中要关闭中断__disable_irq();
 	flash写：传入flash中的add，传入要写入的data。
 	固件库中提供了很多对flash的op函数
 	{
-		1.需要在这里或者外部提前开启flash的时钟
+		1.需要在这里或者外部提前开启flash的时钟            
 		2.flash_unlock();  固定操作，每次操作前都要先解锁
 		3.清除标志位x,y,z
 		4.flash_erasepage(add); 清除要写的地址的数据，要以页的方式擦除
@@ -191,8 +191,196 @@ RS485原理驱动：非屏蔽双绞线
 	{
 		就是uart的发送函数；+gpio高低电平
 	}
+485协议：
+	
 -------------------------
 品图标里面+.c文件
 魔术棒里面加对应的c文件的头文件路径
-
+-------------------------
+adc驱动：
+	开启DMA功能后，读取的最新adc的数据会自动存到自己定义的变量当中去（自己定义的变量就在内存中）
+	开启DMA功能后DMA需要知道它要从哪里读取数据，所以需要把adc_data_reg的reg地址define出来
+	stm32的对应的地址区域内都有特定功能对应的寄存器，例如adc1相关reg的区域是0x1111-0x2222等等
+	一个通道就是一个pin脚，可以采集一个adc数据，就是把此pin作为adc后从datareg可以读到对应的采集的adc数据
+	先在peripheral register boundary addresses章节找到对应的外设占用的边界地址，
+	然后去对应外设的register map章节查找对应reg的偏移量确认reg的精确地址。
+	或者用第一次找到的addr->datareg  这样去找数据reg
 	
+	dma_init() dma的初始化
+	{
+		定义dma初始化struct变量;
+		dma_deinit()；复位dma通道x,固定用法
+		将dma的struct变量初始化
+		调用dma_init初始化刚才初始化的变量
+		dma_cmd(dma1_channel,enable);
+	}
+	gpio_init()  adc的gpio初始化
+	{
+		开对应port时钟
+		使能对应的dmax时钟---dmax也算是外设
+		使能对应的adcx时钟
+		设置gpio为模拟输入
+		设置变量的pin为对应的pin	
+	}
+	adc_init()
+	{
+		初始化dma与gpio后，定义adc的struct
+		初始化adc的变量结构体
+		调用adc_init初始化刚才的var
+		设置adc控制器x，adc的通道，采样顺序，采样周期。调用库函数
+		adc_regularChannelConfig();
+		adc_dmacmd(); 开启adc1的dma支持
+		adc_resetCalbration(); 重置adc1校准reg
+		等待校准重置成功
+		adc_startcalibration(); 开始adc1校准
+		等待校准完成
+		adc_softwareStartConvcmd(); 使能adc1开始转换。
+	}
+
+------------------------------------------
+spi总线驱动：
+	ch376--读u盘的芯片
+	
+---------------------------------------
+typedef enum{var1,var2,var3} VVV;
+这里的var1,var2,var3是用VVV定义的变量x只能从这3个数据中取值
+并且：var1,var2,var3本身也可以直接在程序中去用，把它当成一个define好的宏去用就可以
+
+------------------------------
+typedef enum{
+	uint32_t byte;
+	struct {
+		bit1:1;
+		...
+	};
+}; 这里的这种方法共用地址，定义的变量初始化的时候可以用var.byte=0去初始化
+往变量里面赋值的时候可以用var.bit的方法去1bit1bit的赋值
+最后还是用var.byte的方法去读值。这种技巧很适合对于reg的操作。
+
+判断充电状态的时候需要防抖动，得判断充电time>3才可以真正的去开充电mos。
+
+---------------------------------------------
+vscode对齐快捷键：
+ctrl+[ 左移  ctrl+]右移 
+
+-----------------------------------------------
+FlashInit()
+{
+	CheckFlash()
+	{
+		Flash_ReadPara();
+		GetCheck();
+	}
+	if(check-ok)
+	{
+		FlashParaSetDefault();
+		Flash_WritePara();
+	}
+}	
+
+typedef struct   flash存的啥呢
+{
+	uint32_t  appmask;
+	uint32_t  yuliu;
+	uint8_t id[16];
+	uint8_t chgMode;  充电模式
+	uint8_t workMode; 工作模式
+	uint16_t CycleCount; 循环次数
+	int16_t currentRate; 电流速度
+	uint16_t FistUseData;  第一次用flash时要不要擦除之前的数据，配置默认数据，需要根据此data确定
+	uint32_t cyc_CHG;  循环充电次数
+	uint32_t shortCnt; 
+	int8_t VoltRate[32]; 电压
+	uint32_t BKP3_Data;  
+	uint16_t P_UV_Count;  
+	uint16_t checkh;     上述所有数据的累计和，用来校验用的
+}FlashPara;
+
+-------------------------------------------------
+while (1)
+{
+	CyctickmsCount= systickCount; //这个是全局变量，此数据在systick的中断处理函数中会被更改的。 	
+	if(RS485Buf.rcvFlag==1)  有485数据发来了中断中会把rcvFlag置1，进入循环的时候就会进if
+	{
+		RS485Buf.rcvFlag = 0;  //先清标志位
+		RS485_Process(void)    //485处理流程
+		{
+			while(RingBuf_Read(&readVal))   485存储数据的是个循环数组队列，读取成功返回1.
+			{
+				RS485Buf.dummy = 0;     //现在readval中有数据，则dummy置为0
+				while('G' != readVal)   //若485读到的数据不是G，则一直读，直到读到G
+				{
+					if(0 == RingBuf_Read(&readVal))  //若读取数据失败，readval数据不可用，设dummy=1
+					{					
+						RS485Buf.dummy = 1;
+						break;
+					}
+				}
+				if(!RS485Buf.dummy) //readval中的数据是从G开始的有效数据了
+				{		
+					RS485Buf.NodataTime= 0;   //有485数据就把它清0，没数据的时候它就会递增，增到3s就说明没485，该休眠就去休眠
+					PCMonitor_Process(readVal);
+				}
+			}
+		}			
+	}
+	if(sysflag.bits.SysWeakFlag==0) //若没有sys唤醒flag，一线通讯，一根线规定好协议也是可以实现通信的。
+	{
+		SIFProcess(CyctickmsCount);  //传入开始定义的变量执行此process
+	}
+	if(((abs(CyctickmsCount-Cyc100mstime))>CFG_CURR_COUNT)||(sysflag.bits.SysWeakFlag==1)) //若有唤醒flag或times差>100
+	{
+		if(RS485Buf.NodataTime<100)
+		{
+			RS485Buf.NodataTime++;
+		}
+		Cyc100mstime= CyctickmsCount;
+		Process_100ms_CYC();
+		Cyc100msCount++;
+		if((Cyc100msCount%DEF_500_CYC==0)||(sysflag.bits.SysWeakFlag==1))
+		{
+			GPIO_WritePin(LED_PORT,LED_Pin,(GPIO_PinState)Flag);
+			Flag=!Flag;
+			Process_500ms_CYC1();
+			Cyc100msCount=0;
+		}
+		if(Cyc100msCount%DEF_500_CYC==4)
+		{
+			Process_500ms_CYC2();
+		}
+		if(sysflag.bits.flashSave_Flag==1)
+		{
+			sysflag.bits.flashSave_Flag= 0;
+			Flash_WritePara();
+		}
+	}
+}
+
+-----------------------------------
+ctrl+/：搜当前关键字在所有文件中出现的位置
+
+
+电流的标定与电压的标定不是一回事，电流的标定其实就是直接获取程序中sh367获取的电流值。
+
+一线通的板子电平为1时，对端收到的1与0数据才能收到。板子电平为0的时候对端无法将电平拉成1
+
+均衡的时候是500ms的循环中在0s的时候开，在400ms的时候关，不是一直开的，中间会休息100ms。
+
+一线通，车载模式收消息时通过串口中断收，500ms循环中只是发送
+
+gpio复用的时候Alternate选择AFx怎么确认，在datesheet里面搜alternate function mapping
+
+idel中断：https://blog.csdn.net/qq_29413829/article/details/63262321
+串口的RXNE中断一次只能接收一个字节的数据，没有缓冲区，无法接收一帧多个数据
+dual：双倍的
+derive：得到、获得
+---------------------------------cubemx-study
+设置GPIO为uart或其他复用的外设时，管脚的pp，od模式就会固定下来了。只有当作gpio时自己可以挑着选择为固定功能。
+选择RCC时钟源的时候可以在pinout->syscore->RCC->将HSE与LSE改成crystal就可以在树图中将默认的HSI与LSI改成HSE与LSE了
+
+
+
+
+
+
+
