@@ -374,11 +374,28 @@ idel中断：https://blog.csdn.net/qq_29413829/article/details/63262321
 串口的RXNE中断一次只能接收一个字节的数据，没有缓冲区，无法接收一帧多个数据
 dual：双倍的
 derive：得到、获得
+resolution：分辨率
+Calibration ：标定
+
 ---------------------------------cubemx-study
 设置GPIO为uart或其他复用的外设时，管脚的pp，od模式就会固定下来了。只有当作gpio时自己可以挑着选择为固定功能。
 选择RCC时钟源的时候可以在pinout->syscore->RCC->将HSE与LSE改成crystal就可以在树图中将默认的HSI与LSI改成HSE与LSE了
 
+配置引脚后在system view中在system core的对应的外设点进去，通过signal中的user lable可以设置该引脚的别名，方便在图纸上查看
+引脚配置的sys里面的debug选择sw模式。
+CODE_GENERATOR里面最好勾选只运用nessary lib+生成每个外设对应代码。
+LL库里面很多函数没有写进.c文件，因为很多是直接宏定义的函数，所以找的时候去对应的.h里面去搜。LL库里面直接操作寄存器。
+消抖操作：
+if(按键被按下)
+{
+	delay 20ms;   延时一会后按键仍被按下。
+	if(案件被按下)
+	{
+		做真正的操作；
+	}
+}
 
+gpio中断设置时可以直接选择gpio_extix，同时在NVIC里面也要打开EXTI对应的那些line。
 
 
 
