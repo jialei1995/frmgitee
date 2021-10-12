@@ -397,7 +397,10 @@ if(按键被按下)
 
 gpio中断设置时可以直接选择gpio_extix，同时在NVIC里面也要打开EXTI对应的那些line。
 
+timer的clock—source选择internal_clock
+timer中断的开启是通过函数的，同时需要在界面配置，timex_update_interrupt通过类似于TIM_START_TI(&timex)的函数。hal库于ll库与固件库应该都有类似的函数。
 
-
+pwm的配置，选择相应的timer在界面配置pwm-generation-chx，需要在主函数中调用
+Time_PWM_start();去启动pwm通道 pwm就是配置占空比来调节io口的输出高低电平比例。
 
 
