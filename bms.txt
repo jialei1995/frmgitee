@@ -186,6 +186,36 @@ IIC驱动程序：基于stm32f10x_ll_iic.c 固件库
 	lm75a.c中集成了：读取温度值函数->iicread_buffer(lm75addr,regaddr,buf,bytenum);
 	掉电函数->iicsend_byte(lm75addr,regaddr,1);--->一般不用，对应低功耗的板子才会去关断它。
 
+手动模拟io口做iic怎么实现：
+void SH30x_IICPort_Init(SIMIIC_name_t IICNum)
+{
+	//配置io口的模式，输出类型，上拉下拉，速度
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+	//sda与scl线都是一样的配置，直接初始化对应的pin即可
+	GPIO_InitStruct.Pin = IIC_GPIO_INFO[SIMIIC_1].SCL_PIN;
+	LL_GPIO_Init(IIC_GPIO_INFO[SIMIIC_1].SCL_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = IIC_GPIO_INFO[SIMIIC_1].SDA_PIN;
+	LL_GPIO_Init(IIC_GPIO_INFO[SIMIIC_1].SDA_PORT, &GPIO_InitStruct);
+	//初始化完成先发下stop信号，保证初始化没有iic通信
+	SH30x_I2C_Stop(SIMIIC_1);
+}
+//需要看连接的外设的datasheet,不是看cpu里面的iic描述
+//sh367306的电气参数章节，有个关于通信的通信时序图，里面有个告诉得超过多久才能将电平拉低才会起作用
+//一般只有最小值不设置最大值。参考sh367306的56也的电器图
+void SH30x_I2C_Stop(SIMIIC_name_t IICNum)
+{
+	/* 当SCL高电平时，SDA出现一个上跳沿表示I2C总线停止信号 */
+	GPIO_WritePin(IIC_GPIO_INFO[x].SDA_PORT, IIC_GPIO_INFO[x].SDA_PIN, GPIO_PIN_RESET);先让数据线为0
+	Soft_Delay(2);延时，这里的实现就是让一个数递减，很占用cpu，可以用timer优化吗？
+	I2C_SCL_1(IICNum);让scl为1
+	Soft_Delay(1);延时 
+	I2C_SDA_1(IICNum);数据线为1
+	Soft_Delay(2);延时
+}
+
 ----------------------------------
 RS232原理驱动：
 	与uart驱动完全一样。
@@ -383,13 +413,7 @@ gpio复用的时候Alternate选择AFx怎么确认，在datesheet里面搜alterna
 
 idel中断：https://blog.csdn.net/qq_29413829/article/details/63262321
 串口的RXNE中断一次只能接收一个字节的数据，没有缓冲区，无法接收一帧多个数据
-dual：双倍的
-derive：得到、获得
-resolution：分辨率
-Calibration ：标定
-Sequencer：顺序，序列
-Regular：常规的
-regulator ：调节器
+rxne:接收buf非空，收满一个byte触发中断。
 ---------------------------------cubemx-study
 设置GPIO为uart或其他复用的外设时，管脚的pp，od模式就会固定下来了。只有当作gpio时自己可以挑着选择为固定功能。
 选择RCC时钟源的时候可以在pinout->syscore->RCC->将HSE与LSE改成crystal就可以在树图中将默认的HSI与LSI改成HSE与LSE了
@@ -425,12 +449,19 @@ EXTI15_10_IRQHandle()
 对应的中断优先级的配置在界面的NVIC控制器里面可以通过对勾开启对应的中断并选择优先级。
 -----------
 timer的clock—source选择internal_clock
-timer中断的开启是通过函数的，同时需要在界面配置，timex_update_interrupt通过类似于TIM_START_TI(&timex)的函数。hal库于ll库与固件库应该都有类似的函数。
+timer中断的开启是通过函数的，同时需要在界面配置，timex_update_interrupt通过类似于TIM_START_TI(&timex)的函数。
+hal库于ll库与固件库应该都有类似的函数。
 
 pwm的配置，选择相应的timer在界面配置pwm-generation-chx，需要在主函数中调用
 Time_PWM_start();去启动pwm通道 pwm就是配置占空比来调节io口的输出高低电平比例。
 
 RTC的alarmup作用，每次休眠之前调一下定时唤醒的函数，在隔特定时长后就会自己alarm把cpu唤醒。
+cubemx生成的工程是默认配置systick的，生成的systick隔1s会加1.不需要配置就自动隔1s加1.
+Systick的中断是默认已经开启了的，直接使用即可，查看NVIC里面的time base:systick timer可以看到默认开中断的
+
+外设中断进程调用HAL_Delay的时候，要特别注意中断的优先级问题，如果systick的中断优先级低于外设中断优先级，会导致一直在外设中断中阻塞，
+如果外设中调用了HAL_Delay()，一定要保证Systick的中断优先级高于外设中断优先级，但是，小飞哥是极其
+不建议在中断中调用HAL_Delay（）函数的
 ------------adc模数转换器
 技术指标：
 分辨率：10bit的位数1024，每改变1引起的实际电压的变化就是分辨率，0.00xV
@@ -439,5 +470,27 @@ RTC的alarmup作用，每次休眠之前调一下定时唤醒的函数，在隔�
 转换时间：完成一次ad转换需要的时间-包括：采样保持量化编码。
 cubemx里面只需要将io口配置成中断，然后写回调函数即可。中断的触发时刻是adc转换完成会触发。
 
+--------------------------------------------
+一线通：
+tx:
+rx:收数据是在中断中收完的
+cpu用了2根线，但是外部通过硬件电路处理成了一根线
 
 
+可以成功定义全局变量的方法：
+1.在.c中定义，在.h中extern声明，别的c文件包含此声明的.h，可以直接访问读写全局var
+
+typedef union
+{
+    uint32_t word;
+    struct
+    {   
+        uint8_t byte_1:8; 0x01  在低字节
+        uint8_t byte_2:8; 0x02
+        uint8_t byte_3:8; 0x03
+        uint8_t byte_4:8; 0x04	在高字节
+    }bytes;
+}S_WORD;  这么定义的变量,用%d打印出来实际上是：0x04 03 02 01
+
+bootload是一段写在真实程序之前的程序，最终会与真实的程序并到一起（用一个特定的exe程序）
+在bootload中会关闭中断，所以我们在后面的程序中一上来就需要__enable_irq();打开中断，否则中断都不会触发。
