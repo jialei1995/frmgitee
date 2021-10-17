@@ -198,10 +198,12 @@ typedef union
 > IIC驱动程序：基于stm32f10x_ll_iic.c 固件库 
 > 	分为总线的驱动iic.c与器件的驱动程序lm75a.c 
 > 	iic.c中集成：iic配置初始化函数	
-> 					初始化gpio+初始化iic控制器--注意需要开启对应iic控制器的时钟与对应的gpio的时钟
-> 					发送一个字节：按照协议->start->sendaddr+rw->senddata->stop
-> 					发送buffer：start->slaveaddr->while(datelen>0){发送一个byte;datebuf++}->stop
-> 					readbyte：
+> 初始化gpio+初始化iic控制器--注意需要开启对应iic控制器的时钟与对应的gpio的时钟
+> 发送一个字节：按照协议->start->sendaddr+rw->senddata->stop
+> 发送buffer：start->slaveaddr->while(datelen>0){发送一个byte;datebuf++}->stop
+>
+> ```c
+> readbyte：
 > 					{
 > 						while(总线是否繁忙)；
 > 						start；等待
@@ -209,10 +211,14 @@ typedef union
 > 						stop（）；
 > 						buf=databuf(iic);将收到的datareg中的数据放到buf中返回。					
 > 					}
-> 	lm75a.c中集成了：读取温度值函数->iicread_buffer(lm75addr,regaddr,buf,bytenum);
-> 	掉电函数->iicsend_byte(lm75addr,regaddr,1);--->一般不用，对应低功耗的板子才会去关断它。
+> ```
+>
+> ​	lm75a.c中集成了：读取温度值函数->iicread_buffer(lm75addr,regaddr,buf,bytenum);
+> ​	掉电函数->iicsend_byte(lm75addr,regaddr,1);--->一般不用，对应低功耗的板子才会去关断它。
 >
 > 手动模拟io口做iic怎么实现：
+>
+> ```c
 > void SH30x_IICPort_Init(SIMIIC_name_t IICNum)
 > {
 > 	//配置io口的模式，输出类型，上拉下拉，速度
@@ -228,9 +234,13 @@ typedef union
 > 	//初始化完成先发下stop信号，保证初始化没有iic通信
 > 	SH30x_I2C_Stop(SIMIIC_1);
 > }
+> ```
+>
 > //需要看连接的外设的datasheet,不是看cpu里面的iic描述
 > //sh367306的电气参数章节，有个关于通信的通信时序图，里面有个告诉得超过多久才能将电平拉低才会起作用
 > //一般只有最小值不设置最大值。参考sh367306的56也的电器图
+>
+> ```c
 > void SH30x_I2C_Stop(SIMIIC_name_t IICNum)
 > {
 > 	/* 当SCL高电平时，SDA出现一个上跳沿表示I2C总线停止信号 */
@@ -241,6 +251,9 @@ typedef union
 > 	I2C_SDA_1(IICNum);数据线为1
 > 	Soft_Delay(2);延时
 > }
+> ```
+>
+> 
 
 ### gpio
 
@@ -273,6 +286,8 @@ typedef union
 ### 片内flash操作
 
 > stm32对flash读写：falsh操作的途中要关闭中断__disable_irq();
+>
+> ```c
 > 	flash写：传入flash中的add，传入要写入的data。
 > 	固件库中提供了很多对flash的op函数
 > 	{
@@ -289,6 +304,8 @@ typedef union
 > 		u16 a;
 > 		return a=*(u16*)(add); 从指定页的add开始读，只返回16bit的数据
 > 	}
+> ```
+>
 > 操作一定是先擦除再写入，每页1024个地址，起始地址0x08000000 
 > 擦除以页为单位，写操作必须以16bit为单位，允许跨页写
 > 擦除时注意避开用户程序的存储区域，避免擦除掉用户程序
@@ -338,6 +355,8 @@ typedef union
 > gpio中断设置时可以直接选择gpio_extix，这里这么配置后关于gpio的选项里面才会出现NVIC的配置
 > 同时在NVIC里面也要打开EXTI对应的那些line，触发条件边沿触发，
 > 使能相应的NVIC通道并选择优先级。
+>
+> ```c
 > EXTI15_10_IRQHandle()
 > {
 > 	HAL_GPIO_EXTI_IRQHandle(pin)   如果没有hal库就自己在这个handle里面写操作就行，注意清flag。
@@ -349,6 +368,8 @@ typedef union
 > 		}
 > 	}
 > }
+> ```
+>
 > 对应的中断优先级的配置在界面的NVIC控制器里面可以通过对勾开启对应的中断并选择优先级。
 
 ### 消抖操作
