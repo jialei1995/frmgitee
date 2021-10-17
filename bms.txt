@@ -450,6 +450,16 @@ EXTI15_10_IRQHandle()
 -----------
 timer的clock—source选择internal_clock
 timer中断的开启是通过函数的，同时需要在界面配置，timex_update_interrupt通过类似于TIM_START_TI(&timex)的函数。
+假设时钟为32M，如何配置一个500ms的计时器让它每500ms产生一次中断：
+配置时钟源后还需要配置预分频系数：32 000
+需要配置counter：500
+则32000✖500✖1/32000000=500ms 这样配置的timer就是500ms。
+注意打开tim中断。
+timer启动还需要在主函数初始化time完成后调用相应的启动函数才可以启动：
+tim_base_start(); 不带中断的tim启动
+tim_base_start_it(); 带中断的time启动函数。
+
+
 hal库于ll库与固件库应该都有类似的函数。
 
 pwm的配置，选择相应的timer在界面配置pwm-generation-chx，需要在主函数中调用
@@ -457,11 +467,34 @@ Time_PWM_start();去启动pwm通道 pwm就是配置占空比来调节io口的输
 
 RTC的alarmup作用，每次休眠之前调一下定时唤醒的函数，在隔特定时长后就会自己alarm把cpu唤醒。
 cubemx生成的工程是默认配置systick的，生成的systick隔1s会加1.不需要配置就自动隔1s加1.
+systick也是可以配置时钟与reload的，ms/us的延时都可以做到，一般做成ms级别的
 Systick的中断是默认已经开启了的，直接使用即可，查看NVIC里面的time base:systick timer可以看到默认开中断的
 
 外设中断进程调用HAL_Delay的时候，要特别注意中断的优先级问题，如果systick的中断优先级低于外设中断优先级，会导致一直在外设中断中阻塞，
 如果外设中调用了HAL_Delay()，一定要保证Systick的中断优先级高于外设中断优先级，但是，小飞哥是极其
 不建议在中断中调用HAL_Delay（）函数的
+
+如何获取板子开机至当前运行时间长度：定义ss=0;500ms计数ss05=0;mm=0;hh=0
+在timer的500ms的中断处理函数中给上述的几个变量赋值：
+handle()
+{
+	ss05++;
+	if(ss05==2)
+	{
+		ss05=0;
+		ss++;
+		if(ss==60)
+		{
+			ss=0;
+			mm++;
+			if(mm=60)
+			{
+				mm=0;
+				hh++;
+			}
+		}
+	}
+}
 ------------adc模数转换器
 技术指标：
 分辨率：10bit的位数1024，每改变1引起的实际电压的变化就是分辨率，0.00xV
@@ -494,3 +527,21 @@ typedef union
 
 bootload是一段写在真实程序之前的程序，最终会与真实的程序并到一起（用一个特定的exe程序）
 在bootload中会关闭中断，所以我们在后面的程序中一上来就需要__enable_irq();打开中断，否则中断都不会触发。
+
+uart的接收中断有个hal库函数可以设置接到几个byte才发生中断：（相当于idel中断那个标志位）
+hal_uart_receive_it(&uart1,rxbuf,10);表示收到往rxbuf里面放10个byte才会进入中断处理函数。
+这句话在uart初始完开启中断后就可以调一下。
+
+FSMC是扩展外部sram的接口。
+这样我们可以直接在中断处理函数中处理rxbuf中的数据，解析。
+
+----------------------------------
+启动文件：bootloader
+1.初始化堆栈指针  sp指针由高地址向低地址生长
+2.初始化pc指针，pc=reset_handle
+3.初始化中断向量表
+4.配置系统时钟
+5.跳转到c里面的main函数
+
+0x400=1k
+1G=1ns  1M=1us  1k=1ms
