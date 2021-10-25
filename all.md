@@ -1,0 +1,4677 @@
+# linux
+
+````c
+
+  
+如何判断本系统是efi：
+lsblk有个分区就是efi
+efibootmgr -v 可以看到启动文件shimaarch64.efi文件的位置
+  
+fdisk -l / parted -l :查看挂载点的fs类型
+zcat initramfs.img |cpio -div  解压initramfs
+lsinitrd initramfs.img 只查看其中的内容，不解压
+ls (hd0,gpt2)/ 双击tab，如果能看到vmlinux与efi，说明这就是启动分区
+set root=(hd0,gpt2) 或者 set root = "hd0,gpt2"  这步以后ls看到的就是/boot里面的东西了
+
+chroot . bash --login  加后面的参数就不会打印command not find 啦  /bin/bash
+sha256 值只与文件中的内容有关，与时间戳无关，文件名也无关
+
+如何判断当前机器是物理机还是虚拟机：
+dmidecode -s system-product-name
+
+-----
+  inode结构体:
+      		每个文件（包含字符设备文件）都有自己的inode结构体
+      cdev结构体：
+      		内核空间，每个cdev结构体代表一个设备
+      file结构体：
+      		用户空间每打开文件，在vfs（虚拟文件系统）层，都有对应的file结构体，结构体中有个成员指向的就是属于它操作集（）
+------------/dev设备
+/dev下设备文件不是驱动程序--相当于一个访问外设的端口
+磁盘类型：IDE类->hd[a-t]
+	     SCSI类->sd[a-z]
+tty[0-63]->虚拟终端
+ttyS[0-3]-->串口
+console-->控制台
+  
+/etc/systemd/system.conf
+1、DefaultStartTimeout:90s  默认开机等待时间
+2、DefaultStopTimeout：90s  默认关机等待时间，优雅等待，进程不会直接kill，而是发sigterm，90s内未关机发kill杀死关不掉的进程去关机
+3、ShutDownWatchdogSec:10min  开门狗复位
+  
+```c
+addr2line  0x11111  -f -e  a.out  找地址对应的代码行
+addr2line -e 文件名 -f ：显示对应的fun对应的行数
+
+gdb vmlinux-debug： b 0x000000 ，在这里打断点就知道对应的地址的代码行了
+ar crs libxx.a x.o  y.o  打包静态库
+ar -x  libxx.a  解压静态库
+nm -D a.out  查看二进制中的符号表
+objcopy -j .text  a.out  onlytexta.out   只抽出来.text段放到后面的文件中
+
+```
+
+解压.gz文件  gzip -d xxx.gz
+### docker 
+
+docker load --input   xx.tar.gz   将这个镜像压缩包安装到os中
+
+### chroot 在oscbuild 后在/osc /buildroot 目录中:chroot .
+
+拷贝要安装的包至/osc /buildroot/home/xxxrpmbuild/sources/中
+
+### vim 
+
+- vim 1.c +18直接打开就是第18行
+- diff -Nur在那个目录执行   打patch时就在那个补录打可以时-p0  在目录里面就开始-p1  -p2  
+diff -q dir1 dir2  只对比文件名，不对比内容
+patch -p0 < 1.patch --fuzz=0
+patch -RE < 1.patch 退回来打进去的patch
+vim中左括号跳右括号：%
+
+
+````
+
+
+
+## 命令
+
+### splite
+
+```c
+splite -l 行数 file 分割后的文件命名
+splite -b xm/xk  file 分割后的文件命名
+```
+
+### selinux状态：
+
+enforcing permissive disable
+
+- 某进程只能执行某类文件
+- ls -Z查看文件的属性
+- 用户 1. user system undefined 
+- 角色  :文件-object    程序-system   用户-
+- 类型  
+- 进程 domain
+
+### nc
+
+```c
+nc -l 9999 < 1.file  将1.file内容放到server，连上的client会收到此内容
+nc 1.1.1.1 9999 > 2.file  client连上后输入的内容被server重定向到2.file中去
+server(2.2.2.2): nc -l 9999   开放2.2.2.2的9999端口作为服务器
+client: nc 2.2.2.2 9999 客户端连上server的9999端口
+```
+
+### iostat
+
+```c
+iostat -d -k 1 10：-d表示device  -k表示单位是千  
+iostat -d -m -x 看util值高说明io卡，原因：文件句柄死锁，驱动问题，cache写之前判断有，写的时候cache被释放了。
+iostat -d -m -x 看util值高说明io卡，原因：文件句柄死锁，驱动问题，cache写之前判断有，写的时候cache被释放了。
+```
+
+### crash分析
+
+```c
+crash /usr/lib/xxxx/vmlinux  vmcore
+vmlinux在下载kernel-debuginfo就有了，不下载系统中没有vmlinux
+echo c > /proc/sysrq 会触发
+kdump是基于kexec的
+kexec是快速重启服务，会跳过bios
+kdump服务开启时，捕获内核就准备工作了--随时准备收集日志。
+x86的RIP寄存器就是arm的PC寄存器。
+vmcore在/var/crash/xxx/vmcore 路径
+分析vmcore就是看pc指针寄存器：
+dis pc 看到底怎么触发的dump，然后看sym pc看dump对应的具体代码行。
+观察PANIC与COMMAND的描述(就是在command命令执行的时候宕机的)
+DATE表示：发生panic的时间
+UPDATE:表示os已经运行的时间
+TASKS：发生panic时的os中的进程总数
+PID：表示发生panic的任务号
+STATUS:表示发生panic的任务当前的状态
+命令：
+---
+bt -a：查看所有cpu栈
+bt：查看当前cpu栈
+bt -f 查看所有堆栈
+bt -i:显示堆栈trace的文件与行号
+bt pid显示对应的进程的调用栈
+---
+net:列出网络设备
+net -a：显示arp cache
+net -s：列出所有的socket
+---
+rd 0x12345 8 直接读内存，读8个byte
+---
+dev:查看os中块设备与字符设备信息
+files:查看panic时的任务打开的所有文件的信息
+irq：显示相应的中断信息
+mount：显示挂载的fs的信息
+mod：显示或加载内核模块
+
+调试流程：
+mod -S 导入默认路径的字符信息
+mod -S /path/xx.ko自己编写的模块的路径   导入自己编译的模块的符号表(函数名字与变量)
+bt：查看调用栈
+	[exception RIP:funname+12]:宕机的函数-->附带宕机时各个reg的值
+dis -r/l funmane+12   反汇编查看死机函数对应的汇编
+eval + 10进制数字--->查看对应8进制，16进制，2进制数字
+ascii + 16进制数字串---->查看对应ascii字符是什么
+sym  0xnnnnnnnn或函数名 查看该地址下的变量名，找到该地址/函数 对应的地址、函数、文件、行数
+
+栈信息分析：
+[<c001a6f>](fun1+0x12/0x34) from [<c01bf4>](pfun2+0x56/0x78)
+表明函数pfun2调用了fun1；c001a6f地址是fun1偏移0x12的地址，此fun1大小是0x34
+c01bf4是pfun2偏移0x56的地址，pfun2大小是0x78
+c01bf4是fun1执行完之后的返回地址
+根据vmlinu反汇编可以得到反汇编文件，grep当前失败时的pc地址可以找到失败时执行的什么指令。
+```
+
+
+
+### virsh
+
+```c
+虚拟机的创建需要virsh命令：
+virsh有很多有用的功能：
+生成磁盘镜像qemu-img create -f qcow2 xxx   40G  这个也可以是磁盘镜像，也可以是虚拟机 看你的xml是什么了
+热插磁盘：virsh attach-device 虚拟机名字 xxx.xml（此xml中就是普通xml中的device中的描述磁盘的那部分内容）
+动态添加：virsh attach-disk 机名 xx.qcow2 vda
+热拔磁盘：virsh detach-device 虚拟机名字 xxx.xml
+virsh reboot/shutdown virtname
+热插网卡：virsh attach-device virtname  net.xml 
+热插cpu：virsh setvcpus 机名 2 --live
+热插内存：  virsh attach-device virtname  mem.xml
+热迁移：就是将HOST1中的virtA在运行状态迁移到HOST2上去运行
+      本质就是将virtA所在的目录在HOST1与HOST2中共享。共享目录必须包含此虚拟机的磁盘，镜像，iso，不然迁移不过去，HOST2看不到磁盘，iso的位置了就
+xml文件中屏蔽:<!-- xxxxxxx -->   z中间内容被屏蔽
+virsh domiflist virtname:查看虚拟机的mac，网桥
+virsh change-media  virtname  hdb(xml中cdrom叫什么名字)  --eject   先将之前的cdrom拔出来
+virsh change-media  virtname  hdb(xml中cdrom叫什么名字) /xx.iso --insert 
+
+```
+
+### tcpdump
+
+```c
+tcpdump 命令怎么用
+A----------------B
+A->tcpdump -n -li eth0  host B的ip  此时会阻塞（直到a收到b发过来的消息）
+B->ping a的ip                       上面的a的界面收到消息，不阻塞了(若此时还是阻塞，说明数据链路层有问题)
+ tcpdump -i eth0(网卡) -s 0 -w 1.txt(将抓的包放到1。txt中)
+ 						(size包有多大就抓多少，默认68)
+ 抓到的1.txt怎么看：tcmdump -r(read) -n(不对ip地址作域名的解析) 1.txt
+ 还可以指定端口去抓:
+ tcpdump -i eth0 (tcp) port 22
+ curl -v http://www.badiu.com  通过80端口访问
+ tcpdump -n src host ip -r 1.txt  只显示源ip的ip的信息
+ tcpdump -n dst host ip -r 1.txt  只显示目的ip的ip的信息
+ [P.] seq192~472  push传递数据为整体数据的192-472字节
+ SYN为请求建立连接。
+```
+
+
+
+### vmstat
+
+```c
+--------vmstat -t 1（1s打印一次）
+r：处于running的进程数量
+b:处于block的进程数量
+si：从swap到mem的数量
+so：从mem到swap的数量
+bi:从block到mem的数量
+bo：从mem到block的数量即磁盘
+i：进入mem的数量
+o：从mem数去的数量
+us:用户空间消耗的CPU时间     若sy为us的2倍说明CPU不够了，应该加CPU
+sy：内核空间消耗的CPU百分比
+wa:IOWAIT 百分比，较高时说明iowait严重，磁盘出现瓶颈
+id:空闲时间占用百分比。为100说明CPU空闲，为0说明CPU忙死了
+```
+
+
+
+### samba服务器搭建
+
+```c
+amba是在linux中搭建server，然后别的windows可以连接这个samba去查看修改指定服务器的某个路径的内容
+1.修改配置文件：/etc/samba/smb.conf
+2.增加samba用户（必须是linux用户）:smbpasswd -a username
+3.windows通过映射网络驱动器连接server
+```
+
+
+
+### vsftpd
+
+```c
+vsftpd：ftpserver软件
+1.更改配置文件/etc/vsftpd.conf  anonymos表示启动匿名登录
+2.重启服务
+client：安装vsftpd此软件安装后既有server，也有clinet。
+实名登录：ftp ipaddr
+		root  +  密码		   实名登录可以看到服务器的所有目录
+匿名登录：ftp ipaddr
+		anonymous + enter即可  匿名登录只能看见server配置文件里的anon_root目录就是自己看到的根目录
+		上传：put filename
+		下载：get filename
+```
+
+
+
+### dhcpserver搭建：
+
+```c
+客户端：dhclient -v eth0
+正常回显：
+DHCPACK OF 本地被分配的ip from dhcpserverIP
+bond 被分配的ip
+
+dhclient -lf(lease file) path 修改配置租约数据库的文件路径，默认路径是/var/lib/dhclient/dhclient.lease
+dhclient -pf(pid file) 修改进程标识符文件路径 默认路径是 /var/run/dhclient.pid
+dhclient -r或-x eth0 释放eth0的ip，释放当前租约，并杀死当前dhclient进程
+ 
+ dhcpserver搭建：
+1.下载dhcp程序，安装后/etc/dhcp/dhcpd.conf会出现
+2.修改上述配置文件：
+ddns-update-style none;不更新DNS
+ignore client-updates;不更新dhclient
+default-lease-time  xs;
+max-lease-time  xs;
+option routes 9.13.0.1;网关
+option domain-name 'dhcpserver-name';
+subnet 9.13.0.0 netmask 255.255.0.0{
+range 9.13.1.1  9.13.254.254;动态分配的ip范围
+#下面设置固定ip的时候用
+xxx{
+hardware ethernet macaddr;
+fixed-address 9.13.1.1;给固定的mac分配固定的ip
+}
+}配置完成后restart dhcpd服务，netstat -anp|grep dhcp查看67号端口开启说明服务器搭建成功。
+```
+
+### LVM逻辑卷管理器
+lvm是建立于磁盘与分区之上，FS之下的一个逻辑层。
+```c
+物理存储介质：/dev/hda,vda,sda,。。。 最底层的存储单元
+物理卷（PV）：物理介质硬盘分区。再建立卷组时确定PE最小单元大小，确定后不可更改(fdisk /dev/sda 执行此命令进行分区)
+卷组（vg）：至少包含1个物理卷
+逻辑卷（LV）：建立在卷组里面，卷组中未分配的空间都可以用于建立新的逻辑卷，最大的好处就是可以动态扩容或缩小，不像物理硬盘，多大就多大。LVM可以由1或多个VG组成，1个VG也可以创建1或多个LVM。
+LE：逻辑区域，是逻辑分区中的可分配的最小单元 === PE，物理区域
+          fdisk           pvcreate        vgcreate      lvcreate        mkfs
+/dev/sda介质------>物理分区--------->物理卷--------->卷组---------->逻辑卷------>逻辑分区去挂载
+命令：
+创建物理卷：pvcreate /dev/sda1  sda1就是个物理卷，
+查看物理卷：pvdisplay
+卷组：vgcreate lvmdisk -s 16M  /dev/sda1  /dev/sdb1  lvmdisk就是卷组名字，用两个物理卷做出来的
+		创建卷组的时候PE大小就确定了，	这个物理卷可以动态扩容的
+逻辑卷：lvcreate 逻辑卷中LE大小==卷组中PE的大小
+       lvcreate -L 500m vgname
+       lvcreate -L 5G   vgname
+在lv中创建文件系统fs：mkfs -t ext2  /dev/lv的path  我们的根文件系统就挂载在这里
+创建好fs之后挂载：mount /dev/openeuler/root  /  挂载后即可使用，为了开机自动挂载修改/etc/fstab文件
+    			mount /dev/lvpath1  /home
+根目录空间不够了：如果此时vg还有剩余的PE，可以：
+lvextend  -l+1122(空闲PE，可通过vgdiaplay查询)  /dev/openeuler/root   扩了硬件
+ext2online /    同时扩容fs，扩fs   扩fs的命令有可能是下面的
+resize2fs /dev/mapper/open-root  扩展fs
+/dev/mapper/openeuler-root ==== /dev/openeuler/root是软连接
+还可以这样扩硬件：lvextend L+55G  /dev/openeuler/root   ext2online  /
+
+若卷组空间不够了：
+vgextened  lvmdisk  /dev/sdd1   往卷组中增加物理卷-->之后再扩容lv
+
+```
+增加根分区：
+lvresize -l + 100%FREE -r /dev/mapper/xxx
+
+linux的硬盘分为：SCSI  类型，现在用的比较广泛
+				IDE   类型，现已淘汰
+UUID：分区初始化后就会有对应的UUID号，是针对分区的不是硬盘的。（分区出事化mkfs后就会有）
+sr0-------光驱
+
+****增加硬盘的方法***
+1.虚拟机加硬盘SCSI类型的。。xxx.vmdk文件，就是虚拟硬盘--加了重启
+	lsblk 即可看到多了/dev/sdb  硬盘
+2.对硬盘分区fdisk /dev/sdb
+	m+n(add 分区)+p（主分区）+默认enter+默认enter+w（写入）  ok了
+	lsblk 可以看到/dev/sdb1了
+	分配的时候默认会占用所有磁盘中剩余空间，如果想多分几个区，可以不要按照默认enter，自己+xxG去分配。
+3.格式化（mkfs）
+	mkfs -t ext4 /dev/sdb1   
+4.挂载--设置自动挂载（fstab文件）
+	mount /dev/sdb1 /home/jl/newdisk   挂载成功
+最后记得mount -a 启动自动挂载
+Elapesed time：运行时间
+
+### 系统移植
+
+- tftp 410000 uImage          movi write kernel 410000   先拉倒内存，再去写到emmc
+- tftp  410000 exynos.dtb    movi write dtb  4100000 
+- tftp  410000  ramdisk.img    movi write  rootfs 4100000 
+- emmc分几块：kernel  dtb   rootfs  还有3个好像
+- setenv bootcmd movi read kernel 410000;movi read dtb 420000;movi read rootfs 430000;bootm 41000 430000  42000;先加载内核，接下来fs，（没fs你在哪里存放设备树呀），最后设备树
+
+```c
+make mrproper    是清除，比make clean清除的更干净一些
+make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
+---
+加驱动在driver/char里面，加好还得修改char目录下的makefile，根据模块是否被选中对
+  它进行编译
+```
+
+### service制作
+
+```c
+service怎么制作
+写好.sh脚本放到某个目录-->在/usr/lib/systemd/system中配置相应的test.service的
+Execstart = /usr/lib/systemd/system/test.sh 
+修改service之后，要执行systemctl daemon-reload xx.service 可以重新加载文件
+multi-user.target wants 谁，谁就会被放到/usr/lib/systemd/system/multi-user.target/
+    目录中，只要到了这个目录中，必定会开机启动，才能启动到这一级别。
+### service unit文件通常由3部分组成
+
+- unit  定义与unit无关的通用选项，描述unit，行为、依赖
+- 1. description
+  2. after 当前servoce应晚于哪些unit启动
+  3. requires  依赖其他的units，强依赖：其他unit不激活，自己也不能用
+  4. wants  依赖其他units  弱依赖
+  5. conflicts  units间的冲突关系，我启动某些unit就不能启动了
+- service  特定类型相关选项
+- 1. execstart 指明启动unit要运行的脚本的绝对路径
+  2. execstop  指明停止unit要运行的脚本的绝对路径
+- install  定义由systemctl enable 、systemctl disable实现或禁用时用到
+```
+
+
+
+### gdb
+
+```c
+c : 继续运行程序，直到遇到下一个断点，若没有断点，程序就会运行完。
+set var 变量名=‘xxx’  或者数字  set var i=10
+./a.out arg1 arg2  程序如果运行时这样传参
+set args arg1 arg2  用gdb调试的时候就这样传   run 之前  对应./a.out arg1 arg2
+show args  查看传入的参数
+gdb里面的数字代表的是：行数 + 代码内容
+info  b:查看断点信息
+b 15 if i==15 按条件设置断点，不是一到15行就停止了，还得i=15，才会断住。
+b filename:15/function   跳到文件名为filename的文件的15行，或者函数名字处
+display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
+undisplay  变量i的编号。编号的获取info display//i d
+finish：从函数中跳出来，回到上一层函数。并不是一下就跳回到main。跳到上一层继续调试
+ptype a：打印变量a的类型
+del  4：删除编号为4的断点
+watch:
+---进程：
+set follow-fork-mode parent  默认就是父进程，这个不用set
+set follow-fork-mode child
+设置调试模式：set detach-on-fork [on/off]默认是on
+on：调试一个进程另一个进程继续运行完
+off:调试一个进程另一个进程被gdb挂起 阻塞
+info inferiors  查看当前调试的进程信息
+inferior  进程id ：切换当前调试的进程  1/2
+---线程：
+info threads  查看线程
+thread 线程id:切换线程
+set scheduler-locking on只运行当前进程
+set scheduler-locking off 运行全部的线程
+thread apply 线程id  cmd  指定某线程执行某gdb命令，id是1、2、3不是系统的线程id
+thread apply all  cmd  指定全部的线程执行某gdb命令
+---gcc
+-I ：如果不指定，默认从/usr/include 中寻找.h
+-L：如果不指定，默认从/usr/lib 中寻找.so
+-O：优化选项，不能与-g 一同使用
+-Wall：将warning视为error，有warning就退出，不会继续运行
+time ./a.out 计算a.out的运行时间
+```
+
+### crontab
+
+```c
+crontab -e  添加任务
+crontab -i  查询任务
+crontab -r  删除任务  执行成功没有输出log，若再执行就会输出
+								*no crontab for linux 因为刚才第一次执行时就已经删了
+占位符：---
+    + 第一个*：1个小时的第几分钟（0-59）
+    + 第二个*：一天中的第几小时（0-23）
+    + 第三个*：1月中的第几天（1-31）
+    + 第四个*：1年中的第几月（1-12）
+    + 第五个*：一周中的周几（0-7ps:0与7都代表周日）
+例子：
+每分钟将ls 当前目录的内容放入/tmp/1.txt
+*/1 * * * * ls /etc/ >> /tmp/1.txt
+每分钟
+
+LINUX任务调度，定时任务 crontab---/etc/crontab
+	/var/log/cron  定时日志
+	修改完/etc/crontab文件后要重启crond.service服务你的任务才会生效
+	定时运行的脚本应将屏幕输出重定向到/dev/null-->root sh xx > /dev/null 2>&1
+	否则每次的输出会新建文件，很快会占完目录的inode节点
+```
+
+### grep 
+
+```c
+grep [选项] ‘关键字’  文件名——》查找文件名中包含关键字的行，并打印出来
+	选项可加可不加就是-v -f -m 。。。
+	想要高亮显示：grep --color=auto 'root' passwd在passwd文件中找root关键字
+	怎么能让grep == grep --color=auto呢？以后就不用巧后面的了
+	alias grep='grep --color=auto'临时生效
+	要想永久生效需要改配置文件才行一般都在/etc目录下
+	source /etc/bashrc 让这个文件重新生效
+	grep -e 'x' -e 'y' 查带x或带y的行。
+	-n 显示行号
+	-i 忽略大小写匹配
+	^关键字：以关键字开头
+	关键字$ :以关键字结尾
+	-v 取反打印
+	-v -x -n ====-vxn
+	-w 精确匹配关键词  grep -w 'xx' filename
+	-o 只打印匹配到的字符 grep -o '[0-9]' 只打印匹配到的行中有0-9的字符 
+```
+
+### tmux
+
+```c
+对于窗口：不太常用
+c:新建
+&：关闭
+l：切换  n:下一个 p:上一个
+w:窗口列表  上下键移动+enter切换    *所在位置就是当前选中的窗口
+对于pane：
+%：水平增加pane
+“：垂直增加pane
+x:关闭
+；：切换pane  o:顺时针切换  ^o:逆时针切换
+对于整个会话：
+^ b d:挂起    tmux attach -t sename   进入会话
+tmux ls:查看挂起的会话有几个
+```
+
+### cut
+
+```c
+cut -d':' -f1 passwd:查找以':'分割的第一列字符串
+```
+
+### tr小工具
+
+```c
+command |tr 'A-Z' 'a-z'
+tr 'A-Z' 'a-z' < filename   字母大小写转化
+tr -d 'a-zA-Z :/'  < filename :删除文件中的字母、空格、冒号、/
+tr -s 'a-z' < file 压缩相同的挨着的小写字母，压成一个 
+```
+
+### paste小公具
+
+```c
+paste -d： file1 file2  并排合并打印，以:分割
+paste file1 file2 并排合并打印，以tab分割
+patse -s file1 file2 串着合并打印，一个文件中合并成一行
+```
+
+
+
+### sed
+
+```c
+sed：
+	sed 参数 ‘脚本语句’ filename
+	sed 参数 -f ‘脚本文件’ filename
+		a, append		追加
+		i,insert		插入  不加-i不能反映到文件中，只是在终端显示改了，实际文件没改
+		d,delete		删除
+		s,substitution	替换
+		sed -i '4a xxxxxxxxxxxx' filename  第四行追加xxxxxxxx
+		sed -i '2,7d'						删除2-7 行
+		sed 's/xxx/yyy/g' filename	
+sed -i '/xxx/d'  file  删除
+sed -i '88 r b.file'  filename:在filename的第88行后+b.file的内容
+
+sed -n '/xxx/p'  file   打印
+
+sed -n -f  xx.sedscript file   根据sed脚本对file的内容进行修改输出
+
+sed -n 's/xx/yy/g'  file 文件内容xx改为yy打印出来
+
+sed -[opt]  '动作（p,i,a,d,c替换）'
+
+sed -i '$chello'  最后一行换成hello
+
+sed -i '/xxx/cyyy'  带xxx的行换成yyy
+
+sed -i '3ixxx'   3行前面加xxx
+
+sed -i '1,4d'   删除1-4行
+
+sed -i '/[0-9]/d'   删除包含数字的行
+
+删注释:sed -i 's/^#//'  1.c  
+```
+
+> df-f  :查看inode使用情况
+> 	df -haT:显示文件系统与类型
+>
+> ---
+
+### netstat
+
+```c
+iptables == firewalls  防火墙   看下哪些端口是启用的
+若只需要转发则不会经过INPUT链
+发送至本机的报文：PREROUTING->INPUT链
+由本机转发：PREROUTING->FORWARDING->POSTROUTING
+由本机发出：OUTPUT->POSTROUTING
+表：--》所有规则分4类，存在于这4个表中
+filter:过滤，iptables，防火墙
+nat:网络地址转换，内核空间是iptables_nat
+mangle:拆解报文，做出修改，并重新封包，对应内核空间iptables_mangle
+raw:关闭nat表启用的连接追踪机制，对应iptables_raw
+
+每个链存在那些种类的规则：
+PREROUTING：raw，mangle，nat
+INPUT:mangle，nat
+FORWARDING:mangle，nat
+OUTPUT:raw，mangle，nat，filter
+POSTROUTING:mangle，nat
+表的优先级：raw，mangle，nat，filter 前面的优先级最高
+
+添加或删除规则是往 链与表结合 中添加的；**   iptables -t filter -D INPUT 3
+查iptables规则也是根据 链与表 结合起来去查 ** iptables -t filter -vnL INPUT 
+
+iptables -t filter -I INPUT -s ip -j DROP  拒绝ip的报文到本机
+iptables -t filter -I INPUT -s ip/16 -j REJECT 针对ip所在的子网的包都拒绝
+iptables -t filter -I INPUT -s ip1 -d ip2 -j DROP:只拒绝ip1到ip2的包(想让我给你转发，没门)
+iptables -t filter -I INPUT -d ip3 -j DROP :只drop目的ip为ip3的报文（并不是说目的ip不是ip3的就不drop）
+-p tcp/udp/icmp:只拒绝协议为tcp或udp或icmp的报文，其他类型的不drop
+--dport 22：只匹配来源的报文的目的端口是本机的22号端口的报文（注意是本机的22端口）
+修改iptables后：service iptables save(临时修改)
+				/etc/sysconfig/iptables(永久修改)
+报文的处理方式有：accept.drop,reject
+iptables -F:清空所有的防火墙规则
+-----------------------------------------------
+
+
+检测linux的22号端口是否启动，可以通过（windows） telnet ip  22(类似ssh的远程登录命令)
+
+netstat -anp  查看有哪些外部登录
+```
+
+
+
+### mount
+
+```c
+$ sudo mount -t nfs localhost:/source/rootfs    /mnt
+      $ sudo umount /mnt/  
+      umount卸载时显示：busy--
+       fuser  -vm /mnt(挂载点)  看看那个进程占用了此目录，kill掉就可以umount了    
+       fuser -cu /mnt  kill查到的进程
+       记住不能在mnt目录里面进行umount，不然就说busy
+ mount --bind test1  test2 将test1挂载到test2，对test2的修改就是对test1的修改。
+弥补硬连接无法连接目录的问题，挂载信息存在于内存，一旦重启就找不到了。
+```
+
+### dpkg
+
+```c
+dpkg -S file：查看文件对应的deb软件包
+dpkg -l ：列出所以已安装的deb包
+dpkg -r/-P:删除包remove,purge
+
+apt-cache search all：查看当前apt源支持安装的deb包
+```
+
+### rpm
+
+```c
+dnf repoquery --whatprovides xx 本固件由那个包提供
+dnf repoquery --whatrequires xx 本固件可以给那个包使用
+yumdownloader  xx.rpm 下载不安装rpm包
+rpm -qp --provides xx.rpm 本rpm提供哪些固件
+rpm -qf +具体文件：查看此文件由哪个rpm包提供
+rpm -ql +rpm:查看此rpm提供哪些固件
+
+```
+
+### zypper
+
+```c
+zypper ar -c file:///iso
+zypper refresh：更新repo源
+zypper ls:看repo有几个
+zypper packages:看repo中提供哪些包
+zypper search xx:查看xx软件包是否已安装
+```
+
+### route
+
+```c
+oute -n 
+destination为默认或0，0，0，0 表示默认网关，所有数据都会发送到此
+gateway为0，0，0，0表示与本地同一网段，通信时不需要网关  这个就是路由器的ip。gateway就是路由器ip，网关的ip
+traceroute ipaddr检测到达此ip需要经过多少跳-
+route [add|del] [-net|-host] destIP [netmask] [gateway] [dev]
+-net:目的IP是个网络
+-Host：目的IP是个主机
+netmask：若选择目的IP是网络才需要设置
+网关与dev二选一即可（意思就是通过哪个去介入网络）
+exp:
+	route add -host 1.1.1.1 [dev eth0|gw 2.2.2.2]
+	route add -net 1.1.1.1/16 [eth0|gw 2.2.2.2]
+	route add -net 1.1.1.1  netmask 255.255.0.0 [eth0 | gw 2.2.2.2]
+	route add default via x.x.x.x  eth0
+```
+
+### arp
+
+```c
+ARP学习：
+若A想与同一个局域网的B通信：（底层其实是MAC地址的信息交换）每台机器都有自己的网卡自己的MAC地址
+1.若A知道B的ip地址，但是不知道B的MAC地址，可以通过发ARP广播，局域网内的别的机器都能收到此ARP信息：
+	ARP信息：A的ip，A的MAC，B的IP，空的MAC
+只有对应的另端的机器会单独给A返回自己的IP与MAC信息，这下A就寄到自己的路由表中，以后就不用这样询问了
+直接从自己的路由表中一查ip与mac的对应关系，直接发消息就可以了
+以太网地址-->就是MAC地址（死记住）
+静态arp：自己配置好，以后只能配好的mac之间通信，
+动态arp：自己生成的，会改变，每次机器重启即使ip改变，ip与mac的对应关系也会相应改变
+免费arp：检测同局域网内是否有别的IP与自己一样，如果有，就可以收到返回的信息，如果没有就不会收到。
+公网服务器如果想跟内服1通信：
+	1.发arp广播：谁的ip是192.168.1.2呀，请告诉我你的mac地址
+TTL：8位最大256
+	意思就是这个数据包最多跳多少跳就得到达目的地址，每跳TTL值减1，如果减到0还没跳到目的ip，则丢弃此包
+
+```
+
+
+
+### journalctl
+
+```c
+此服务全程为：systemd-journald服务
+配置文件：/etc/systemd/journal.conf
+storge:存储位置-默认在/run/log/journalxxx
+compress:默认日志是压缩的
+seal:加密
+spiltMode：uid--根据用户uid的不同将不同用户的日志收集在一起
+journalctl -u xx.service 只查看某服务的log信息
+journalctl /usr/bin/bash  查看某个脚本的日志
+journalctl /usr/lib/systemd/system/xx.service  查看自己写的服务的日志
+journalctl -k 只查看内核的日志 -最后一次开机直到现在的日志
+journalctl -f xxx 动态的显示更新日志(类似tail -f)
+journalctlM -rb -1:最后一次关闭os之前的日志
+往journalctl中打印日志：
+1.syslog("LOG_NOTICE","XXX")--->
+2.在systemd服务中调用printf接口，并设置journalctl的打印级别为INFO级别
+3.echo "<5>hello world" 子串开头是<x>，jounalctl会检测并将此信息打印到日志中
+```
+
+### 组bond
+
+```c
+几个网卡会组成bond：增加带宽
+安装bonding模块，修改bond的配置文件后才能bond网卡：ifenslave bond0 eth0 eth1
+bond模式：0->两个网卡交替收发数据，速度快，一个坏了另一个也能用
+		1->收发数据只通过一个网卡，另一个备用着。
+配置文件：/proc/net/bonding/bondname  查看bondname的信息状态
+	1.modprobe bonding
+	2.echo +bondname > /sys/class/net/bonding_master  增加bond名字到sys中
+	3.ethtool -K bondname lro off (large-receive-offload)将接收的多个tcp包聚合成一个大包，然后传给net协议栈，减少协议栈处理次数增加处理能力
+	4.ifdown bondname
+	5.echo bondtype(1) > /sys/class/net/bondname/bonding/type
+	6.echo 100 > /sys/class/net/bondname/bonding/xmint_hash_policy
+	7.查看要加入bond的网卡是否能用，正常
+	8.ifdown所有要加入bond的网卡
+	9.echo +ethx/y/z /sys/class/net/bondname/bonding/slaves
+	10.ethtool -K ethx/y/z lro off 
+	ok了，看下配置文件查看bond状态。
+  cat /proc/ney/bording/bondname  查看对应的bond信息
+
+```
+
+
+
+### shell
+
+````c
+ctrl+r:输入最近输过的linux指令，os会默认匹配之前使用过的cmd，直接回车即可执行
+在test.sh中用source 1.sh调用1.sh脚本，则1.sh脚本中的$0就是test.sh
+			source不新建bash，继承之前的环境变量，修改这种变量也会修改父进程的变量
+在test.sh中用sh 1.sh调用1.sh脚本，则1.sh中的$0就是1.sh****
+			sh会新建bash，不继承之前的变量。
+
+shell中${} 可以利用%截断
+var1=xx.zip
+var2=${var1%.zip}  则var2=xx 将.zip截断了
+  
+shell中的[]与(())还是不一样的：
+实验：[ $i eq "123" ]  语法错误
+     （（$i == "123"））正确
+
+### shell函数传参
+
+定义时：fun（）{$1xxx    $2xxx}    
+fun()
+{
+	echo "$* xx yy "  $*就表示每个入参都打印
+}
+返回值只能返回函数执行状态0成功非0失败。要其他的话用定义全局变量接受
+调用时fun xx yy,返回数字用return，返回值接收用$?  或者 res=`fun $1 $2` 或者 res=$(fun $1 $2)
+返回多个值的字符串用echo 'xxx'; echo 'yyy'
+res=$(fun)，返回值是多个字符串中间以空格分开
+
+read -p 'xxxxx'  varname
+
+```shell
+shell脚本第一行
+set -x :就说后面的程序执行的时候类似外界sh -x 执行一样
+set +x:关闭这种提示
+
+set -e 之后的命令出错立即退出
+set +e 之后的命令出错不退出
+
+$(( xxx ))  双层括号内可以进行数学计算
+cat > $filename << EOF
+XXX
+XXX
+EOF  可以将中间的内容放到文件当中
+
+操作文件中的行
+while read line
+do 
+	op $line
+done < file.txt
+
+while read ip passwd 
+do
+	$ip=
+	$passwd=
+done<1.txt	
+```
+````
+
+
+
+### 其他命令
+
+```c
+mkisofs -o xx.iso xx.tar.gz(压成tar包再做iso)
+  
+read -p 提示 变量名   选项都是可有可无的
+	read -n 定义字符数量
+	read name：将输入给name变量 
+	read -n 5 -p "input your name" name：输入长度不能超过5个。顺序不能换
+	从文件读入赋值：&&**
+	read -p 'inptu ip' IP < ip.txt 把ip.txt中的内容赋值给IP变量。
+ln -s 源文件 虚拟名
+ln 源文件 copy后的名字---相当于copy
+ls -l 中的数字表示连接数
+-----
+在普通用户的时候su root切不过来：
+修改/etc/pam.d/su----屏蔽第6行的wheel，表示只有属于wheel组的成员才能su root成功
+----------
+
+tree  dirname：看此目录的结构
+dirname file:看此文件的绝对目录路径
+basename file：只看此文件的文件名
+
+------------------
+ hexdump 将二进制转化为ascii区看，类似vim 中:%!xxd去看
+
+mktemp -d test.XXXX  创建目录，创建于当前目录
+mktemp test.XXXX  创建于当前目录，创建文件
+mktemp -d 创建临时目录于/tmp目录中
+mktemp  创建临时文件于/tmp目录中
+
+chmod函数。chmod('filename',0777);可以在程序中更改传入的文件权限。
+chown改变文件所属用户，所属组。chown('filwname',uid,gid);所有者id，组id----/etc/passwd获得id
+		改变之后自己就属于其他用户的人，对文件不再有修改权限了。（除非该文件对其他人的权限也是rwx）
+int link('oldpath','newpath')---创建硬连接
+syslink--创建软连接的函数
+stat穿透-跟踪软连接    --lstat不穿透----不跟踪软连接
+truncate  filename -s  3----把文件大小截断成3，文件中别的内容就不要了、
+dup：复制文件描述符，本来一个打开的文件只对应1个文件描述符。现在有两个文件描述符对应同一个文件，★但是文件指针只有一个。
+	int dup(int oldfd);  直接返回新的文件描述符（文件描述表中没被占用的最小的fd）
+    int dup2(int newfd, int oldfd); 重定向打开的oldfd的数据到打开的newfd。 inode号都是test1的号。
+
+strace ./a.out  查看a.out中有哪些系统调用（此时的a.out不用+-g参数就可以）显示的整个程序的syscall
+strace -o 1.txt ./a.out  将a.out的strace调用写入文件，直接用>重定向是不可以的
+backtrace 看当前位置使从main几层过来的，调用栈
+strace -e open,close ./a.out 只查看a.out中的open，close这两种syscall
+strace ./a.out   查看每个syscall花费的时间
+
+ping谁谁就会给你回消息，a->b,b->a  ICMP报文
+MTU值大小：网络包的大小。若配置发的包不允许拆包，则MTU为1500的机器不能接收数据包大于1500的包
+ping -s 大小（byte） -M do 目的ip  限制一次ping的时候发包的大小
+
+ping -s 大小 目的ip：这样ping的时候会自动把包拆开发
+
+dlopen:man一下
+
+nslookup ip：找对应的网域名        前提得有DNS服务器
+nslookup www.baidu.com  根据域名找对应的ip
+
+dmsetup ls:查看当前device mapper信息
+dmsetup info：详细信息
+dmsetup deps：依赖关系
+dmsetup table：表
+
+ss -at:显示tcp连接，类似netstat
+-s 显示socket
+-p 显示应用程序与端口的对应关系
+
+access  判断文件是否存在的系统调用
+ltrace （lib trace）查看库的调用，跟踪库的调用(查看每个函数的来源在那个动态库中，每个函数的位置)
+gdb -p pid 调式已在运行的进程
+gdb 中backtrace：查看当前的调用栈。
+gdb怎么知道程序在哪里死了呢？（段错误）-->其实就是看的进程死的时候产生的core文件
+
+backtrace:出现好多栈帧
+frame 栈帧编号：查看此帧的相关信息
+0xnnnnn：in function(m=0xmmmmm(入参的地址),<入参参数>)  at 某个文件某个函数的第几行；
+
+head -n file   查看前n行
+
+cal  -1 输出本月日历  -3上月本月下月日历
+
+who 显示当前哪些windows的ip在登录本机器。
+w -i显示当前每个console在干啥，who的升级版
+tty：终端设备(ctl+alt+F1~F7)前6个是文本吧，第7个是界面。命令行直接输入tty，可以看到当前是ptsx几号终端
+pty：虚拟终端(它只是主机的/dev/ptsn在winows的映射)--ssh、serial都会增加这个里面的数量
+lsblk  查看当前挂载的磁盘（硬盘）分区
+ttyAMA0 arm的串口
+ttyS0 x86的串口
+
+brctl  show:查看我的网桥连接的哪些网卡  ---桥接
+网桥就相当于电脑中的交换机：此电脑中的所有的虚拟机ip与外界通信都通过此网桥的ip
+
+blkid 看磁盘uuid
+
+strings  xxx.so     在库中提取字符串并打印出来，对于if，else分支的打印字符串，它只能拿到程序实际运行到的分支中的printf的字符串
+
+dd iflag=xxx oflag=yyy if=uImage of=/dev/sdb    seek=1000扇区号，将内核存储到1000扇区
+
+md.b  30008000 40 看内存中的数据
+
+memory display   yi  byte
+
+gzip -d xxx.gzip   解压
+
+list --dependencies  xx.target
+
+id     查看useid、groupid
+
+hostname -f 查看主机名
+hostname 查看主机名
+cat /etc/hostname  查看主机名
+hostnamectl set-hostname  jl：更改主机名为jl，reboot生效
+
+sync：强制把当前内存中的数据写到磁盘。
+普通cp一个大文件到某个目录时，命令执行完可能并没有cpy完，然后os会慢慢将当前内存的数据往磁盘中写，若此时断电，大部分数据丢失。
+此时应该执行sync，强制刷新mem中的数据到磁盘。
+----------
+w:查看负载均衡
+uptime:查看开机到现在持续了多久，单位是hour+min，也可以看负载均衡
+
+netstat -tnlp 查看网络状态
+	-t 只列出tcp协议的链接（protocol）
+	-n 将ip地址从字母组合转化为ip点分十进制，将协议转化为端口号（不加-n可以看一下再+-n去对比）
+	-l 过滤state列状态为LISTEN列的链接。监听
+	-p 显示发起链接的进程的pid与进程的名称
+只有S端才有监听态：LISTEN
+1个电脑可以有多个页面可以连接百度，但是百度给每个页面的返回界面都不一样，因为port不一样。他们发给百度的port都是80
+
+top  后   P：cpu从高到底显示
+
+​				M：内存从高到低显示
+
+​				1：多个cpu信息都显示出来
+ 			top p pid1 p pid2--->动态监控pid1与pid2的状态
+
+ls > 1.txt ==== ls 1>1.txt 标准输出流到1.txt
+ls 1>file  2>&1  把标准错误流给标准输出流，把标准输出流 存到 file中
+ls 2>file  1>&2  把2给1，把1给file
+
+pstree -p  显示pid以父子关系  -u显示所属user
+sshd 监听22号端口  ssh -p root@ip   远程登录ip的某个端口(记住关闭防火墙，设置/etc/ssh/sshd_config PermitRootLogin)
+				  ssh root@ip   远程登录ip
+				  ssh -vvv ip 显示登录的异常
+
+				  如果链接不断断线，可能因为ip或mac重复了，可以直接在xml中更改mac的几位。
+httpd 监听80端口  
+sar：
+sar -u(cpu) -o(out) test_sar 5 3：每5s采样一次，连续采样3次，将结果以二进制形式保存到test_sar文件中
+sar -u -f test_sar 查看以上采集的sar文件，直接cat看不了
+%idle 空闲时间占用百分比。如果此值高但是os很卡说明cpu在等内存分配，应增加mem
+						  太低说明CPU处理不过来，应增加CPU
+sar -q 查看平均负载 
+  
+not in sudoers file.无法通过sudo执行命令
+修改/etc/sudoers 增加:%jl ALL=(ALL)ALL  source更新一下即可
+---------------------
+date -s 修改的是os时间，重启失效需要写入CMOS硬件
+clock -r /hwclock --show查看硬件时间
+clock -w 写入cmos当前os时间
+---------------------
+ethtool -i eth0 查看网卡型号，驱动
+ethtool -S eth0 查看网卡速率
+ethtool eth0  检测网线是好是坏
+---------------
+删除文件后磁盘空间并没有减少：lsof |grep delete 删除相关进程。
+lsof查看的是sys中所有的文件(一切接文件哦--运行的二进制进程也是文件，可以grep出来)
+文件系统中有些文件是看不到的但是还在占用磁盘空间。
+inode：icount--正在打开此文件的进程数量
+	   inlink：硬连接数，给dir目录下增加文件就会增加dir的硬连接数，删除文件就会删除dir的硬连接数
+	   		就是通过dir可以访问到多少文件，就是dir的硬连接数
+readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
+
+ip route:查看当前机器的路由是谁
+route -n U说明此路由是up的   G说明需要透过外部主机去传递数据包
+
+动态分配ip的虚拟机的路由与掩码不用自己设置，所以以后就用动态分配吧 dhcp默认指定了路由
+修改/etc/sysconfig/netcork-scripts/ifensn后
+需要执行：nmcli con reload enp1s0
+		nmcli con up enp1s0     重新加载配置文件
+		或者ifdown enp1s0
+			ifup enp1s0  重启网卡
+
+
+fsck.ext4 -y /dev/mapper/root  会修复文件系统，按照ext4格式
+不用指定ext4也可以，os会自动分辨当前分区类型。
+df -h  查看磁盘空间
+du -h --max-depth=n 查看几层目录结构的文件占用
+du -h -d x 同上行
+du -sh .
+df -i 查看磁盘的inode使用情况，inode用完的话就不可以再创建文件了
+
+
+lsscsi：查看挂载到不同scsi控制器的磁盘信息(1个SCSI控制器上可以挂多个磁盘)
+lspci：查看pci总线上的控制器（SCSI控制器就会挂载PCI总线上）
+```
+
+### 四则运算
+
+```c
+只支持整数运算
+	$(())  符号		echo $((1+1))
+	$[]   符号		echo $[1+1]
+	expr  程序       expr 10 / 5  **这个用的时候‘运算符’左右要加空格  乘号*用的时候要加转义字符\*
+	let   程序    	n=1;let n+=1
+```
+
+### 条件判断语句,循环语句
+
+```c
+test+表达式  
+	[  ]   不支持正则（2边要有空格）字符串必须用""抱起来
+	[[  ]]  支持正则（2边都要有空格）字符串不需要用""包
+	判断2个字符串是否相等： test $s1 = $s2 等号两边都有空格，没空格是赋值
+						[ $s1 = $s2 ]  等号两边都有空格，[]中括号也是
+	if [ xxx ]：if后面也有‘ ’的，要注意
+	-z :字符串为空
+	-n ：字符串不为0
+	linux怎么判断两个文件一样：看inode号->ls -li file--->[ a -ef b ]
+	判断文件是否为空[ ! -s file ]
+	不会了man test关键字查
+    
+  ------------------------------
+ for i in{1..5}    打印5次你输入的第一个参数
+	do 
+		echo $1--------$i打印1到5，i每次都在变化
+	done     
+	---------
+	sum=0		sum是变量，$sum是个数字，是保存在变量中的值
+	for i in {1..100..2}
+	do
+		sum=$[$sum+$i]
+	done
+	echo $sum
+if 条件：a else b fi == 条件 && a || b
+
+
+至多有1个（<=1）------(>1)至少2个
+至少1个（>=1）--------(<1)1个也没有
+至少2个（>=2）--------(<2)最多1个
+至多2个（<=2）--------(>2)最少3个
+
+至少有1个不发生--------1个也没有不发生------所有的都发生。
+充分：
+	a--
+	c--   3个同时成立b才成立   
+	d--
+
+必要：a+c+d-----b   abc都是b的必要条件得同时满足b才能成立
+1、如果p是q的充分条件，那么q一定是p的必要条件。
+2、如果p是q的必要条件，q一定是p的充分条件。
+
+
+```
+
+
+
+### 各种变量
+
+```c
+本地变量->只对当前进程有效  定义在当前终端（是个进程），只能在当前终端使用
+		环境变量—>当前终端能用，子进程也能使用
+				env：查看当前用户的环境变量（只是当前用户的）
+				set：查看当前用户的本地变量与环境变量 
+				定义环境变量->export DDD=777 定义1个环境变量
+		全局变量：/etc/bashrc  所有用户都生效   建议（函数与别名都放这里面）
+				/etc/profile  系统与所有用户都生效
+		系统变量：$? -> 上条命令执行结果是0 说明上条命令运行成功了  ping 11.1.1.1也可以
+						ls  --> echo $? 结果==0
+						lll -> echo $? 结果127说明上条命令出错了非0就是出错
+				$1 --$9  脚本后面的位置参数  ${10}得包住，不然会当成$1
+				$@ -->脚本后面的所有参数  $*-->脚本后面的所有参数
+				$# -->脚本后面传参个数，不包含./xx.sh
+```
+
+
+
+### 启动流程分析
+
+```c
+bios/uefi->bootloader->kernerl->initramfs->systemd->switchroot->rootfs->systemd
+  bios:上电自检+找bootloader(bios芯片，固件程序)
+  bootloader：加载kernerl+文件系统
+  initramfs：内存中的fs--内存中的systemd
+  switchroot:切根--重新起systemd拉起别的服务
+
+linux启动分析：
+1.解压内核
+2.注册内存文件系统，挂在到root，此时的root是内存文件系统，不是我们平时的存在磁盘的root
+3.解压initramfs到root
+4.1号进程+基础服务
+5.切到真实的root，重启systemd+服务    
+    
+console=tty0  + rd.break  -->启动至switch_root#:，这会/sysroot已经挂载了。要改密码得重新remout磁盘权限为rw
+			  + rd.break=pre-moune --->启动至pre-mount，这会/sysroot还未挂载  要改密码得挂载磁盘为rw。如果fs有问题可以到这个阶段修复fs
+			  + rd.shell  -->与普通开机一样好像
+			  + systemd.debug-shell=1  -->与普通开机一样好像
+mount -o remount,rw /sysroot
+- 现在centos7的启动1个systemd接管所有的unit，即使b依赖a。在a还没启动的时候就会发出1个a已经启动成功的信号，所以b就可以直接启动了。这样所有unit都一起启动。
+- 启动配置文件
+- 1. 优先级最低：/usr/lib/systemd/system 每个服务的启动脚本
+  2. 比上面的高一些：/run/systemd/system 系统执行过程中产生的服务脚本
+  3. 优先级最高：/etc/systemd/system 管理员建立的执行脚本
+systemd若异常，重启使用：systemctl daemon-reexec 重启此服务
+
+```
+
+
+
+## 内核编译调试
+
+```c
+•解压内核
+		
+		•修改内核顶层目录下的Makefile
+		ARCH		?= $(SUBARCH)
+		CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+		为：
+		ARCH		?= arm
+		CROSS_COMPILE	?= arm-none-linux-gnueabi-
+		•	导入 默认 配置
+		$ make   exynos_defconfig 只是配置不是编译
+		•	编译内核make uImage
+		arch/arm/boot目录下生成一个uImage文件（如果编译过程中提示缺少mkimage工具，uboot源码中的tools/mkimage拷贝到ubuntu的/usr/bin目录下）******************************
+		弄设备树
+
+
+		2.	修改drivers/char/Kconfig  drive目录中的每个文件夹都有Kconfig文件，写的代码最终会显示到对应的menuconfig中
+			在menu "Character devices"下面
+			添加如下内容：
+		config FS4412_LED    头，到是也不能省略
+			tristate "FS4412LED Device Support"  有三个选项（bool是两个） + 标题
+			depends on ARCH_EXYNOS4
+		help //选项说明，没有也可以
+				support  leddevice on FS4412develop board
+  ---------------------------------
+调试：
+		选择将linux的某个文件夹挂载到demo。这样就会同步demo与linux中的数据，可以通过操作linux来操作demo
+	
+		tftp客户端：tftp 20008000 a.txt	//将a.txt数据搬移到内存空间		md 20008000 显示这里的数据存的什么
+		tftp服务端：32位：sudo tftpd-hpa tftpd表示是守护进程	netstst -ua 查看目前的网络服务
+			
+					
+		nand：格式--nand +earse/write/read +内存地址源/目标 +nandflash内部地址 +搬移大小
+			写之前要先擦除：
+				nand earse 0x6000000 2048//擦除6m地址空间2k字节大小空间（其实是扇区擦除的）
+				nand write 20008000 6000000 2048//将20008000内存中2k的数据搬到6m nand所在位置。这样断电也不会消失
+				nand read  20008000 6000000 2048//将nand中的6m位置的数据搬到内存中		
+	emmc的分区：	config--库--ramdisk--dtb--uImage--bootloader
+	内核启动：
+		1，bootagrs:root=rfs在哪里	init=启动的第一个init在哪里 	console=使用哪个设备做控制台
+		2，fs烧写：rfs用户与内核之间的中介
+			1>>nfs普遍用的  TCP/IP
+				先安装nfs-kernel-server								自己做/copy
+				配置/etc/exports  设置一个自己想挂载的任意目录（这个目录这会还是空的） *（rw，sync，no_subtree。check） 
+				sudo etc/init.d/nfs-kernel-server restart 
+				root=/dev/nfs 	nfsroot=ip地址（ubuntu）：/挂载目录 	ip=ip号不能与linux一样
+
+		/etc/rc.d/init.d/xxx  各种服务的启动脚本都在这里放着
+		/etc/rc.local    开机后自动执行的脚本，可以自己写个啥进去，每次开机自动就执行了(例如mount)
+				
+				
+			2>>ramdisk掉电消失
+				root=/dev/ram 	initrd=02100000,8M 	init=/linuxrc	console=ttySac..
+				完整代码：
+					tftp 20008000 uImagine 	
+					tftp 21000000 initrd.img.gz	rfs压缩包
+					setenv bootagrs root=/dev/ram 	initrd=2100000,8M 	init=/linuxrc	console=ttySac..
+				bootm 20008000 这样就可以启动内核了	不能用go，go命令是直接执行的，内核的头不能执行
+----------------- 自旋锁
+自旋锁：在操作临界资源的过程前后加锁解锁*****保证操作全局变量的过程即使被打断，别人也没办法操作这个全局变量，
+	对共享资源枷锁，保护共享资源（注意只是在全局变量操作前后加解锁，不能中间隔得太远，不然别的程序获取不了锁，会卡死）
+	运用于内核进程间，只能被一个内核任务（进程或中断）持有，抢锁抢不到CPU会忙轮询，旋转，所以一般尽量少用。
+	自旋锁怎么保证临界区资源，有可能持有锁的时候被中断掉，还是可能破坏临界区，所以衍生出别的函数：
+	
+	spin_lock_irqsave(获得锁之前禁止cpu中断，将中断状态保存在flag参数中)
+	spin_lock_irq（获得锁之前禁止cpu中断，但不保存中断状态）
+	spin_lock_bh（禁止硬件中断，允许软中断）
+		spin_lock();自旋锁
+		spin_unlock();解锁
+		down(&sem);内核的信号量
+		up(&sem);
+	内核的进程与进程之间用信号量去通信（信号量可以有多个），若初始化为1个就成了互斥信号量
+	进程与其他内核代码或者中断中保护临界区时使用：自旋锁
+
+****如果只用1个全局变量，不用锁，open一个文件后，还来不及修改全局变量，另一个进程也可以打开这个文件，这样就会有问题了
+-------------------  
+中断：
+中断例程中为啥不能休眠：
+1.休眠是一种进程状态
+2.休眠的目的是等待暂时无法get的资源或事件，将自己放入等待队列，让出cpu，一旦资源可用或者等待的事件到来，将由内核代码唤醒等待队列对应的
+pro，内核中别的进程，如驱动中的read,write，由软硬中断区唤醒。
+3.中断的时机，必然是代码中调用了syscall，而此syscall中存在休眠代码，这种休眠会在某种条件下被唤醒
+4.休眠时os做了什么，将自己设置为休眠状态，加入等待队列，直到资源可用或者等待的事件到来才被唤醒
+注意：不要在原子操作中使用休眠，不要在持有自旋锁信号量，中断例程中休眠--不要使用read,write（里面包含休眠）
+自旋锁：
+很多内核中的结构体里面包含自旋锁成员，操作这类结构体时都要经历上锁--op--解锁
+如果要获取锁时获取不到，就会原地旋转，反复执行一条紧凑的寻韩检测指令，直到锁被释放自己可以获取
+所以，临界区必须小，操作必须短。
+自旋锁可以过滤的干扰，中断-spin_lock_irp(这类锁中断来了都抢不走)
+```
+
+## 文件系统制作
+
+```c
+进入Busybox解压后的源码目录
+		配置->编译->导入库（其中就有arm-gcc）->
+		自制的文件系统中的etc下添加文件inittab
+		在etc下添加文件fstab（proc下、   sys下的fs  这是2个文件系统 ）
+		用文件系统工具生成ramdisk文件系统映象文件
+  
+/sys目录中的内容只能看，不能用rm删除，这是驱动、内核中创建出来的，需要驱动内核中去删除用代码删除
+内核文件系统，得通过驱动程序去增删此目录中的文件，开机自动挂载；挂载命令：
+mount -t sysfs none /mnt；因为无具体的分区。
+  
+/proc/pid/fd 中socket[inode号]；pipe[inode号]
+ps看不到的进程在/proc/一直找肯定有的进程ps搜不到。
+netstat 可以查看本机的所有连接，这个不会被屏蔽
+cat /proc/net/tcp:
+	localaddr  remaddr
+	源ip+port  目的ip+port
+cat /proc/pid/environ  查看进程中的环境变量，二进制所在目录..其他环境变量目录啥的
+```
+
+> ```c
+> linux中的/proc   是虚拟文件系统，里面的文件大多大小都是0，随时刷新，掉电消失
+> /proc/processN    进程消失则对应的进程消失
+> 对于进程文件夹中：
+> /proc/processN/cmdline    启动该程序的完整cmd
+> environ：当前proc的环境变量
+> exe：软连接到可启动当前程序的可执行文件
+> fd:当前进程打开的fd 指向实际的文件的软连接
+> limits:当前进程的资源受限
+> task:当前进程中各个线程的相关信息
+> /proc/version ：当前运行的内核
+> /proc/partitions: 块设备的每个分区的主次设备号，每个分区的block数量
+> /proc/modules：当前装入内核的所有模块   也可以通过：lsmod查看  
+> lsmod：
+> Module  size  used
+> A       10    B,C,D  可以知道B,C,D依赖A
+> /proc/mounts  当前挂载的所有fs
+> /proc/filesystem: 系统支持的fs列表
+> ```
+
+## 交叉编译工具集：arm
+
+```c
+size xxx：显示可执行文件的数据段、代码段、bss段大小  注意：没有堆栈，堆栈在内存中的
+		
+		nm xxx：符号标签	显示代码与地址的对应关系表
+		nm -D a.out:显示符号表
+		strip xxx：剔除xxx中 代码与地址的对应关系表，剔除了mn 命令就查不到了
+		strings xxx：查看此二进制文件中 的字符串  就是printf对应的打印信息
+		objdump -d xxx：查看二进制文件的汇编代码与对应的地址之间的关系
+		readelf -s a.out 显示符号表，上层的printf在底层被转换成什么函数执行的
+		readelf -d 查看当前二进制所需的库，ldd也可以看
+		
+		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 格式转换
+		安全编译选项：
+			-D_FORTIFY_SOURCE:缓冲区保护，防止缓冲区溢出，对于很多函数，编译时都会变成xx_chk。可通过objdump -d看到
+```
+
+## makefile
+
+```c
+makefile的生成方式：
+	1.利用cmake命令与Cmakelists.txt（txt文件比较简单）
+	2.automake工具，即-./configure 生成makefile
+	
+		%.o:%.c:
+			$(cc) -c %.c -o %.o  自动将所有.c生成对应的.o
+
+		obj = 1.o 2.o 3.o ...太多了怎么破？函数参数，参数直接写到函数名后面即可之间用‘，’隔开
+		1.src = $(wildcard ./*c)获取本目录下的所有的.c赋值给src
+		2.obj = $(patsubst ./%.c,./%.o, $(src))  将src中的任意1个.c转变为.o赋值给obj
+		依赖生成目标
+		无依赖执行直接执行伪目标
+		直接make生成的是终极目标 target
+
+
+		= 是最基本的赋值
+		:= 是覆盖之前的值
+		?= 是如果没有被赋值过就赋予等号后面的值
+		+= 是添加等号后面的值
+
+		其实make是个软件，makefile只是个配置文件，make 命令没有makefile也能执行的
+			例如在有xx.c的目录中直接执行make xx，就会自动根据xx的名字找对应的.c然后生成对应的xx可执行文件
+			CC xx.c -o xx  隐士规则
+		目标：依赖
+			sh xx.sh    这里其实可以执当前目录的的shell脚本（用sh去运行此脚本）
+		默认执行make命令其实是make的makefile中的第一个目标
+		
+		顶层make -C xxx -DMACRON 定义的宏会传到底层的任意makefile中去。
+		顶层makefile中定义的变量若底层不做修改，保持原值，底层可以增加例如：
+		CFLAGS+=-s -ftrapv -g等等。
+		
+		#program comment  编译期间可以打印调试信息。
+```
+
+> 驱动模块的makefile
+
+```c
+ #CFLAGS+=$(DEBFLAGS)----驱动里编译调试信息
+    ifeq ($(KERNELRELEASE), )//注意有个“ ，”这句话是看KERNELRELEASE是否为空
+	KERNELDIR ?= /lib/modules/$(shell uname -r)/build   //选择制作ubuntu所在的makefile所在的路径
+	#KERNELDIR ?= /home/farsight/rootfs/lib/modules/3.14.0/build   //选择板子上的linux内核makefile路径
+	PWD := $(shell pwd)   //当前驱动.c的路径
+	modules:
+		$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+	else
+	  obj-m := hello.o
+	endif
+
+	clean:
+		rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions Module* modules*
+```
+
+
+
+## 驱动开发
+
+```c
+make modules_install INSTALL_MOD_PATH= ~/rootfs	将模块安装到rootfs中  
+					则   ~/rootfs/lib/ 下多了1个/lib/modules文件夹
+				
+
+		直接写模块入口函数：int init_module(void)		    这么写就不需要写module_init了
+				出口函数：void cleanup_module(void)		这么写就不需要写module_exit了
+		module_init与module_exit相当于给入口函数出口函数重命名的
+		安装：insmod +demo.ko---------对应module_init(demo_init);入口函数【安装】 module_init;
+		卸载：rmmod+demo  ---------对应module_exit(demo_exit);出口函数【卸载】	module_exit();
+
+		modinfo ./hello.ko查看模块的相关信息
+		最后一行的versionmod:就是编译mod时的内核版本。
+		mod安装不上时可能是当前内核是A，而编译此mod的内核是B，所以不能insmod。
+		
+		模块传参：  在源码中写好可以传参，然后模块安装的时候就可以传参进去
+				代码.c中也要有配置才行
+				int x；
+				module_param(x,int,0664); 变量名、类型、权限不能是0666
+				char y;
+				module_param(y,charp,0664) char型指针，传字符串的
+			sudo insmod ./hello.ko x=1 y=“字符类的这么传” z=3...安装时才传，安装后以后这里面的变量就固定下来了
+	
+		多个.c的模块怎么写：
+				更改makefile：在obj-m:=hello.o  下一行+
+				还只能是objs：hello-objs := hello.o hehe.o  注意不能这么写，两个hello.o产生了递归了。生成的hello.ko卸载不了了
+									可以写成 hehe1.o hehe2.o
+			
+	模块导出：产生依赖A---->B  b中使用了a的函数与变量***（删除的时候先卸载b.ko才能卸载a.ko）
+			1.编写a.c时再变量后面加一行EXPORT_SYMBOL(变量名)；
+					函数名后面加一行EXPORT_SYMBOL(函数名)；	
+			2.编写b.c时先要声明extern int x;
+							extern int add(int a,int b);
+			3.编译a.c----->生成a.ko------>insmod a.ko
+		方法一：4.将a.c所在目录下的Module.symvers拷贝☞b.c所在目录，然后编译b.c----->生成b.ko---->insmod b.ko
+		modprobe：
+			modprobe ：  模块探测 
+			把相关的Module.symvers模块 copy 到/lib/modules/3.123-gerneric  下 
+			把ko拷贝到/lib/modules/3.123-gerneric的update目录下就能直接通过modprobe探测到了
+			sudo depmod -a     建立模块之间的关系 
+			sudo modprobe hehe  这个随便在哪里执行都可以安装模块2了
+
+		设备文件：
+			设备号：  设备号是一个纽带， 链接驱动程序 和  用户空间的设备文件，
+
+			struct file_operations里面{
+			int （*open）（struct inode*，...）其中open是变量int （*）（struct inode*，...）是个类型，可以typedef一下
+			}
+
+			 写设备驱动程序， 首先申请设备号：
+			cat /proc/devices   查看可用的设备号（主设备）  
+		
+		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
+		     input/output 设备系统
+			  
+		静态申请设备号：
+			int register_chrdev_region(dev_t from, unsigned count, const char *name
+				成功0   失败负值			设备号        几个         名字“name”
+			注销设备号   			注册的第一个设备号（注意这个不是主设备号）可以传MKDEV(ma,mi)
+			void unregister_chrdev_region(dev_t from, unsigned count)
+			cat /proc/device   查看当前os中的设备号。 
+
+		动态申请设备号：
+			int alloc_chrdev_region(dev_t * dev,从设备号，count，char*name)；根据/proc/device看那个号没用就可以用
+			注销：注销方式一样的，就申请方式有点不一样                              
+			/proc/device这个文件中的设备好是主设备号，一般总设备号32bit是个很大的数字
+			 我们通常描述设备用主设备号与次设备号去描述
+			void unregister_chrdev_region(dev_t from, unsigned count)
+			
+
+		驱动要在demo板中运行，编译的时候相应得makefile路径要换成编译相应得内核用的makefile。
+			在ubuntu里面的驱动makefile中：KERNELDIR ?= /lib/modules/3.14.0/build  ubuntu中linux内核的makefile
+			在demo板中的makefile：KERNELDIR ?= /source/rootfs/lib/modules/3.14.0/build arm中的makefile
+
+		$ dmesg			查看内核的日志信息 ，一般查看之前先清一下历史记录 sudo dmesg -c----清除历史日志信息
+		
+	内核模块与设备驱动之间的关系：
+		模块：linux内核组件管理的方式		驱动：都是基于模块进行注册和注销的
+		驱动的种类：
+			字符设备：IO传输以字符为单位-----应用层read/write，硬件就紧接发生进行读写操作
+				eg：鼠标、键盘、触摸屏
+			块设备：有缓存的				应用层read/write，硬件不会紧接发生
+				eg：磁盘，闪存
+			网络设备：eg：网卡【网络设备没有设备文件】
+	描述所有字符设备有个结构体：cdev【内核要管理就要有统一的机制】就是这个结构体
+		
+			struct cdev{
+				struct module *owner;//THIS_MODULE
+				const struct file_operation * ops;	//里面全是函数指针，操作方法集【不同驱动操作集不一样】，提供给应用层
+				dev_t dev;					//设备号
+				int  count;				//一般一个驱动对应一个设备，有时候一个驱动也会对应多个设备
+				struct list_head list;	//链表
+			}
+			
+			MKDEV(major，minor)；根据主次设备号生成设备号
+			MAJOR（设备号）；提取主设备号 --高12bit    区分哪类驱动（串口）
+			MINOR（设备号），提取次设备号 --低20bit    区分具体哪个驱动设备（串口1，2，3）
+
+	写设备驱动程序首先要申请设备号，----这是注册设备号呢-------设备号注册之后才可以制作设备文件（根据设备号）
+											之后操作设备都依靠的是设备文件
+
+	
+	内核内的模块添加：
+		1.写驱动程序
+	diff  filename filename.old  ：将文件与之前没改的时候做对比，看哪行被改动过了
+		2.Kconfig 就是配置内核选项的文件--  .config文件中是配置过能看到的文件怎么配置的
+		3.make menuconfig
+		4.记住要添加内核选项还要修改makefile（修改a.c所在目录的makefile）
+	如何编写字符设备驱动：5步     操作集刚上来就要写
+			0.注册设备号【2中方法】
+				[1]自动分配
+				[2]指定设备号注册						弄设备号
+			1.struct cdev * cdev_alloc();			就是创建字符设备。	cdev就是字符设备,申请一段空间存字符设备
+			2.void cdev_init(&cdev,&ops操作集);		初始化cdev结构体ops可以操作cdev【系统完成的】  申请失败cdev_del(pdev);
+	****	3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理，某个设备号有哪些operations，就定下来了。
+	此时用户怎么使用这个驱动呢？得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。一个设备文件对应一个具体的设备，设备号与设备文件通过mknode的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
+			4.void cdev_del(&cdev);					注销cdev结构体
+
+
+			pcls = class_create(THIS_MODULE,"hello");//类 创建成功再创建设备文件--->对应/sys/class/classname
+					class_destroy(pcls);
+			for(index = 0;index < count;index++)
+		 	{
+				pdevice = device_create(pcls,NULL,MKDEV(ma,mi+index),NULL,"hello%d",index);创建设备文件
+										--->对应/sys/class/classname/devname
+			}
+			DEVICE_CRE_ERROR:
+				for(index = 0;index < count;index++)
+					device_destroy(pcls,MKDEV(ma,mi+index));//这里就是销毁pcls
+			CLASS_CRE_ERROR:
+				class_destroy(pcls);//销毁类
+			ALLOC_ERROR://顺序执行，跳到哪里，一直往后执行
+				cdev_del(pdev);
+			REGISTER_ERROR://只是个标号，不会打断操作
+				unregister_chrdev_region(devno,count);
+				return -1;  ***&&&&注意这里必须有return -1；不然会出问题，本来出问题就应该return 的，只把资源释放，还是没有退出，相当于函数没有返回值的
+			}
+		mknod:建立设备文件与设备号之间的联系
+		void cdev_init(&cdev,&ops操作集);因为传进去了cdev，所以ops可以操作cdev，这里就是在说cdev能进行哪些opration。
+
+		sudo insmod hello.ko 如果出现not permit？？？********* sudo insmod ./hello.ko
+
+
+		read与write操作硬件的时候：
+		read:copy_to_user
+			要把内核空间的的buf拷到用户空间,
+		write:copy_from_user
+			用户空间有个buf，内核空间有个kbuf要把用户空间的数据拷到内核空间进行操作。
+	用户空间：（在内存中占用0-3）
+		运行用户程序
+	内核空间：（3-4）
+		运行：驱动，内核代码
+		
+		printK:打印优先级，可以设置打印出来那种信息：错误、调试、、、、
+		
+		make menuconfig:遍历显示所有目录下的kconfig。每个配置项都对应kconfig中的一个文件
+		menuconfig中的一行在kconfig中有5、6行对它的描述
+		
+		驱动的升级过程：
+		1.直接将硬件地址写到驱动中，将这些硬件地址ioremap为虚拟地址然后实行硬件操作---不便扩展但是很方便简单
+		2.将硬件资源放到一个struct中去维护，操作的时候还是同样的方法
+		3.每个硬件对应一个platform_driver驱动（多个硬件与多个驱动怎么联系呢）
+		4.引入总线，硬件的修改不会影响驱动，驱动的修改不会影响硬件------------导致有很多平台设备要去维护
+		5.引入设备树，平台设备中扫描到资源，通过总线与驱动连接起来
+		platform_bus_type：一边是dev列表，一边是dro列表，中间通过总线自动联系起来
+		联系方法：1.根据驱动侧的idtable 2.通过name
+```
+
+> 阻塞底层实现
+>
+> read write阻塞的底层靠
+> 		先在hello_init中初始化等待队列。init_waitqueue_head(&q);
+> 		wait_event_interuptable（q，con）q等待队列头  con唤醒条件（1结束等待0继续等待）
+> 		把请求读数据的进程放到休眠等待队列中，睡会等有人写入可读资源
+>
+> 		当进程正常运行时，进程放在运行队列等待被运行
+> 		当进程休眠时，进程在等待队列等待被唤醒
+> 						
+> 		wake_up_interuptable（&q）唤醒进程
+> 						
+> 		在hello_read让程序加入等待队列头，在hello_write中让程序唤醒读进程
+
+> 内核中内存的使用
+
+```c
+按页申请内存：
+unsigned long  __get_free_pages(int gfp_mask, unsiged long order)
+mask  ----申请内存的属性 
+order  -------------0 ----------- 2^0          1页
+                1 ---------- 2^1          2 页
+1页 ==== 4096 字节 
+大页：2M  ---适用于GB级别的内存管理
+大页：1GB  ---适用于TB级别内存管理
+配置大页内存后：OS开机后预留连续的大小为hugesize*hugepages 大小的内存
+若内存不足虚拟机启动会报错out of memory
+使用大页内存可以减少OS的管理与访问页面的时间，内核中的swap进程不会占用此部分内存的。大页合理运用提升OS性能
+
+分配的内存物理上是连续的 ， 申请到的内存的大小一定是2 的order 次幂 
+使用该函数一次可以申请的最大的内存 1024页 * 4096字节 ===== 4m 字节 
+申请的内存 内核空间使用
+
+void free_pages(unsigned long addr, unsigned long order)
+
+按精确的字节数申请：
+static __always_inline void *kmalloc(size_t size, gfp_t flags) 
+size ---- 具体的字节数
+flags ---- 申请内存的属性 
+按具体的字节数申请内存， 物理地址是连续的 ，
+申请的内存 内核空间使用
+flags  :
+GFP_KERNEL - 申请内核空间的一段内存时， 可以睡眠，  正常情况下用它
+GFP_ATOMIC----- 申请内存时不能睡眠，  主要用在中断的处理函数里，
+ 
+
+void kfree(const void *objp)
+vmalloc ：
+void *vmalloc(unsigned long size)
+申请精确字节的内存， 内核空间使用， 
+物理地址不一定连续 
+
+void *p; 碎片如果很多但是不连续
+p = vmalloc(30);   可以申请到， p[0] , p[1],p..., p[29],  
+p =kmalloc(30) ;    申请不到 
+
+
+void vfree(const void *addr)
+
+
+
+
+内存对象池：
+内核为了满足任意数量的内存使用请求，创建了由各种不同固定大小的内存块组成的内存对象池  当kmalloc申请内存空间时，内核就会将一个刚好足够大的空闲内存块分配出来。比如要申请100字节，kmalloc就会返回一个128字节的内存块
+在4k字节大小页面的系统上，分配的最小内存块是32字节，最大128k字节
+
+slab是内存分配器，malloc的内存就是它分配的
+页表是建立虚拟地址与物理地址映射的表，这个映射关系是mmap建立的，新的映射关系一建立就会被放进页表中
+
+设备驱动程序如果常常反复使用同样大小的内存块，可以自己创建一个内存池
+
+内核空间内存：
+线性映射区域：3g开始的虚地址  和 物理内存0地址开始的 一段内存 一一对应的关系 。
+高端内存（内核空间的一段虚地址）：很少的高端内存的虚地址  可以访问到 更大的物理地址空间 ，
+--
+  
+1.io内存空间映射
+    		映射物理寄存器的地址到内核空间，得到其在内核空间的虚地址
+    		p = ioremap（0x2432423423,4）地址长度    将物理地址（soc外部外设的真实的地址）映射为内核中的虚拟地址（3-4g）
+    			最后可以通过往虚拟地址写值，写到物理地址中
+    	2.内核空间操作该虚地址，操作它就是操作真正的物理寄存器
+    		val = ioread(p)
+    		iowrite(val,p)
+    	3.iounmap
+		ioreadl/iowritel-> 对io内存的op
+		iol/iob/iow->对硬件地址读
+		outb/outl/outw->对硬件地址写数据
+    linux内核内存分配
+    	按页申请内存
+    		__get_free_pages(int gfp_mask,ulong order);
+    		mask----属性
+    		order---0----2^0页   ----n-----2^n页
+    		分配的内存物理上是连续的
+    结构体数组初始化struct a[3]
+    				{
+    					{.x=1,.y=2},       //a[0]的初始化
+    					{.x=1,.y=2},		//a[1]的初始化
+    					{.x=1,.y=2}
+    				}
+
+mmap 方法：之前操作文件用open的fd，现在用指针操作就可以，效果一样可以read，write
+应用层里：
+void *mmap(void *addr, size_t length, int prot, int flags,
+                  int fd, off_t offset);
+把内核的一段内存， 映射到用户空间(对应到打开的某个文件中，所以有个fd) 
+addr ------------ 映射到用户空间的地址， NULL---- 映射到用户空间的地址由内核决定， 可以返回映射到用户空间的地址，这里填NULL就好
+length ------------ 把内核空间的一段内存， 映射到用户空间，  映射多大？(文件有多大就映射多大)
+prot ------------  内核空间的一段内存，映射到用户空间，  映射属性？PROT_READ | PROT_WRITE
+flags ------------- 内核空间的内存的映射方式，  共享的映射， 私有的映射？MAP_SHARED（对用户空间修改的时候内核
+					空间的对应地址也同步修改，MAP_PRIVATE，对用户空间的地址的修改不会影响内核空间的地址的数据）
+fd ---------------- 从哪里进行映射？（只要mmap返回了，fd就没用了，可以直接close就好）
+offset ----------- 映射时的偏差地址， 
+
+返回值：  内核空间的内存， 映射到用户空间的地址
+
+int munmap(void *addr, size_t length);
+解除映射 
+
+使用mmap必须注意以下：
+1.创建映射区的过程中，隐含1次对映射文件的读操作-所以fd的打开应可读可写，mmap中也应该可读可写
+2.当MAP_SHARED时映射区的权限应<=文件打开的权限
+  当MAP_PRIVATE无所谓，因为mmap中的权限是对内存的限制
+3.映射区的释放与文件变比无关，只要映射建立成功，文件可以立即关闭都可以
+4.当文件的映射大小为0时，不能创建映射区，用于建立映射区的文件必须有实际大小(一般新建的文件大小就是0，得写入东西才可以映射)
+5.munmap传入的地址一定是mmap的返回地址，坚决杜绝指针的++ --操作。你可以char * p = ret.去操作p，而不是操作ret
+6.文件的偏移量必须是4K的整数倍(mmu映射的内存就是4K 4K的映射的)
+7.一定要检查返回值(mmap成功返回void*指针，失败返回MAP_FAILED宏)
+
+用户空间的页面允许中断，内核空间的不允许中断。
+
+
+
+
+驱动里：
+实现mmap 方法,
+/**
+ 映射内核空间的一段内存到用户空间
+ * @vma: 用户映射内核内存的要求 
+ * @addr: 映射到用户空间的地址
+ * @pfn: 内核空间的一段内存的物理地址（以页为单位）
+ * @size: 映射多大
+ * @prot: 映射属性
+ */
+int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
+		    unsigned long pfn, unsigned long size, pgprot_t prot)
+
+ virt_to_phys（pkbuf） >> 12          虚地址转换成物理地址, 物理地址/ 4096 得到pkbuf 的内存的页码  
+```
+
+> 设备树
+
+```c
+当注册一个设备时，会通过虚拟总线找匹配的平台驱动。（驱使硬件设备动起来read/write/ioctl/open/close/mmap）
+	平台设备框架把驱动与设备分离起来，要改那块改那块就好。改动起来不影响。
+	设备是硬件--驱动是软件driver
+
+	注册设备就是把设备挂到平台总线 会通过虚拟总线找对应的驱动
+	注册驱动就把驱动挂到总线上  平台驱动结构体中有个探测函数，寻找设备
+	虚拟总线成为platform
+	挂在虚拟总线上的设备称为 platform——device
+	挂在虚拟总线上的驱动称为 platform——driver
+
+	platform_device_register（1参数platform_device）自己写一个设备然后注册进去，注册平台设备--挂在设备到平台总线
+	platform_drive_register（1参数platform_driver）注册平台设备--挂载驱动到平台总线
+
+	struct platform_device platform_device定	义设备的信息
+	{
+		。name = “asdas”；
+		。dev = {
+			。release = 注销时用		
+		}
+		.num_resources = 3, 资源个数，资源数组，存的寄存器
+		.resource = myresource, 
+	}平台设备添加资源--平台驱动获取资源
+
+	static struct platform_driver g_stPlantFormDriver =
+	{
+	        .driver = {
+	                .name = "hehe1_platform",// 该平台驱动支持的设备
+	                .owner = THIS_MODULE,
+	        },
+	        .probe  = HelloDriverProbe,//注册了该平台驱动时， 如果该驱动支持的设备存在，当前的probe函数会被执行
+	        .remove =  HelloDriverRemove,//注销该平台驱动时， 当前的remove函数会被执行到
+	};
+
+	探测函数在驱动中：找对应的设备，直接就能使用了
+		int HelloDriverProbe(struct platform_device *pDevice)
+		{//平台驱动的探测函数,  同时带过来平台设备的结构体pDevice  
+			//字符设备的完整的流程 
+			hello_init(pDevice);
+		    printk("Driver,HelloDriverProbe\r\n");
+			return 0;
+		}
+
+	有了设备树，就不用写平台设备的代码了。&&&&&内核加启动时载的时候就将平台设备注册好了。省去了自己写平台设备代码
+		将dtb文件放进/boot目录重启即可加载 ，形成platform_dev结构体，drv中可以直接通过方法获取这些结构体。
+		linux-3.14/arch/arm/boot/dts  目录中的exynos4412-fs4412.dts就是设备树源代码
+		更改目录下的exynos4412-fs4412.dts，添加设备节点
+		在顶层目录linux-3.14/下执行  make dtbs生成exynos4412-fs4412.dtb  放入/var/lib/tftpd-pha/目录中（可以给这个dtb换个名字）
+		
+		【】用device+drive写驱动时，match通过platform_driver.name与platform_device.name匹配
+		【】用设备树时，驱动的匹配通过，platform_driver.of_match_table  描述驱动支持的设备树里的某一个设备
+	***一个设备节点可以包含整个板子的所有寄存器，不用建立很多节点
+	
+	dts语法：
+		#address-cells 表示address要用几个32bit的数值去表示（32-64bit的CPU此值不同）
+		#size-cells  要用几个32bit的数值去表示大小
+		node的lable若存在，需要更改此node的属性，可以直接：
+		&lable{
+			var='value';
+			status='enable'/'disable';可以使能或禁掉某个节点
+			compatible='A','B','C';此设备兼容A,B,C3种驱动，优先级A,B,C
+		}
+		若lable不存在，需要更改此node的属性，可以直接：
+		&[/uart@0x1234]{
+			var='value';
+		}
+	
+	int HelloDriverProbe(struct platform_device *pDevice)
+	{
+		hello_init(pDevice);平台驱动的探测函数里面会把平台设备的结构体带过来struct platform_device *pdevic
+		映射ioremap的时候ledcon = ioremap(pDevice->resource[0].start, 4);
+		完成寄存器的映射			pDevice->num_resources是带过来的资源总数
+		iounmap(ledcon);iounmap接触映射
+```
+
+> 驱动中断
+
+```c
+内核中的定时器：
+		jiffies：自系统开机就开始计数+1+1+1+1，可以根据os自启动以来的jiffies数计算开机以来运行时间jiffies/HZ（单位秒）
+			HZ：决定每s产生多少次定时器中断
+		***jiffies每隔 1/HZ 时间 +1  即1/(1s/100)  是个时间段数（这个HZ不是Hz单位）
+			HZ = 1s/100		
+		内核的HZ决定jiffies计数，一般1s增加250次
+		定时器作用：延后执行某个动作，定时查询reg状态。
+		HZ通过config中的CONFIG_HZ去配置。
+
+驱动中断：在dtb中指明那个脚要中断，中断触发方式
+		fs4412-key {
+			compatible = "fs4412,key"; 
+			interrupt-parent = <&gpx1>;  gpx1的2脚，第二个2是触发方式：下降沿
+			interrupts = <2 2>;
+		};
+	plat_drive.c只改of_table_id.
+	hello.c中：
+			在初始化函数外部实现中断处理函数：
+			int keypara = 100;
+			irqreturn_t  keyhandler(int no,  void *para（这里可以给它传参）)
+			{
+				printk("no = %d, para = %d\n",no, *(int*)para);
+				return IRQ_HANDLED;
+			}
+		1.pkres = platform_get_resource(pDevice, IORESOURCE_IRQ, 0);（获取的是中断号）
+				printk("pkres->start = %d, pkres->end = %d\n",pkres->start, pkres->end);
+		2·初始化注册中断
+	ret = request_irq(pDevice->resource[0].start, keyhandler, pDevice->resource[0].flags, "key-int", (void*)&keypara);	
+	中断函数默认就会禁止掉其他中断，不允许中断嵌套。例如你在中断函数中{HAL_delay(5)},这个delay本身就是中断，所以他会卡死到这里。
+		3.中断的使用很简单，只需要在ko的init中注册中断函数就可以；也可以放到open函数中注册，这样的话必须调用open函数，
+	中断才算真正被注册，具体看业务需求。中断处理的释放函数可以放到cleanup中，也可以放到close中去释放中断，看业务需求。
+		request_irq(中断号，真正的处理函数，xx,flag)；flag为中断触发方式，包括：
+			高/低电平触发；上升/下降沿触发；
+			一旦中断驱动被调用注册，则随时可以触发。
+
+```
+
+
+
+### IIC
+
+```c
+IIC发送时先发最高位，串口发送时先发最低位。
+	发送数据的过程中：
+		scl为低时，发送器发送信号，sda可以改变高低
+		sdl为高时，接收器接收信号，sda必须保持，不可改变
+	收发双方共用SCL，所以双方时间基准完全一致，是同步通信方式。
+	可见：SCL是低时发送器发，SCL为高时（接收器读数据或者发ack）
+	
+	如果从机一直不应答ack，主机自动stop。
+	
+	直接touch + 已存在的文件名相当于把文件重新写一下，不会让之前的内容消失.目的是更改时间戳
+	iic的芯片（8脚的为例）：7根线表示地址（7中的4个已固定为1010 ），其他3个(a2 a1 a0)接线确定h/l
+									1 0 1 0 a2 a1 a0 r/w
+	iic速度较低，用它传视频不可能，传输距离只有几米，不是一对一的，是多对多的。
+	主机不一定是发送器，只有第一个byte是主机发送给从机的，这个byte的最后一个bit决定谁是发送器，谁是接收器，
+数据传输的过程中就会一直保持为发送器或接收器，直到重新发送start信号更换读写的状态。通信的开始结束信号都是主机发起的，start与
+stop信号之间，发送器可以一直发，接收器可以一直读。
+	通讯开始之前scl与sda都是一直是H电平。
+	start信号：scl为H时，sda由高变低，start信号
+	stop信号：scl为H时，sda由低变高。
+	ack信号：scl为低时，从机拉低sda，作为响应。
+	
+	通讯开始：sda由高变低，start信号
+	接下来的7个sck为h的时候，sda发1 0 1 0 0 0 0即从机地址
+	第8个sck为h时，主机发送r/w要求。
+	第9个sck为h的时候，从机给主机发ack信号。-------------建立好握手可以实现数据发送
+	10--17个sck中，sck上发送8位数据....算是地址..第一次发的数据就是地址
+	18sck中从机回ack表示接受完成
+	19sck中stop信号触发通讯结束
+	iic寄存器说明：
+		con：sck速度，状态位（正在传输、已传完），使能ack，使能tx/rx
+		stat状态：主机作为发送/接收，设置开始/停止条件，数据Tx/rx使能，ack能否被接收（**主方提供时钟**）
+		dat：可以装设备地址也可以收发8bit的数据
+	传输时1次传输8bit，高位在前低位在后
+	总线空闲状态：sda为H
+	陀螺仪：mpu6050  三轴传感器
+	fs4412硬件资源：
+		gpio接口驱动：pwm接口驱动：按键中断驱动：adc接口驱动：spi接口驱动：iic接口驱动：
+	mpu6050.c ：物理总线iic下的驱动，真实的总线的驱动
+			驱动中还是探测函数--->探测函数会带过来iic设备pdevice
+	平台驱动：虚拟总线下的驱动
+
+	stm32杜洋的sendbyte(u8 slaveaddr器件地址,u8 slave内部寄存器地址，u8 pdatabuf)函数，主机发数据
+		每个iic器件内部有很多寄存器（每个寄存器存放对应的数据），你要往哪个寄存器写数据/或者从哪里读数据，
+		时序图，发一下要while（）等一下，是在干嘛啊？？是接收ack信号？？还是为了凑时序啊
+		发送start信号--等待
+		发送从机地址--等待
+		发送器件内部寄存器地址--等待
+		发送要发的数据--等待
+		发送结束信号（）--------结束信号是我主机发送的，告诉你我发完了
+
+	主机接受数据：
+		recvbyte(slaveaddr,从机寄存器地址（数据寄存器）)
+		while（）从机忙的时候，等待阻塞
+		不忙了发送start信号--等待
+		发送从机地址--等待
+		发送器件内部寄存器地址--等待
+		设置单片机允许其他器件产生开始信号-开启iic的接收（其他器件就可以向iic发送数据了）
+		将接收buffer的数据返回
+	读写eeprom例子：
+		针对板子的驱动
+		步骤：初始化iic相关的gpio（给1个结构体赋值，然后调用iic_init）gpio作为输入时速度没啥用，只有做输出时才有用
+			工作模式：iic相关的cr寄存器结构体 赋值，然后调函数初始化
+			iic_byte_write（）
+			{
+				产生start信号——>检测ev5事件，看start是否成功。while检测ev5，给个延时
+				senaddr发子设备地址->检测ev6事件，等待检测成功while-ev6 给个延时
+				senddata（）第一次发的数据会被认为子设备内部reg地址 ，while->ev8
+				sendata（）发数据 while检测ev8标志位
+				产生stop信号
+			}
+
+			read_random(n，*data)
+			{
+				1.start+写地址  要从哪里读
+				2.start+读地址
+				while（n--）
+				{
+					若接收buf满，则*data = recvdata
+					if（n==1）
+					{
+						是能nack  收到最后1byte
+						*data = recvdata；
+					}
+					data++;
+				}
+			}
+
+
+	linxu下的iic驱动：有几个结构体（）内核给我们准备了iic自己的发送与接受方法
+		iic_client：每个clie对应1个drivernt
+		iic_driver：
+		iic_adapter：总线适配器。就是控制器 （在设备数中把你的iic设备天加到对应的iic适配器下就好了）
+						iic{
+							iic1{
+								地址
+							}
+							iic2{
+
+							}
+						}
+		iic_algorithm：描述适配器与从设备的算法
+	linux下不用关心怎么控制寄存器进行iic的操作。因为内核有写好的函数。iic的厂家也写好了总线驱动
+		i2c_transfer(adapter,struct iic_msg *msg,int num);
+		内核就有，这个函数。  
+		流程：
+			1.struct i2c_driver mpu6050_driver = {.of_match_table = of_match_ptr(mpu6050_dt_match),}定义平台驱动，从设备树找
+			2.入口函数i2c_register_driver(THIS_MODULE,&mpu6050_driver);挂自己定义的struct i2c_driver  若存在会跳到探测函数
+			3.int mpu6050_probe(struct i2c_client *pclient, const struct i2c_device_id *id)
+			探测函数会拿到iic的资源pclient。
+			{
+				正常的字符设备号申请...设备文件创建..	
+			}
+	mpu6050_read_byte(struct i2c_client *pclient, unsigned char reg)这个函数用linux内核提供的i2c_transfer(adapter,struct iic_msg *msg,int num)完成的。
+			struct iic_msg *msg{
+				从芯片的地址（探测的资源的成员），读还是写（0/1），2（几个数据），数据char buf【2】
+			}
+	int mpu6050_write_byte(struct i2c_client *pclient, unsigned char reg, unsigned char val)
+	具体实现：
+		static int mpu6050_read_byte(struct i2c_client *pclient, unsigned char reg)
+		{
+			char txbuf[1] = { reg };		
+			char rxbuf[1];
+			struct i2c_msg msg[2] = {  
+				{client->addr, 0, 1, txbuf},    
+				{client->addr, 1, 1, rxbuf}  
+			};							
+										先发写地址我要reg读，再发读地址，用rxbuf去保存
+			ret = i2c_transfer(pclient->adapter, msg, ARRAY_SIZE(msg));
+			if (ret < 0) {
+				printk("ret = %d\n", ret);
+				return ret;
+			}
+
+			return rxbuf[0];
+		}
+
+		static int mpu6050_write_byte(struct i2c_client *pclient, unsigned char reg, unsigned char val)												iic寄存器地址
+		{
+			char txbuf[2] = {reg, val};
+
+			struct i2c_msg msg[1] = {
+				{client->addr, 0, 2, txbuf},
+			};
+
+			i2c_transfer(pclient->adapter, msg, ARRAY_SIZE(msg));
+			return 0;
+		}
+```
+
+### SPI
+
+```c
+时钟是主机产生的，每个spi周期传输1bit数据
+		主机主动拉低cs，表示我要与某个spi设备进行通信，然后sck就开始跳动了。（刚开始sck是0或1极性设置）
+
+		LCD模块的通信（芯片之间的通讯）
+		高速、串行（只有2根线是收发）、全双工、同步总线（总线就是多对多，usart就不是总线1对1）
+		极性：在未开始通信前（或者说空闲状态下）的sck的电平0/1  可以设置
+		相位：0--->前沿采样后沿输出    1--->前沿输出（发送）后沿采样（获取）（通过这个双方同步）（沿：上升沿或下降沿）根据sck的沿
+		速度：目前最快3.4M/s  输入口速度48M，所以要预分频。确定波特率（sck）
+		First bit：LSB/MSB
+		（lsb不是低位先传，而是低字节先传，是以字节为单位的）
+		同理msb：不是高位先传，应该是高字节先传，一般的机器的存储都是lsb
+		主机驱动mosi信号----采样miso信号
+		spi的通讯双方的极性与相位要一致（配置）
+	编程时每个spi模块都有自己的一套寄存器，就地址不一样，名字功能都基本一样
+		配置conr：开启中断|使能spi|发完中断？|设主机还是从机|极性|相位|先lsb|msb
+		baud：bus总线过来的时钟 / 分频因子 = baud
+		状态reg：接收完成flag（接收缓冲区满）| 可以发送（发送buf空）
+	spi+flash：  w25q64bv
+		spi最高速度80m，stm32这个总线上72m，二分频才36m
+		spi的send与recv是同一个函数：发送的同时也在接收，
+		{
+			while（txbuf如果不为空）；则等待
+			txbuf为空了，则sendata（data）；放到发送寄存器就不用管的，他会自己1bit1bit的移位出去
+			while（rxbuf不满，则等待）
+			return 接收buf满了直接返回数
+		}
+```
+
+
+
+## io操作
+
+#### 重定向
+
+```she
+重定向：设置输入不从键盘输入，输出不在屏幕显示（例：ls > /dev/pts/5）		tty  /dev/pts/ 另一个窗口，每次新建都会加1个
+	平时打开一个文件，系统就会分配1个对应的文件描述符（从2往后排）
+	
+	cmd 1>a  2>a a 会被打开两次，数据会被覆盖，先放的stdout再放stdeerr
+	cmd 1>a 2>&1 a只需要被打开一次即可
+	cmd >&fds  结果输出至fdx --->cmd 1>&fds,将stdout给fds，存到fds中
+	
+	>filename 清空文件  如果清空的是l类型的软连接，最后请的还是源文件
+	>>filename 不覆盖的创建新文件。如果源文件已存在，并不会覆盖。
+```
+
+### adc
+
+```c
+一般soc内部用的逐次逼近型。猜数字量转换成模拟量与实际模拟量对比，多猜几次结果就对了
+		soc内有多个ad转换模块，每个模块多个通道，理论上都可以与pin脚连接起来，但是1般只会引出部分pin脚。
+		采样有单端采样，差分采样模式
+		采样精度不高的adc基准源直接接ACC就可以。
+		采用不同采样分辨率，时钟设置不一样（分辨率高的采样慢）
+
+		编程配置：
+		1。打开adc模块时钟源（等会用的时候自己再分频）+pin脚对应的port组的时钟
+		2.pin脚功能设置为adc用（不是设普通gpio）
+		3.
+			1）adc时钟分频设置
+			2）采样时间（long time /short time）
+			3）用多少精度
+			mux1）选择哪个通道呢
+			trigger方式：软件/硬件
+			连续采样/1次采样（连续采样比较耗电，费cpu）
+			数据从adc0的14mux读
+			这条不是初始化设置的：观察采样完成的flag（采样1次是否完成），读数据后把这1bit擦除了
+
+
+		adccon： 分辨率、FLAG转换是否结束、时钟使能、分频、工作模式（省电standby、正常）、启动方式（置1转换开始，转换完自动为0）
+						exynos4412两种启动方式0bit  1bit都可以启动，我们选择0bit启动（启动后这bit自动清0）
+		adcdata：数据reg
+		adcmux：通道选择reg
+		End of conversion flag(Read only)  当它置1，值才可读
+```
+
+
+
+## 库制作使用
+
+```c
+静态库： 1：gcc -c *.c    生成的.o与位置有关
+			2:打包生成库  ar crs libtest.a *.o   
+
+	库的使用： gcc test.c -L. -l test (不写lib .a)  
+		     或：gcc test.c ./lib/libtest.a
+		    优点：依赖静态库编译自己的程序。程序运行的时候不在需要静态库。程序运行速度快。
+		    缺点：若库要改变了，程序需要重新编译，可能很耗时间，很麻烦
+	动态库：1：gcc -fPIC -Wall -c hello.c  (会生成忽略位置的hello.o）
+			2: gcc -shared -o libtest.so hello.o bye.o  生成库
+			优点：客户的程序不用改变，只需要改变动态库里面的实现即可，客户的程序不用重新编译，直接调用新编译的库就行了
+	
+	动态库运行时会调用库，如果库不在了，程序不能正常运行
+	动态库不方便移植，生成的代码体积小，需要下载库。
+	两种库编译的时候都要指定库的位置，编译时都要用到库，其中对于动态库，编译时只会简单引用，不会编译进目标a.out
+			动态库，执行时要用要库。
+			1>>把此库位置放入环境变量/lib和/usr/lib（系统库，用户库）的位置
+			2>>环境变量设置vim ./.bashrc    export LIBRARY_PATH=$LIBRARY_PATH:修改后重启终端才会有效。
+								$:source ~/.bashrc  （更新设置好的环境变量）
+			3>>找动态连接器的配置文件/etc/ld.so.conf 写入动态库的路径--ldconfig更新连接器。之后就会自动链接动态库
+	ldd a.out查看a.out运行需要哪些库，如果库链接不到，程序就无法运行。
+	用户需要.h+动/静态库就可以用了，不需要源代码。.h里面写了库里面有哪些函数。
+
+------缺动态库导致二进制无法执行
+拷贝.so到/root/mylib目录
+添加次路径至:/etc/ld.so.conf
+ldconfig更新连接器。之后就会自动链接动态库
+                                 
+
+调用c中的动态库方法：
+1. c文件中引用头文件
+2.python：
+from ctypes import CDLL
+lib=CDLL("/usr/lib/xxx")  加载动态库,拿到句柄
+lib.fun1() lib.fun2()可以直接调用c的库
+3.c++中在函数声明时用extern 'C'将函数的声明括起来
+4. 对于c与c++都要用到的函数，在头文件中声明的时候加__cpluscplus宏定义。
+```
+
+## 进程与线程
+
+```c
+
+fork();
+if(pid==0)
+{
+	这里是子进程;
+	exit();  ---这里最好有exit
+}else if(pid>0)---这里必须有判断pid大于0的判断，不然即使pid=0，程序还会走到下面。
+{
+	这是父进程;	
+}
+进程间通信：在用户空间是不可能的。进程在用户空间是相互独立的。
+					得通过内核中的对象。因为进程都可以访问同一内核的。
+		内核对象都不在用户空间：
+			无名管道：无文件名	pipe是系统调用所以包含unistd.h，
+					所以必须用标准io才能进行通信，因为操作的是文件描述符，不是流指针。
+					得是父子进程或有亲缘关系的进程，因为要得到fd[]才能通信。此时用的同一个管道。
+			有名管道：有文件名存在于文件系统中
+					管道文件：p类型------   mkfifo  创建的文件不占磁盘大小，系统会分配inode号
+					mkfifo函数并没有在内核创建出来管道，只有open myfifo文件的时候才会在内核空间创建管道
+					要打开myfifo得两个进程都open-myfifo才能打开，只有1个进程不能成功打开myfifo
+					两个进程要通讯，都必须打开同一个mkfifo才可以。
+			信号： 通过执行1个进程调用（kill函数 ）给另1个进程发信号
+			     信号是用户空间的概念，无法为内核空间的线程传递信号----重要知识点
+						发送：kill（信号类型，进程号）   -9终止进程的时候不会刷新缓冲区的
+							 raise（信号类型）把信号发给自己，是kill(9,getpid());	
+							 alarm（5）；定时5s后给自己发信号。只会给自己发。 
+						信号的接收：pause（）；让程序到了这里直接暂定运行。
+
+						信号的处理：1.signal注册
+									2.signal（14,SIG_ING）;忽略此信号
+									3.signal（14，SIG_DFL）;默认方式处理此信号
+			IPC对象：终端命令：ipcs -m/-q/-s  查看内核ipc对象
+					ipcrm -m id 删除
+					通过宏IPC_PRIATE创建的key始终为0  IPC_PRIATE；shmget（IPC_PRIVATE，128,0777）,这种只能实现有亲缘关系的通信
+
+					通过ftok创建的key再去shmget（key，128,IPC_CREAT|0777）;  这种可以实现无亲缘关系的通信。
+
+					void shmat（int shmid,const void*shmaddr,int shmflahg）;
+											NULL表示系统自动完成映射
+											shmflag：默认是0，表示共享内存可读可写。
+											成功返回映射后的地址，失败返回NULL；
+					共享内存创建后，一直存在于内核中，直到被删除或系统关闭。
+					共享内存与管道不一样，读取内存中的数据之后，内容仍在内存中。
+					shmdt：将进程中用户空间的映射地址删除。成功0 失败-1。删除之后这个地址就成空的了，不能再操作了
+					shmctl:删除内核中的ipc对象（即刚才创建的内核中的共享内存）
+					int shmctl(shmid,cmd,*buf);
+										cmd:IPC_STAT
+											IPC_SET
+											IPC_RMID
+										buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
+
+一个只有main的程序，既是线程也是进程，可以通getpid()与pthread_self().获取线程号与进程号。
+
+字符串定义的时候可以直接赋值。
+				或者struct node mynode={
+					.name = "123",
+					.mystr = "sdfgds",	结构体定义的时候字符串也可以直接赋值。
+				}
+**如果主线程调用pthread_exit函数退出，这样的话，main进程会等所有线程结束时才会终止。不然一直阻塞住
+				要想主线程退出其他线程不退出，主线程退出的时候应该用pthread_exit
+				return ：返回调用它的函数
+				exit：退出当前进程-->底层调的_exit()
+				pthread_exit():退出当前进程
+				线程退出是值是（void*）的类型
+		如何避免僵尸线程：（僵尸进程是杀不死的，kill不掉）
+			pthread_join
+			pthread_detach
+			pthread_create之前先设置线程的分离属性
+
+新线程可能在pthrad_create返回之前就已经结束了的。不一定说函数有了返回值新线程才开始运行。***
+初始化线程属性：(应先初始化线程属性，再去create线程)-----可以通过修改线程的属性使线程分离，不需要detach了
+		int pthread_attr_init(pthread_attr_t * attr);attrubute(属性)成功0失败errno
+		int pthread_attr_destroy(pthread_attr_t * attr) 销毁线程属性所占用的资源
+线程回收：1.分离
+		 2.pthread_join 如果子线程return或pthread_exit退出，这个可以收到退出码。如果子线程被取消，就收不到退出码了。
+		 		阻塞等待子线程退出、
+		 如果之前的线程用了datach就不要在去join了，都已经自己回收了，用join会收谁去呀？会出错的。
+线程杀死：
+		pthread_cancle(pthread_t pid)---->对应进程中的kill函数--成功0，失败errno
+		线程中得有syscall才能取消，有取消点（函数的底层会调syscall）可以自己加一行pthread_testcancle();取消点
+		杀死的进程得回收资源，此时join到的线程的返回值是-1.(固定的，死记住)
+线程的退出：在线程函数中不要调用exit函数，会导致整个进程结束。
+		****线程可以被同一进程中的其他线程取消	
+			调用pthread_exit(void*val)与return x；这2种类似
+线程信号：pthread_kill
+  
+线程间通信：可以在用户空间就通信，通过全局变量。
+进程：
+ 	ps -aux 中的S+状态表示：正在睡眠随时会到R+状态，因为时间片刚好过去。并不能表示程序真的卡住了
+				R代表正在运行或readyrun状态
+				I/S代表可中断睡眠，一般最多啦（等待socket链接，等待read，write等等）
+				O不可中断睡眠，内核态原子操作等等，kill -9都杀不死的进程
+				T状态：处于gdb调试中的进程状态（暂停或跟踪态），被调试的进程也会进入t状态，不会一直run。
+				sigstop信号，sigcontinue将此状态变成R，例如GDB调试时等待输入。
+				D 处于D状态的进程可以通过查看/proc/pid/stack 文件下的调用栈
+				d状态是进程执行syscall之后在内核空间还未返回，阻塞住了，此时这种进程无法被杀死，因为kill只能给用户空间的
+
+			进程发信号，无法给内核空间的线程发信号，而此时进程已经陷入了内核态了
+			僵尸进程是Z状态，也是杀不死的。D状态也是杀不死的
+			
+	ps -axo stat pid,ppid,pgid==pgrp,comm  查看进程组号，组id可能与ppid一样也可能不一样
+	ps j也能查pgid号
+	ps -p 进程id -o pgrp  看进程所属组id
+	ps  -Lf  pid:查看进程中的线程
+	nice -n 2 ./test 改变优先级（只针对没有运行的进程）
+	renice 可以更改正在运行的 进程优先级
+	jobs  查看所有的后台进程
+	fg  1   将1号后台进程转为前台进程（foreground）
+	ctrl+z 将当前前台进程转为后台
+	bg 2   将后台挂起的2号进程重新变为运行态（backgrou）
+	
+	父子进程，子进程继承父进程所有内容，但是有独立的内存空间。都有变量i，但是I的地址是不一样的
+	***所以不能通过全局变量进行数据交换。
+	
+	一个进程的进程号在生命周期不会改变，但是父进程可能改变，（父进程死了，子进程变为后台进程，子进程交给init）
+
+	进程结束exit	会刷新流的缓冲区   _exit不会刷新    （这两个包含的头文件不一样）
+	return和exit()的另一个区别在于，即使在除main()之外的函数中调用exit()它也将终止程序。
+	
+	exec函数族 让当前进程执行另外的程序（当前内容被指定程序替换）
+	让父子进程执行不同的程序。
+	l = list形式,v = vector形式【"ls","-a"】，e = environment自己穿进去环境变量
+	p = 函数自己根据命令在默认环境变量中查。带p的exec穿进去的第一个参数就不需要带路经了
+	execl（指定程序名称char *含路径，）
+	execlp("ps","ps","-ef",null)
+	execl("/bin/ps","ps","-ef",null)
+	char * arg[] = {"ls","-a","/etc",NULL}		#看的是/etc下的文件
+	execv("/bin/ls",arg)
+	execvp("ls",arg)
+	进程回收 wait（&status） 成功返回子进程进程号，失败返回eof。wait会阻塞等子进程退出它才退，不然就一直等儿子，子进程的exit（10），父进程的status里面就会存10.
+	也可以wait（null）表示释放pcb就好，不接收返回值。
+					
+	
+	wait  --等任何子进程状态的改变
+		WIFEXITED(status) 	子进程必须通过exit return结束，返回true
+		WEXITSTATUS(status)  得到子进程返回的exit值
+		WIFSIGNALED(status)  子进程被信号打断，返回true
+		WTERMSIG(status)     得到子进程被那个信号终止
+	
+		火狐浏览器一打开：就可以看到分配了几十个线程（线程池）
+	nLwp:多少个线程
+	Lwp：线程号（线程号不是线程id，cpu轮换就是根据线程号轮换的
+				线程id：进程内区分pthread_self()获取线程号）
+	线程共享的资源：
+		文件描述符表；
+		signal的处理方式					尽量不要将线程与signal混这用，比较麻烦，不稳定
+		当前进程的工作目录
+		用户id与组id
+		内存中除了栈的地址（text,data,bss,heap,共享库）
+	私有的资源：
+		errno变量
+		线程id
+		栈空间，栈指针
+		信号屏蔽字
+		调度优先级（跟进程的优先级一样）
+
+	ps-aux	//WIFSTPEPED(status)   子进程被信号停止，返回true
+	才能看	//WSTOPSIG(STATUS)      返回让子进程停止的信号
+不能printf 出来		//WIFCONTINUED(STATUS)	如果子进程被信号重启，返回true
+
+	waitpid（pid，status，option）
+		pid=-1 任何子进程状态改变
+		pid>0 等待此进程号对应的子进程状态改变
+		pid=0  等待和当前进程同组子进程的改变
+		option = 0 阻塞
+		option =WNOHANG 不阻塞，指定子进程没结束马上返回0
+		option = WUNTRACED  子进程暂停，不阻塞，马上返回0
+		
+		
+	线程：pthread_self()获取线程号
+		线程是在进程中创建的，如果main进程结束，线程也会end。可以调用pthread_exit阻塞线程
+		使进程等线程结束再结束。
+
+		阻塞等待pthread_join （tid，void **ret）；
+		传出参数给空的ret，返回后ret里面放的pthread_exit（ret）
+			
+	线程通信：同步互斥		p同时信号量-1			v同时信号量+1（读写操作，生产完才能消费）
+		线程同步的概念：  sem_wait(*sem)			sem_post(*sem)
+				信号量：p操作：申请资源	信号--		v操作 信号量++	声明在全局变量，便于线程A,B都能访问
+			2类信号量：无名信号（存在于内存中，主要用于进程的线程间通信，全局变量）	
+					  有名信号（线程、进程间通信都可以）
+				信号初始化：int sem_init(*sem,int pshared,int val)	sem是信号量对象	
+											  0线程间1进程间	初始化量大小
+											 有名信号量   无名信号量
+			要对一个读进程一个写进程进行PV操作，需要2个信号量，sem_r初始化为0   sem_w初始化为1
+		信号也可以当锁实现，信号是0不能操作，信号是1才可以操作。	
+							【有读信号才能读，有写信号才能写】	
+		函数sem_wait( sem_t *sem )被用来阻塞当前线程直到信号量sem的值大于0
+		
+		
+		互斥：一次只允许一个（进程或线程）访问共享资源	声明时在全局变量a，b都能访问
+				访问之前申请锁，访问之后释放锁
+			mutex：锁子（互斥量）			表示不可读阻塞		表示可写，写完后应该v操作	
+				int pthread_mutex_init(pthread_mutex_t *restrict mutex,const pthread_mutexattr_t *restrict attr);	锁子一定要在线程创立之前初始化，不然线程刚开始还是乱的
+
+				pthread_mutex_lock（&mutex）
+				(给共享资源枷锁)若：当前未锁，成功加锁，当前已锁，阻塞等待
+				pthread_mutex_trylock（&mutex)  若当前未锁成功枷锁，当前已锁则直接返回(所以这种需要轮询)
+				pthread_mutex_destory（mutex）
+				mutex不是强制使用的，但是内核建议你使用(怎么理解呢？)
+					就是其实A线程用锁访问共享数据var，B线程我就算不获得锁，也可以访问，并不是不能访问，只是内核
+					建议你B线程访问的时候先获得锁再去访问，防止数据乱掉。
+		restrict关键字：普通变量int *  m=xxx;如果不想用m去改变指向的内存的数据，我可以int * p = m;然后用p去改
+		但是如果加了restrict关键词，就是不允许这样做，你要更改只能用m本身去更改，不能换个名字去改。
+		枷锁解锁的时机：(很重要)
+				1.在线程函数内部(如果是main中，在循环的内部枷锁解锁)---否则只能执行到枷锁，执行不到解锁了
+				2.在访问共享数据之前迅速枷锁，访问完成就迅速解锁--建议这么做。不要访问完了还干别的事情
+				3.stdout也是共享数据，在线程中printf也是访问共享资源(底层是write到2号fd，print的时候不枷锁，
+				有可能每个线程打印的话都搅和到一起，打印的话都不通顺了)
+				4.解锁后稍微睡一下usleep（），让别的线程可以抢占到锁，不然他们不好抢。容易易主
+		死锁产生的例子：
+			1.同一线程内部2次获得同一个锁，该锁子只有一个
+			2.p1有A锁请求B锁，p2有B锁请求A锁
+				怎么解决：p1用trylock去获取锁，一旦返回获取不到，则释放现在已lock的锁(A)，成全别人
+		产生死锁的四个必要条件：
+			互斥条件(Mutual exclusion)：资源不能被共享，只能由一个进程使用。
+			请求与保持条件(Hold and wait)：已经得到资源的进程可以再次申请新的资源。
+			非剥夺条件(No pre-emption)：已经分配的资源不能从相应的进程中被强制地剥夺。
+			循环等待条件(Circular wait)：系统中若干进程组成环路，该环路中每个进程都在等待相邻进程正占用的资源。
+		死锁的避免：
+			安全序列
+			银行家算法，保证拿到钱的客户项目能运行完，会还钱。
+		2.死锁的恢复  
+
+     （1）最简单，最常用的方法就是进行系统的重新启动，不过这种方法代价很大，它意味着在这之前所有的进程已经完成的计算工作都将付之东流，包括参与死锁的那些进程，以及未参与死锁的进程。
+
+    （2）撤消进程，剥夺资源。终止参与死锁的进程，收回它们占有的资源，从而解除死锁。这时又分两种情况：一次性撤消参与死锁的全部进程，剥夺全部资源；或者逐步撤消参与死锁的进程，逐步收回死锁进程占有的资源。一般来说，选择逐步撤消的进程时要按照一定的原则进行，目的是撤消那些代价最小的进程，比如按进程的优先级确定进程的代价；考虑进程运行时的代价和与此进程相关的外部作业的代价等因素。 
+		
+		
+
+		有两种方法创建互斥锁，静态方式和动态方式。POSIX定义了一个宏PTHREAD_MUTEX_INITIALIZER来静态初始化互斥锁，方法如下：
+
+		pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
+
+		在LinuxThreads实现中，pthread_mutex_t是一个结构，而PTHREAD_MUTEX_INITIALIZER则是一个结构常量。
+
+		动态方式是采用pthread_mutex_init()函数来初始化互斥锁，其中mutexattr用于指定互斥锁属性（见下），如果为NULL则使用缺省属性。
+
+		pthread_mutex_destroy()用于注销一个互斥锁，API定义如下：
+
+		int pthread_mutex_destroy(pthread_mutex_t *mutex)
+
+		销毁一个互斥锁即意味着释放它所占用的资源，且要求锁当前处于开放状态。由于在Linux中，互斥锁并不占用任何资源，因此LinuxThreads中的 pthread_mutex_destroy()除了检查锁状态以外（锁定状态则返回EBUSY）没有其他动作。
+
+		
+		信号量: 进程间或线程间(linux仅线程间)  两者作用域也不一样
+		互斥锁: 线程间 		*******************************************
+
+	读写锁：pthread_rwlock_xxx
+		口诀：写独占，读共享（各线程都是读的时候才共享**）
+			 写锁优先级高（如果别的线程有请求写锁的有读锁的，则读锁就不共享了，先让写线程获得写锁）
+			pthread_rwlock_init();  只有一个锁
+			pthread_rwlock_destroy
+			pthread_rwlock_rdlock pthread_rwlock_rdtrylock
+			pthread_rwlock_wrlock pthread_rwlock_wrtrylock
+			pthread_rwlock_unlock
+
+	条件变量：pthread_cond_xx  本身不是锁，但是可以造成线程阻塞，通常与互斥锁配合使用
+			 pthread_cond_wait();难
+			 pthread_cond_init
+			 pthread_cond_destroy
+			 pthread_cond_wait
+			 		1.使用前定义mutex 初始化mutex 锁住mutex 定义cond 初始化cond
+			 		2.阻塞等待条件变量满足+释放已掌握的mutex
+			 		3.被唤醒，函数返回时，接触阻塞，重新lock互斥锁
+			 pthread_cond_signal
+			 		1.唤醒至少一个阻塞在条件变量上的线程
+			 pthread_cond_broadcast
+			 		1.唤醒所有阻塞在cond上的线程
+			 静态初始化cond方法：不需要init函数，只要：pthread_cond_t mycond=PTHREAD_COND_INITIALIZER
+
+	信号量：互斥锁的升级版(可用于进程线程间)
+			互斥锁只能供1个线程使用，信号量初始化为N，就可以供N个线程使用，因为每次抢占只会-1，
+				互斥锁减1下就没了，信号量可以减N次9
+
+	同步：不同行业有不同的理解
+		设备间：同一时间参考--usart uart
+		编程中：按照先后预定的次序执行代码就是同步。彼此有依赖关系的调用不应该同时发生，同步就是阻止那些‘非要同时发生’的事件。
+		信号是同步的：1个线程写入数据，另1线程读取。如果我不写，你不能读。是对两个动作的同步（你走一下我走一下）
+		锁是保护共享资源的，我访问你就不能访问。你访问我就不能访问。
+
+
+
+signal函数: 
+	void sig_alarm(int sig) 
+	{ 
+		printf("sig is %d, sig_alarm is called\n", sig);
+	}
+	 
+	int main(int argc, char *argv[]) 
+	{ 				35		函数名
+		signal(SIGALRM, sig_alarm);  注册给SIGALRM注册对应的处理函数
+		alarm(5);  // 5秒后，内核向进程发出alarm信号， 执行对应的信号注册函数  否则它默认是会杀死进程的
+		sleep(20);   //**********必须大于alarm的5s，如果没有这句话，程序瞬间就执行完了。
+		printf("end!\n"); 
+		return 0; 
+	}
+	pause（） 暂停挂起进程，等待信号（信号有自己的处理函数， 目前学的信号打断默认都会直接杀死进程
+	有些信号让进城状态改变，有些例如-9会杀死进程））这种打断进程就不能执行到exit最后这句了
+	kill -l查看所有信号		注意所有信号对进程都有默认的处理方式
+	SIGKILL SIGSTOP不能被忽略 也不能被捕捉
+	SIGSTOP是暂停进程信号，不是终止
+	函数kill(pid,sig)  pid可以指定getppid给父进程。。。。
+		raise(sig)只能给自己所在的进程发---
+		void abort();自己给自己发SIGABRT信号，终止进程并产生core文件。
+	SIGALRM：alarm（5）到时间就会发出的信号，发出信号如果有注册过这个信号的处理函数，就会跳过去执行
+		一个进程有且只有一个定时器，无论进程处于哪种状态，alarm都在计时****
+	SIGINIT：在终端执行Ctrl+c会触发此信号，发出信号如果有注册过这个信号的处理函数，就会跳过去执行
+```
+
+### 进程间通信
+
+```c
+SYSTEM-V IPC 通讯机制：
+	每个IPC对象有唯一ID。
+	IPC一旦创建一支存在，除非主动删除（显式删除）
+	每个IPC对象有一个关联的key（key为0表示是私有的）。。1个key可以有很多id
+	命令：ipcs 查看当前ipc对象
+		  ipcrm 删除ipc对象
+	共享内存：读取数据后内容仍在其中。内存创建后一直存在内核，直到删除。所以我们用完要释放。
+			key_ t key;		0-127					./a.c  'a'
+			key = ftok(".",100);//生成key。路径+文件名+工程名‘m’也可以
+
+			shmid = shmget（key，IPC_CREAT|0664）创建共享内存  只用ipc_private创建出来的key默认为000
+							FLAG
+	创建新的，或者获取已有的共享内存。如果key没有任何共享内存，则创建（开辟），如果有对应的，说明别的进程已经创建好了，可以直接获取。
+		shmget（key，size（最好写页的整数倍），）
+
+			返回映射后的地址=shmat(shmid,NULL,0) 	映射      有了地址可以写memcopy。fgets。scanf
+						null系统分配		0表示可读可写SHM_RDONLY只读		读：puts（地址）
+			shmdt（shmaddr）取消共享内存 传地址（用户空间地址删除）
+			int shmctl(shmid,int cmd,jiegouti * buf)（内核空间地址删除）
+								IPC_STAT IPC_SET IPC_RMID			这时工享内存没人用就会自动删除了候只是添加删除标记，等
+								获取属性存到buf 设置将buf设置到属性 删除共享内存ID用不着buf，传null
+	得到地址后可以调用含有地址的读写函数。往当前内核的地址空间写东西。
+		多个进程也可以映射到同一块实际物理地址空间，实现数据共享，只不过需要加保护措施，否则A进程写数据，B进程也写，就乱了。信号量保护--
+		多个进程使用共享内存通信时，创建者只需要1个，谁先运行谁创建，其他进程直接获取共享使用，实现通信
+
+	消息队列几种ipc通信的第一步都是创建ftok--->key关键字 2。根据关键字创建本类型（内存、队列）id
+			创建消息队列：操作消息队列就靠这个id
+			消息队列id = msgget(key,IPC_CREAT|0666）
+			私有的key IPC_PRIVATE或	ftok（多个进程都要访问用ftok）
+			msgflag：IPC_CREAT|0666:如果消息队列不存在则创建，若存在返回id
+			向消息队列发送消息：				消息的传送靠的是一个结构体（发送接收都通过这个MSG）
+			成功0失败-1 msgsnd（msgid，const void*msgp，size，flag）0或IPC_NOWAIT 堵塞不堵塞
+									 消息缓冲区地址		消息正文长度 
+			
+			通信前先设置消息格式：一个结构体struct {
+				long mtype,//消息类型
+				char mtest[64]//消息正文
+			}MSG;		//
+			#define LEN (sizeof(MSG)-sizeof(long))	正文长度
+			
+			从队列接受消息：					如果是0按照消息顺序接收  要收的mtype
+			msgrcv（msgid，const void*msgp，size，long mtype，flag）标志位：0或IPC_NOWAIT
+											size要稍微大，不然会丢失信息
+
+			控制消息队列：
+			0或-1 --msgctl（msgid,int cmd,jiegouti * buf）
+			IPC_STAT IPC_SET IPC_RMID
+	信号灯集
+
+守护进程：
+		1.创建子进程，父进程退出
+		2.在子进程里面操作
+			（1）setsid 设置会话组  这样就脱离终端了
+			（2）改变子进程工作目录，chdir（“/”）			
+			（3）设置文件权限 umask（0） 				1是标准输出
+			（4）关闭所有文件描述符 close 循环 关闭0,1,2,3，---关闭1之后就不能打印了
+			（5）进入需要的循环while（1）			避免浪费资源，0,1,2开着没啥用	
+
+进程组的概念：只有父进程的进程组是自己，子进程的进程组是父进程。
+		kill -9 -pgid   一次杀死所有进程组的进程,'-'pgid    （区别父进程与进程组的概念）
+
+		getpgrp() :获取当前进程的进程组id
+		getpgid(pid) ：获取指定进程的进程组id  成功0，失败-1置errno
+		setpgid(pid,pgid);改变进程默认所属的进程组，   成功0，失败-1置errno
+		普通用户不能改变root用户的进程的进程组
+```
+
+#### socket
+
+```c
+socket
+1. tcp、udp中的socket是自己调用socket时产生的，可以在/proc/pid/fd 目录中看当前进程打开的socket信息、pipe信息
+2. unix域通信时，bind(socketfd,sockaddr,xx);sockaddr中包含具体的套接字文件，这种方式的socket的名字是可以自己设定的
+总节：tcp、udp中网络搭建靠的是ip+port
+	unix域通信时，靠的就是程序中指定的socket（自己可以命名）
+tcp也不是一定会4次挥手，有时候就是三次挥手。
+```
+
+
+
+### task_struct
+
+> task_struct 进程描述符，内涵mm_struct 内存描述符
+> 	mm_struct描述对于当前进程4G内存是怎么分配的
+> 	每个进程对应一个task_struct
+> 	进程id
+> 	状态：就绪、运行、终止、挂起(等待、阻塞、暂停不占用cpu)
+> 	
+>
+> 	虚拟地址与物理地址的映射(mmu做的然后存到这里)
+> 	虚拟地址4g通过页表（映射表）映射到物理内存，页表由os维护，并被内存单元mmu引用，每个进程都有自己的页表
+> 所以，每个进程感觉自己独享4g地址空间，并没有这么多的物理地址，仅代表它可以支配这4g。
+>
+> ---
+>
+> 进程可用的资源：ulimite -a
+> 				  (open files:1024 最多能同时打开这么多文件)
+> 				  (stack size：栈大小)
+> 				  进程栈、用户栈一般是8M：初始化时由编译器链接器计算出，但是会动态增加（即增加页表）
+> 				  内核是8K或4k
+>
+> 				  用户栈：fun运行提供空间
+> 				  内核栈：保存register的值，头区域存放当前进程的task_struct进程描述符
+>	
+> 	线程栈：（轻量化的进程，与其他线程共享mm_struct中的资源）
+> 	线程栈从进程的地址空间中映射出来一段区域，用完就没了，不会动态增加。对于线程mm是共享的但是线程栈不是共享的。
+> 		
+> 	进程与线程不共享内核栈，为啥每个进程需要单独的内核栈呢？
+> 		假设进程a，陷入内核态时刚好休眠让出CPU，进程b也刚好陷入内核态，若内核栈只有1个，切换时内核栈要存进程a的数据，b运行内核栈也需要压栈，很可能溢出，丢失数据
+> 		
+> 	mmu负责进程的虚拟内存与物理内存的映射，每个进程一旦运行，它就开始工作了
+> 	mmu的三级映射：
+> 	a.out-->页目录-->页表-->物理内存地址  页表就是描述虚拟内存与物理内存的映射
+
+## 网络编程
+
+```c
+C/S模型：
+		优点：协议灵活，缓存数据（为啥大型游戏第一次启动慢--拉数据到内存），
+			数据量比较大，可以提前缓冲大量数据
+			应用程序稳定
+		缺点：客户端装在用户电脑，威胁用户的安全
+			 还需要写服务器，开发麻烦
+	B/S模型：浏览器作为客户端--不会安装第三方软件
+		优点：安全，只需要开发server端就可以了，每个用户都有浏览器客户端，不需要再开发了，
+			跨平台。浏览器嘛，linux也有，都能访问(不像lol只能在windows上玩)。
+		缺点：协议选择http协议不能修改，必须完整的支持http协议
+			 都是小型程序，大型游戏在浏览器上玩，卡死了就(不能传输大量数据)
+---
+广播与组播：
+  广播：不管你想不想收，我都给你发过去了，反正传到你的传输层了
+	组播：加到我组里面你才能收到。没加进来，在数据链路层就丢掉了群聊--不让别人看。就部分人看
+
+  我们平时写的网络编程只要设计到tcp、udp协议，说明这是自定义的协议，
+	真正的应用层开发的协议使不会用到这种函数的，下面的6层都由os帮你做（tcp/ip模型）
+	tcp的稳定不是不会丢包，是丢了会重传。
+	listen:其实不是监听，是限制同一时刻最多有多少client可以同时发起connect
+
+		#include <netinet/in.h>：sockaddr_in 头文件
+		DNS域名解析服务
+		典型协议：
+		传输层：tcp/udp
+		应用层：http、ftp、nfs、ssh
+		网络层：ip、igmp、icmp
+		网络接口层：arp、rarp、以太网帧协议
+		arping -I ifens0 -D ip
+		arping -I br0 IP    检测ip是否冲突，若返回多个mac说明ip冲突
+		若当前mac不能分配ip，ifconfig eth0 hw ether xx:xx:xx:xx:xy修改原mac后ip能ping通说明mac冲突了 
+		sudo ifconfig eth1 192.168.1.90  通过命令行设置ip
+		tcp：传输控制协议-面向连接的可靠的基于字节流的(可靠的意思是每次发送后都能收到ack信号，证明收到了)
+		
+		udp：用户数据报-无连接的传输层协议，不可靠
+		ip：Internet 互联协议
+		icmp：Internet控制报文 ip主机、路由器之间传输控制信息
+		igmp：Internet组管理 主机路由器之间
+		ARP：正向地址解析  通过已知ip寻找对应主机mac
+		rarp：与arp相反
+		3层：终端->路由器->交换机
+		2层：终端->交换机
+			局域网内消息传递：通过交换机的端口映射表：port->mac（压根不需要ip层就可以通信）相当于lan口
+			局域网外：路由器中还有个路由表：可以查看要发送的信息的目的ip是否在本局域网内，如果不在，就将数据放到局域网对外接口，相当于wan口，然后数据就发出去了
+		交换机：学习功能与转发功能
+			1.里面有mac地址表（又称端口mac映射表），data需要转发时会根据目的mac从对应的port发出去
+			2.内置dhcpserver，负责ip分配
+			3.mac地址表理解：数据中包含源mac，目的mac，经过交换机时，它会先给源mac建立对应的mac-port映射条目（学习功能）
+			                然后会查询目的mac，然后把数据从对应的port转发出去
+							如果目的mac在当前的mac地址表中没有，则向所有的port都转发出去（泛洪）
+							最后目的mac会打包数据（里面放的自己的mac与发给他数据的mac）发回源mac，此时交换机会将目的mac建立对应的port
+							下次别人再发此mac的数据就不需要泛洪了，直接给对应的port就可以了
+		路由器：有广域网接口，不同网段直接收据收发。本质是个gateway，只接受数据包that包含在本ip表内的ip的数据
+		
+			在传数据的-路上-经由的东西就是路由器
+		通信的时候路由器看一下数据包的ip，如果在本局域网内，就不从wan口发了，如果是别的局域网内的数据，则
+		tcp/ip 4层模型
+			网络接口：网络：传输：应用层   ip		端口
+
+	数据传输以以太网帧格式：
+		目的mac|源mac|帧类型|数据46-1500byte|crc校验(其中目的mac不知，通过arp请求)
+		ff*6     ff*6   2byte     
+	arp请求帧：
+		目的mac|源mac|帧类型|8|源mac|源ip|目的mac|目的ip（路由器通过对ip的检测，找对应mac）
+						0806								回传一个arp应答帧传回mac
+	查看服务器网络状态
+	命令：netstat -apn |grep 端口号/程序名	-l：显示状态为connect的进程
+		  lsof -i:port号  查看是否开启成功
+		  lsof -p pid：查看此进程打开的文件，库，fd
+	
+	客户端与服务器连接过程用的都是同一个端口。都是服务器的端口，才能通信。
+	//端口复用函数，放在bind之前 不然./server运行后退出再运行会出错，等会才能运行
+	
+	报文组成 [mac][ip][port][协议TCP|UDP]【msg】[crc]
+	int opt
+	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(void*)&opt,sizeof(opt));
+					level 11对应  solname
+	类似read/write的函数
+	ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+	recv( newID, buf, SIZE - 1, 0) 最后的flag控制阻塞不阻塞 <0 出错
+	send( newID, buf, SIZE - 1, 0)	
+	recv(sockfd, buff, buff_size,0);//有数据就返回，不用收完
+		recv(sockfd, buff, buff_size,MSG_WAITALL); //MSG_WAITALL不一样的0阻塞模式接收        
+        send(scokfd, buff, buff_size,MSG_WAITALL); //阻塞模式发送
+        recv(sockfd, buff, buff_size,MSG_DONTWAIT); //非阻塞模式接收        
+        send(scokfd, buff, buff_size,MSG_DONTWAIT); //非阻塞模式发送
+
+	recv的前三个参数和read相同，send前三个参数和write相同。
+	recv的flags
+		默认为0时，它是阻塞 相当于read -- 最常用的
+		MSG_WAITALL，等待对方发过的数据填满buf才返回，或者当出错/断开连接/收到信号等等异常情况出现时，会返回。
+	
+	addr.sin_addr.s_addr = inet_addr(ip) 点分十进制->网络字节序
+	inet_ntoa(addr.sin_addr.s_addr)  网络字节序-》点分十进制会报错warning但是可以运行
+	htonl  uint->网络字节序
+	inet_pton 点分十进制->网络字节序
+	inet_ntop 网络字节序->点分十进制
+	fcntl:改变已打开的文件属性：
+		
+	文件描述符：设为不阻塞的，设为阻塞怎么设
+	int flag = fcntl(socketID, F_GETFL, 0);//获取当前打开的文件描述符的状态标志位，第三个参数可以忽略
+    flag &= ~(O_NONBLOCK);设阻塞		O_APPEND这两种设一种
+    flag |= O_NONBLOCK;设非阻塞
+	//设置当前打开的文件描述符的状态标志位。第三个参数就是该文件的新的描述符状态标志
+    fcntl(socketID, F_SETFL, flag);这个falg不能省略，设的就是它
+	这个一旦设置，这个监听套接字socketid的accept就会||不会阻塞了 。	
+	
+	并发实现：1多线程2多进程3io多路复用都能实现。
+		python中的多线程、多进程使用方式一样，Process、、Thread传参方式也一样，只不过一次是在一个进程内处理，一个是多个进程
+	多进程并发（多线程并发服务器）注意：只是服务器 它可以1对多
+	python进程间通信：Pipe或者Queue模块
+	Pipe用于父子进程间通信，是2个进程间通信
+	Queue模块可以用于多个进程间,get与put方法去读写数据。
+	python共享变量（进程间）：
+	var=multiprocessing.Value('i',0)
+	lock=multiprocessing.RLock()  创建全局锁
+	进入子进程回调函数后：
+	lock.acquire()：先去获得锁
+	lock.release();中间操作完之后去释放锁。
+	
+	若每个线程中执行的操作时间很短，不必使用多线程，因为创建进程销毁进程也要消耗资源的。
+	多进程往往用来处理CPU密集型操作，多线程处理IO密集型操作。
+1.客户端连接 2.数据通信
+	select多路io转接：  借助内核监听（本来是服务器自己监听连接：accept阻塞）
+	int select(int nfds, fd_set *readfds, fd_set *writefds,fd_set *exceptfds, struct timeval *timeout);
+	使用select好处accept就不会堵塞了，server收到select传过来的客户端请求才会accept新建套接字。
+	nfds：监听的所有的文件描述符中最大的文件描述符+1  lfd cfd1 cfd2 cfd3已连接3个客户端 准备连接下一个
+														3	4	5	  6						7
+	fd_set *readfds, fd_set *writefds,fd_set *exceptfds 传入传出参数：进的时候要带数据，进行处理后传出来
+		字符集	读写事件					异常事件	传出参数：给个该类型的空值就好，传出来的是返回的需要的值
+	select局限：维护一个存放1024以下的数量的存放文件描述符的数组，单线程下数量有限1024，需要轮询（select只知道有io发生不知道是哪个，每次需要遍历，复杂度为On）
+```
+
+#### 3次握手4次挥手
+
+```c
+3次握手
+1：cli->我要发
+2:ser->我可以收-->我也要发
+3：cli->那我也收
+不是物理上的连接：本质是S端与C端为之后的通信开辟资源 ***
+
+4次挥手
+1：cli我不发了
+2：ser我不收了  你等下我把我的数据发完
+3：ser我也不发了 
+4：cli 反正你都发完了，我也不收了
+为啥要有4次挥手：连接会占用socket==ip+port port数量有限
+		如果光连接不通信，port的65535用完就不能继续建立连接了，不能通信了
+```
+
+
+
+### IO多路复用模型
+
+#### epoll
+
+最广泛的多路io复用模型
+	fd = epoll_create(size);//创建红黑树，指定监听数量
+	epoll_ctl(opfd,op,fd,struct epoll_event * event);		//往红黑树添加、修改。删除节点
+							结构体成员：events：EPOLLIN/EPOLLOUT/EPOLLERR
+										data:联合体
+					op操作：EPOLL_CTL_ADD/EPOLL_CTL_MOD/EPOLL_CTL_DEL
+	epoll_wait(epfd,struct epoll_event * events,int maxevents,int timeout)			
+						这个是结构体数组地址，传出参数
+						传出满足监听条件的结构体
+epoll与select的区别与联系：select原理概述
+	select有返回值说明有事件返回值 >0 表示有可读事件，但是具体是数组中的那个发生的不知道，得遍历lfd+1--->maxfd判断每个套接字是否有事件，然后才能处理。
+		select的底层其实是内核再做的，内核查看一遍你的监听集合，如果有事件发生会返回ret。On时间复杂度
+	epoll_wait 的返回值都是可读事件，遍历i=0;i<ret;i++这么遍历就可以				  O1时间复杂度
+调用select时，会发生以下事情：
+回调函数属于进程本身，不是一个新的进程。
+从用户空间拷贝fd_set到内核空间；
+注册回调函数__pollwait；
+遍历所有fd，对全部指定设备做一次poll（这里的poll是一个文件操作，它有两个参数，一个是文件fd本身，一个是当设备尚未就绪时调用的回调函数__pollwait，这个函数把设备自己特有的等待队列传给内核，让内核把当前的进程挂载到其中）；
+当设备就绪时，设备就会唤醒在自己特有等待队列中的【所有】节点，于是当前进程就获取到了完成的信号。poll文件操作返回的是一组标准的掩码，其中的各个位指示当前的不同的就绪状态（全0为没有任何事件触发），根据mask可对fd_set赋值；
+如果所有设备返回的掩码都没有显示任何的事件触发，就去掉回调函数的函数指针，进入有限时的睡眠状态，再恢复和不断做poll，再作有限时的睡眠，直到其中一个设备有事件触发为止。
+只要有事件触发，系统调用返回，将fd_set从内核空间拷贝到用户空间，回到用户态，用户就可以对相关的fd作进一步的读或者写操作了。
+epoll原理概述
+调用epoll_create时，做了以下事情：
+
+内核帮我们在epoll文件系统里建了个file结点；
+在内核cache里建了个红黑树用于存储以后epoll_ctl传来的socket；
+建立一个list链表，用于存储准备就绪的事件。
+调用epoll_ctl时，做了以下事情：
+
+把socket放到epoll文件系统里file对象对应的红黑树上；
+给内核中断处理程序注册一个回调函数，告诉内核，如果这个句柄的中断到了，就把它放到准备就绪list链表里。
+调用epoll_wait时，做了以下事情：
+
+观察list链表里有没有数据。有数据就返回，没有数据就sleep，等到timeout时间到后即使链表没数据也返回。而且，通常情况下即使我们要监控百万计的句柄，大多一次也只返回很少量的准备就绪句柄而已，所以，epoll_wait仅需要从内核态copy少量的句柄到用户态而已。
+
+总结如下：
+执行epoll_create时，创建了红黑树和就绪链表； 
+执行epoll_ctl时，如果增加socket句柄，则检查在红黑树中是否存在，存在立即返回，不存在则添加到树干上，然后向内核注册回调函数，用于当中断事件来临时向准备就绪链表中插入数据; 
+执行epoll_wait时立刻返回准备就绪链表里的数据即可。
+
+两种模式的区别：
+
+LT模式下，只要一个句柄上的事件一次没有处理完，会在以后调用epoll_wait时重复返回这个句柄，而ET模式仅在第一次返回。
+
+两种模式的实现：
+
+当一个socket句柄上有事件时，内核会把该句柄插入上面所说的准备就绪list链表，这时我们调用epoll_wait，会把准备就绪的socket拷贝到用户态内存，然后清空准备就绪list链表，最后，epoll_wait检查这些socket，如果是LT模式，并且这些socket上确实有未处理的事件时，又把该句柄放回到刚刚清空的准备就绪链表。所以，LT模式的句柄，只要它上面还有事件，epoll_wait每次都会返回。
+
+对比
+select缺点:
+
+最大并发数限制：使用32个整数的32位，即32*32=1024来标识fd，虽然可修改，但是有以下第二点的瓶颈；
+效率低：每次都会线性扫描整个fd_set，集合越大速度越慢；
+内核/用户空间内存拷贝问题。
+epoll的提升：
+
+本身没有最大并发连接的限制，仅受系统中进程能打开的最大文件数目限制；
+效率提升：只有活跃的socket才会主动的去调用callback函数；
+省去不必要的内存拷贝：epoll通过内核与用户空间mmap同一块内存实现。
+当然，以上的优缺点仅仅是特定场景下的情况：高并发，且任一时间只有少数socket是活跃的。
+
+如果在并发量低，socket都比较活跃的情况下，select就不见得比epoll慢了（就像我们常常说快排比插入排序快，但是在特定情况下这并不成立）。
+
+### tcp+udp
+
+```c
+tcp：数据包传输，丢包重传，稳定，数据流量稳定，速度稳定，传递顺序
+		缺点：传输速递慢，效率低。系统资源开销大。
+		使用场景：数据完整性，文件、大数据、迅雷断点续传
+	udp：数据报传输，只发不管能不能收到。不稳定				直接写好就是并发服务器，因为他不用连接
+		缺点：传输速递快，效率高。系统资源开销小。
+		使用场景：游戏、视频会议。视频电话  qq、华为、阿里---应用层补充校验协议，弥补丢包
+		小公司一般采用tcp，成本低。方法简单
+	udp专用函数：							
+			返回成功接收数据字节数，失败-1.0对端关闭							
+			
+			sendto（套接字，存数据的缓冲区地址，数据容量，0，通信目标地址结构，addrlen）
+			返回成功发送数据字节数，失败-1.																
+		sendto( socketID, buf, strlen(buf), 0, (struct sockaddr *)&addr, addrLength);
+												这个是传入参数，存了本方的地址结构
+		recvfrom(socketID, buf, SIZE - 1, 0, (struct sockaddr *)&addr, &addrLength);
+												这个是传出参数，从这里出来的地址结构包含了对方的地址结构信息
+												也可以传NULL，不关心对端谁发的
+										
+	以192.168.1.0网段为例：
+		最大的主机地址代表该网段广播地址192.168.1.255.发到这个地址的数据包被当网段所有主机接收
+		只有UDP协议（用户数据报）才能实现广播
+		tcp的叫单播
+		默认创建的套接字不能实现广播，要在套接字创建后，setaddropt设置属性才可以。
+		之前发的时候设置的ip是目标ip，现在设置的目标ip是255的广播地址
+```
+
+## sqlite数据库
+
+```c
+创建数据表：																
+		create table stu(id Integer,name char,score Integer);
+	插入记录：
+		insert into stu values(100,"zhangsan",80);
+		insert into stu (name,score)values("sss",89);
+	查询记录：
+		select name，score from stu；
+		select * from stu where score=80 and name=“dsadsa”；
+	删除一条记录：
+		delete from stu where score = 80;
+	更新一条记录：
+		update stu set name="sss" where id=200;
+		update stu set name="sss",score=66 where id=200;
+	插入一列：
+		ALTER  TABLE   table-name  ADD COLUMN  column-name column-type;
+		
+	删除一列：不能直接删除
+		1.create table stu1 as select id,name,score from stu
+		2.drop table stu
+		3.alter table stu1 rename to stu
+	编程接口：
+		int sqlite3_open(char *path,sqlite3 **ppdb)//打开数据库
+						带文件路径    指向sqlite句柄的指针
+		int sqlite3_close(sqlite3 *db)  //关闭
+		const char* sqlite3_errmg(sqlite3 *db)  返回错误信息
+		
+		int sqlite2_exec(
+		sqlite3 * db,	
+		const char * sql,  将sql语句当成c语言来用		只有sql为查询语句时才会调用callback
+		int (*callback) (void*,int ,char **,char **),//回调函数，此函数执行会调用callback函数
+		void *arg,给callback传参
+		char ** errmsg
+		)			返回成功：SQLITE_OK,
+```
+
+## mysql
+
+```c
+登录：mysql -uroot -pxxx
+show databases;打印出现有数据库
+use 数据库名字； 选择准备操作的数据库
+
+select * from tablename;  查询
+insert into table values(x,y,z);  增加
+delete from table where name='xx';  删除
+update table set name='yy' where id='xx'; 修改
+
+create datebase xx;创建数据库
+create table xx(name 数据类型，id 数据类型，...); 创建表
+
+数据类型：
+数值 int float
+日期：date
+子串：char varchar
+
+约束：
+主键，自增，not null,unique
+主键：primary key()
+自增：auto_increment;
+
+联合主键：两者整体唯一即可，不需要每个都唯一=====联合unique
+
+alter table xx  add primary key(id);  增加主键
+alter table xx drop primary key; 删除主键
+alter table xx drop index name; 删除unique
+
+约束添加方式：
+1. 创建table时
+2. alter xx add xx
+   alter xx modify xx
+   alter xx drop xx  删除
+外键约束：
+foreign key(class_id)  references class (id);
+表1中的字段class_id 等于 表2class中的id字段
+```
+
+
+
+## git  version control
+
+```c
+git config -global user.name 'yonghuming'
+			git config -global user.email 'youxiang'
+	git commit -a -m "//adas"  -a参数要求hello.c已经在暂存区了（之前必须已经git add过了）更新暂存区的hello.c
+					这个操作直接将工作区的代码添加到代码库，不再需要先加到暂存区
+	比较版本的差异：git log 查看提交日志
+				git log --oneline  少量信息显示（**用的更多） 
+				git log + filename  显示此文件的log
+				git show + commitid 显示此commitid的更改文件 
+				git reflog：显示信息中多了Head版本的HEAD{X},HEAD{Y}
+		git diff 315f9fe 666eb6c比较版本1与版本2
+		git diff 315f9fe 比较当前版本与版本315f9fe
+		git diff HEAD~ HEAD~~ 比较 上2个版本差异
+			HEAD表示当前版本
+	版本前进回退：git reset --hard 9a9ebe0:就回到了过去的版本，工作区文件中某些内容没了
+					重置    --hard：本地库移动HEAD指针，并且重置暂存区，并且重置工作区
+							 --mixed：本地库移动HEAD指针，并且重置暂存区
+							--soft：仅仅在本地库移动HEAD指针
+	如果rm *所有文件丢了怎么办？
+		git checkout HEAD  .  “·”表示返回最新版本所有  “.”类似于通配符“*”
+		git checkout HEAD~  . / hello.c 捡1个  “·”表示返回上个版本所有
+		git checkout 666eb6c hello.c弄回来最旧的版本的hello.c
+	如果本地代码库中有a.txt，工作区也有a.txt，rm a.txt后，status会显示你deleted a.txt，你需要git add a.txt + git commit-m“delete a.txt”这条记录就会被更新到本地代码库，表示git记录了你有过删除a.txt的一条记录
+
+删除远程分之：git push origin --delete 远程分之名
+删除本地分之：git branch -d 分之名（先切到别的分之，才能删除本分之）
+
+	tag：git tag v0.9 315f9fe相当于给315f9fe重命名
+	版本删除：rm readme.txt + git commit -a 从仓库删除readme.txt 不然git status显示的删除只是工作区的删除，不是本地仓库的删除 
+		git rm hello.c 		从仓库删除hello.c
+	
+	打包：git archive HEAD~ -o pro.tar.gz
+	添加前缀：git archive HEAD~ --prefix=work_ -o pro.tar.gz
+	 $ : tar -ztf pro.tar.gz 只查看不是真正的解压
+	 tar --touch -xvf xx.tar忽视时间解压
+	 tar -cf --exclude=.git `ls -a` 打包除了.git外其他文件
+	work_hello.c
+	work_readme.txt
+
+	git branch dev：创建分支 dev-------git branch feature_A创建featur_A分支
+	一般主分支用来打补丁，改bug的。
+	合并分支：合并之前要切换回对应要合并的主分支（不一定是master）。
+		git checkout master
+		git merge dev（没有冲突会自动合并）
+		如果主分支与别的分支都修改了hello.c
+	merge时会：
+		git merge hot_fix：将hot_fix分支合并过来
+		git merge feature_A：将feature_A合并到主分支
+			Auto-merging hello.c
+			CONFLICT (content): Merge conflict in hello.c
+			Automatic merge failed; fix conflicts and then commit the result.
+			这次重新修改hello.c再合并：git commit -a这样就合并完了。
+
+	传统开发模型：
+		需求分析，概要分析，详细设计，编码，单元测试，集成测试，验收测试（1环套1环，时间出问题周期太长）
+	敏捷开发流程：					（迭代）
+		做一段先上线，有问题改问题，一个一个阶段来。每个阶段不会出大问题。根据客户需求改动
+
+	 建立远程连接git remote add origin https://gitee.com/jl_git/intelligent_warehouse.git
+	 删除远程git remote rm origin https://gitee.com/jl_git/intelligent_warehouse.git 相当于给网站取别名	
+	 push到这里git push
+	 git push -u origin master    -u：以后默认往这里推送（git push就好了）
+		工作区->缓存区->本地代码库->远程代码库
+	 * [new branch]      master -> master表示将本地的master推送到了远程代码库master
+
+		
+		git remote add origin https://github.com/jialei-github/jialei.git
+		git push -u origin master
+
+		git fetch orgin master  +  git merge orgin/master  
+		git fetch + git merge显示当前冲突  fetch只是把远程下载到本地，并不会更改工作区内容，merge才会更改本地工作区内容
+		git log -p master.. orgin/master
+		git merge master.. orgin/master
+
+		**如果有冲突push不上去的时候要先更新本地代码库，然后merge解决冲突（重新编辑一下git add+git commit）才能push
+			如果不是基于远程库最新版所做的修改，直接push不可以。必须先拉取解决冲突
+		*******************************************
+		git reflog 取代git log --oneline
+		git log 多屏显示时space 向下翻页 b向上翻页
+		git push origin master/fenzhi1/fenzhi2/xx
+		如果想直接往别人的url提交代码，需要加入别人的团队，让别人set collaborations + 自己的账号
+
+		git fetch origin master+git merge origin/master
+		git checkout origin/master 切换到远程分支
+
+		合并两次提交：
+		（1）：若远程都已经提交完事了，现在想合并其中的某几个commit，可以通过
+		git rebase -i commitid   更改除了第一个pick之外的其他pick为squash   ：wq保存
+		再更改合并之后的commit描述   ：wq
+		git push -f  得强推
+		（2）：若刚刚提交了一个commit，现在更改了文件再提，想跟刚才的commit合并为同一个commit
+		git add 1.c  后 直接git commit --amend   直接写合并之后的commit描述就好了
+		最后也得git push -f
+```
+
+
+
+
+
+# ARM汇编
+
+```c
+参数传递：
+		1.c执行函数fun（1,2）参数怎么传递过去的，利用栈，从右向左将2,1压栈，出栈1,2赋值给fun
+		c与汇编混合编程，怎么调用汇编函数传参。利用寄存器，寄存器比栈速度快。x86寄存器少所以利用栈传参。arm寄存器多
+		参数传递只能用用寄存器r0~r3，多于4个参数，多出来的参数用栈。
+		2.r0用来接函数的返回值，函数的返回值只有1个。用r0就够了。  把返回值封装成1个结构体返回也行
+		pc==r15.lr==r14.	add r0,r0,r1===r0=r0+r1	汇编函数执行完最后一句mov pc,lr lr存的函数返回地址，函数执行完
+告诉pc去lr的地址往后执行。
+																		
+	时钟周期：1s/频率	例如：1s/1Ghz == 1ns  1s大约能执行10^9个指令								
+	thumb指令集：16位--arm指令集：32位																下面的例子会影响
+	汇编指令： 操作码（后缀s码）+目的寄存器+源寄存器+立即数	跟了s码才会影响cpsr的nzcv，不然不会影响：adds r0，r1，#ff
+	*指令执行前判断cpsr条件码--指令执行后判断s码影响cpsr																								
+	相等跳转，检查cpsr		beq aaa。。。先判断是否相等才跳转（条件码）
+	存储器速度：
+		寄存器->cache（sRAM随机静态存储器）->内存（DRAM动态随机存储器:DDRAM-SDRAM）->硬盘（Flash：norflash-bios，bootloader）
+	->网盘
+	DDR:(SDRAM)同步动态内存（sychonize）是随机访问存储器：访问那个点数据的事件都一样。怎么做到的呢
+	硬盘是顺序访问存储器：开头访问快，后面访问得等磁盘转过去才能访问。
+		芯片里面一般不放大电容电阻，体积太大
+		DRAM:动态内存（保存一位用1个电容）
+		SRAM:静态内存（保存一位用4-6个晶体管）
+	
+	
+	BootLoader：不属于操作系统，用.s与.c编写。因为刚开始有异常向量表，.c不能写
+		boot阶段：
+		关闭看门狗、中断。。。WTCON寄存器某位。。CPSR 的I/F位中断
+		初始化时钟---倍频到某一个主频，为外设分频
+		初始化串口，在时钟之后.cai kyi tiaoshi
+		初始化内存，主要指ddram
+		初始化硬盘nandflash
+		loader阶段：
+		从Emmc/Flash的kernel搬运到到指定内存中，（自搬移）跳转到kernel所在地址。
+	BootLoader启动方式： 自启动模式，设置自启动参数。bootargs bootcmd
+						交互模式：开发板与pc通过串口调试，网口tftp下载pc的内核，rootfs，然后自己用指令启动
+	
+	uboot启动分析：
+	start.s  b reset调到标号处。上来就是异常向量表：异常比中断优先级高，因为终端可以屏蔽，异常不可以
+	未定义指令
+	软中断：软件模拟的中断，从user模式调到svc模式
+	预取指终止：从错误的内存地址取指令，取不到指令
+	数据abort
+	irq：
+	fiq：实时响应高的（）不怎么用
+
+汇编阶段：
+			设为svc模式，关闭中断、看门狗、mmu、cache  	中断向量表
+			基本硬件初始化（时钟、串口、flash、内存）
+			自搬移到内存
+			设置栈
+			跳转到c main
+c阶段：
+			大部分硬件初始化
+			搬移内核到内存
+			运行内核
+代码分析：
+			.lds 连接文件（查看每段代码的位置）
+			.global ——start  中断向量表
+			cpu设置svc模式  ：关闭中断、看门狗、mmu、cache  时钟串口初始化
+			自搬移到内存（重定位）
+			调到。main （大部分硬件初始化）
+
+电脑几核：
+	cpu可以直接访问内存（存当前正在执行的程序与data），但不能直接访问外存。
+	3级存储：cache--->主存（内存）---->外存（辅助存）
+	r0-r12：保存数据临时变量
+		r13：sp-栈顶地址
+		r14：lr-函数返回地址，函数调转时存放函数运行完后的地址，调用完函数后，pc调到这里继续往下执行。
+		cpsr：当前程序状态寄存器
+		spsr：备份当前程序状态寄存器[中断时自动调用]
+		3级指令流水线：最高效
+-------------------------------swi-------------------
+软中断：（swi）是用户命令，得先切换到用户状态才能使用这条命令
+				1板子上电汇先运行b reset：我们需要在reset函数中设置好栈（给sp赋值栈底），svc模式栈就初始化好了
+			-->2现在改变状态为user态，直接执行swi（也可以随便给r0-r12寄存器赋值，等会中断完看能不能复原）就跳转到了swi的处理函数
+			-->3刚进入这个模式，板子状态会恢复为svc模式，lr保存刚才的pc下条指针，spsr保存刚才cpsr的值，
+				在swihandler中先压栈将现在的r0-r12，lr压栈；分析是那号中断（swi有很多跳转号的），switch case对比一下往哪个子函数跳
+				，然后bleq fun（这里才真正步入了中断子函数，因为要回来所以bl）；
+			-->4在中断fun中随便写几条命令改变r0-r12值，然后回去（mov pc lr）
+			-->5现在又回到了swihandler，我们可以出栈了，中断子函数都完事了。把刚才压进去的lr直接出栈给pc就行了
+			-->6观察现象，现在各个寄存器的值应该回到了跳转之前的状态。
+		硬件中断编程：只有几个pin脚可以触发中断（以前的51单片机可以实现中断的腿很少的，本次的exynos4412有17个管脚可以实现，具体引出来几个腿看具体板子了）
+			第一阶段：1.设置pin脚寄存器，设为中断。看一下这个中断对应soc的那个中断号
+					2.配置中断的触发方式：（跳变沿还是高低电平）
+					3.取消中断掩码
+			第二阶段（都在GIC中断章节）：1.使能对应的中断号（在中断源章节看pin对应的那个）
+					2.把这个号交给cpun管理（一共有4个cpu）
+					3.设置中断优先级（只要大于cpu的中断处理阈值就好，要不人家不管）
+					4.使能cpu0中断
+					5.设cpu0的中断阈值0xff，（0优先级最好，255最小），这样设表示cpu0所有中断都要处理
+					6.使能GIC总开关
+			第三阶段（在irq_handler中处理中断）：1.取对应的中断号对比，switch case：中处理
+					2.清除管脚中断标志位（在gpio章节EXT_INTXX_PENDD）
+					3.清除GIC的中断标志
+					4.结束中断
+	底层的寄存器。【防止编译器优化】（每次拿值不要从内存中拿，要从寄存器拿）
+		(*(volatile unsigned int*)0x11000c40)地址里的值是volatile的
+							提示编译器对象的值可能在编译器未监测到的情况下改
+
+		cpu的7种模式：user,sys,und(未定义指令)，svc（管理模式），abt（abort指令预取终止或数据访问终止），irq,fiq 
+		每种模式有专用的reg，不同模式可访问的reg不一样
+```
+
+## uart裸机驱动
+
+```c
+串口裸机驱动：
+		串口为啥1byte1byte的发，因为可以减小收发双方时间基准不一样长时间通信有可能数据差出1bit，后面的所有数据就会出错。
+		减小累计误差
+		arm-none-linux-gnueabi-ld  start.o -Tmap.lds -o led.elf
+		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 
+··		【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
+		异步通信：数据传送是以字符为单位的，字符间的传送是完全异步的，字符中位于位之间同步（字符间异步 字符内部各位同步）
+				不知道数据多会发，多会收，让你发就发，别人发就收
+		同步通信：传输以数据块为单位，字符之间，字符的位于位之间都是同步的。
+
+		每个uart模块都有这几个寄存器，就地址不一样，功能一样的
+		**uart2：为什么又要设置串口gpio的时钟又要设置uart外设的时钟。明明最终的波特率就是按照串口分频下来的。两者都是使能
+					使能gpio引脚，引脚就能用了，使能uart，uart就能用了。但是要注意uart的时钟，与gpio时钟的频率要合适。不能说
+					uart的总线时钟是20M，你gpio的时钟设置的1M。这样数据还会有问题。
+
+				【1】配置第6章一对管脚pin的con为uart模式
+				【2】uart章节一共有好几个uart，配置对应的ulcon配置收发数据格式
+				【3】波特率   
+				【4】数据收发方式-中断或轮训
+				【5】收发存储数据寄存器，UTxHn 0x13820020把要发送的数据放到这个寄存器,【就算发出去了，后面不用管了】
+										 URxHn 0x13820024  【把数据放到这里就算读出来了，后面不用管了】
+				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
+		
+```
+
+### Timer定时器
+
+```c
+硬件时钟源：RTC->独立于CPU与其他硬件，由纽扣电池供电，会一直运行
+	linux开机时读取的时间就是rtc中的时间，关机时再将当前os的时间同步到rtc中。
+		为什么说看门狗与pwm都是定时器，因为他们配置的结果就是产生一个频率，实际就是产生一个固定的时间长度，
+		你配置输出频率的占空比还是基于这个时间，这个频率可以精准配置时间的。exynos配置的时候好几步都是弄频率的。
+		看门狗：WTCON = WTCON  |1 |0x7<<3 |249<<8;配置分频，产中断还是产复位信号。还是只当个定时器来用
+				WTCNT = 15625;   //不要老想着位操作	，赋值的时候直接赋值就好了。这个里面的数字会递减
+			****看门狗的设置跟管脚没有关系，是芯片内存本来就有的功能。喂狗是硬件来做的。而且软件设置的WTCNT一般也是硬件做的，
+			现在只是为了学习看门狗才简单的配置这个寄存器。配置好寄存器，板子上电5s会自动reset或执行中断。
+			counter计数器是8-16bit的，总大小是是有限的
+-------------------------------pwm-------------------------------
+pwm：（其实是可以通过高低电平延时来控制频率的，但是延时函数会占用cpu工作时间，在控制舵机的时候别的事情都干不了。
+			共有5个pwm定时器，其中4个外接到了管脚有驱动能力Xpw0-3TOUT0，
+				
+				外部输入的频率是100mhz，经过2级分频25----4----变成1m，设置2个寄存器
+				TCNTB0 = 2500;  2500的波形个数实际就设置了输出的波形是400hz，1000000/400=2500。2500个1m的波形才能产生1个400hz的波形
+				TCMPTB0 = 1250;  //2500*1/2---实际就设置了占空比为1/2
+```
+
+
+
+# 语言
+
+## C
+
+```c
+c文件中可以平白无故的将一段代码用{}括起来，这个不是语法错误。
+c中true，false 直接包含stdbool.h即可。这里true=1lfalse=0
+  
+函数只在某个.c文件中使用的函数应当使用static修饰--这类函数无需声明在.h中，因为它只是给当前的c文件去用的
+```
+
+> C中凡是宏定义中有#或者##的参数不会再展开
+> exp:
+> #define s INT_MAX  本来s可能是个整数
+> #define STR(s) #s    但是在这里s不会展开，STR(s)就是个字符串了
+
+---
+
+> C中（...）左入参，怎么解析入参：
+> va_list ptr:指向第一个数据
+> va_start(va_list ptr,start):初始化ptr
+> va_arg(va_list ,数据类型)：返回下一个数据的ptr
+> fun(start ,-1)
+> while(arg != -1){
+> 	可以获取第一个，第二个数据
+> }
+
+## 指针
+
+```c
+绝对地址函数的执行：
+那么要是想让 程序 跳转到 绝对地址是 0x100000 去执行
+    #include <stdio.h>
+    typedef  void (*ABC)();   函数类型指针
+    void swap()
+    {
+        printf("asda\n");
+    }
+    int main()
+    {
+        printf("%p\n",swap);
+        ( (ABC) 0x40057d  )  ();//需要加个括号，表示这是在执行函数。
+           类型   地址       参数
+        return 0;
+    }
+函数指针：
+  signal(int type,void(*pFun)(int arg))-----
+void (*)signal(int type,void(*pFun)(int arg))(int);
+void (*signal(int type,void(*pFun)(int arg)))(int);  signal返回函数指针，不是返回一般的char*指针（看着就很麻烦，所以要typedef）
+
+typedef struct A A;则struct A==A;  A直接就是个数据类型，可以--A var，去定义变量。
+
+typedef void (int,int) ABC;
+typedef void ABC（int,int）;       
+
+typedef void (*handle_t)（int）;   函数指针，定义这句话的最重要的目的就是下一行写的时候简单点，没别的用了，因为咋们要调用的函数就是这种类型的
+handle_t signal(int sig,handle_t handlefun);
+
+
+typedef int (*pfunc)(int,int);
+int function(int a,int b)
+{
+	return a+b;	
+}
+int mytest(int a,int b,pfunc name)
+{
+	return name(a,b);
+}
+int main ()
+{
+  	printf("%d\n",mytest(10,5,function));
+}
+```
+
+
+
+## C++
+
+```c
+空类定义一个空对象：这个空对象的大小是1.为了区分不同空对象占内存的位置。分配1个字节去占用内存空间
+	静态成员变量必须要在类外初始化，不然会报错。它不会占对象的空间。存储在静态区。
+	函数也不占用对象的内存空间。
+
+	&&&普通的成员函数也不属于类的对象上的，它只有1份。通过this指针判定是谁在调用它。
+					this指针指向被调用的成员函数所属的对象（this->对象）
+				this指针隐含在每一个普通的成员函数内部
+				return *this；就是返回对象本身
+
+	类内成员函数返回值是Person&  返回的是对象本身。。----如果是链式编程，还是要返回本体，不然的话，返回的不是本体，
+																p2.addage(p1).addage(p1);第二次add不是加到p2上了，是加到新建的变量中了
+
+			返回值是Person  返回的是重新拷贝构造的一个值，内存地址不一样的
+
+	c++的空指针也可以访问成员函数（这类成员函数没有调用成员属性，成员属性只有对象初始化后才有值）
+		每个类内函数内部都隐含了1个this指针。如果对象没有具体化出来，这个指针是NULL的
+	类的大小：如果son继承BASE1,BASE2。sizeof父类都是4，父类成员是private，也会被继承到son中，只不过编译器给son隐藏了，son访问不到。
+
+	父类子类都有同名成员：实例化出来的子类可以直接访问son.m_a
+						子类也继承父类的成员了，访问方法是son.BASE::m_a;
+	同名静态成员也是这样访问：还多一种方式son::BASE::m_a.
+	同名静态成员函数也是一样。
+
+	常对象只能调用常函数。常对象不是常属性哦（（（（***）
+	友元：friend
+		全局函数做友元
+			class Build
+			{
+			    friend void visit(Build &build);  在类的{}中加一行
+		类做友元
+			friend class Person;  类内的每个函数都可以访问BUILd中的私有成员
+		类内某个函数做友元
+			friend void Person::leivisit1(Build &build);  只有此类中的这个函数可以访问Build类中的bedroom	
+
+	<<左移运算符重载：其实是cout对象调用的oprator，不是你Peroson类对象调用的		
+			ostream & operator<<(ostream& cout,Person & p)  是全局函数，是Person的友元函数，不然不能访问私有成员
+			{					只有1个cout对象，要&&&&
+			    cout<<p.m_age<<" "<<p.m_name<<endl;
+			    return cout;    返回值要实现链式编程要&&&
+			}		
+
+	c++默认给1个类4个函数：赋值--构造--析构--拷贝构造
+		拷贝构造函数：给新对象的堆区申请空间才能赋值，不然析构的时候会报错
+		赋值：先把之前对象的对空间删了，重新申请空间用another的属性赋值。  *another.m_age;  这个解出来才是年龄才能赋值
+
+	虚继承解决菱形继承：class sheep:virtual public Animal
+					class tuo :virtual public Animal
+					最后的sheeptuo：public sheep,public tuo 重复属性只会继承1份
+	多态：静态多态--函数重载，运算符重载---属于函数地址早绑定，即使函数不调用，函数地址已经确定下来了
+		动态多态---父类的指针或者父类的引用->子类的对象----函数运行时才才确定调那个函数
+			父类的函数要为虚函数: virtual void dospeak();
+								子类重新就不用+virtual了
+			例如animal类中就算只有1个虚函数 virtual void dospeak(); 他的大小也是4.因为有个指针（虚函数指针->虚函数表）
+			这个虚函数指针会被子类继承下去。指向那个子类的函数，就调用那个子类中的函数。
+
+	
+			单例模式：构造函数是私有的，不然外接谁都能构造了。
+				创建的是个SUN*的指针，只能在public里创建。但是这个函数好像只有有了对象才能调用呢？？？怎么办
+		 static Sun*getInstance()
+				{
+				    if (NULL == pInstance)
+				    {
+				        pInstance = new Sun; 
+				    }
+				    return pInstance;
+				}
+				应该把这个函数写成static的。
+				创建的时候：Sun * pSun1 = Sun::getInstance(); 这么创建更好
+				static Sun& getInstance()
+				{
+				    static SUN pInstance ; 
+				    return &pInstance;
+				}
+				SAN(&SAN obj) = delete；表示这个类禁用拷贝构造函数。
+
+
+
+	排序稳定：插入--稳定		希尔---不稳定
+			  冒泡稳定		选择--不稳定。找最小的放第一再找后面最小的放第二...
+			归并--稳定		堆排序--不稳定
+							快排--不稳定 
+
+ctags用法：
+		在/usr/include/目录下，   
+		执行ctags -R                生成tags 文件
+		2， vim  ~/.vimrc         
+			set  tags=/usr/include/tags
+
+数字转字符串：c语言:atoi   itoa
+c++		string 不是char*传参的时候传string 并不会改变原来s的值，传string*才可以。。但是s[0]确实也是string的第一个字母
+		string to_string(int value)
+		string to_string(long value)
+		string to_string(double value)
+字符串转数字：
+		int stoi(const strings str, size_t* pos = 0, int base = 10)
+		long stol(const strings str, size_t* pos = 0, int base = 10)
+		float stof(const strings str, size_t* pos = 0)
+		double stod(const strings str, size_t* pos = 0)
+		
+	
+	编译分为：预处理pre 展开宏并且删除注释 -E
+			  编译compile【生成.s】 -S
+			  汇编asseble【生成.o】 -c
+			  链接link【拼接多个.o生成可执行.elf此时包含调试信息（只能在linux中运行）】
+			  objcopy：剥离无用的调试信息生成.bin可以在板子运行
+  --------------------------------
+  C++:c++98||c++11 ||c++14
+	用途：
+		bool类型是c++新增的。if（！）不能==0，，只有c中的int可以这样
+		进制输出
+		oct hex dec 8 16 10
+		#include《iomanip》  setbase（16）16进制
+		位宽：setw（10）	123默认右对齐左边补7ge" "
+							%-10d.右边补“ ”
+		
+		1. 类型增强
+		1.1 类型检查更加严格 
+			1)把一个const类型的指针赋值给一个非const类型的指针
+			const int num = 9;    //定义了一个const 类型的变量
+			const int * p = &num; //const int *由const int *来赋值
+			int * q = &num;       //int * 想让const int *来赋值，在c++中不允许。
+
+			2)enum真正枚举//枚举的本质是整数值
+			enum e_cmd
+			{
+					SEARCH,
+					QUIT,
+			};			
+			
+			int main()
+			{
+					e_cmd cmd = QUIT; //可以定义枚举类型的变量
+					printf("cmd = %d\r\n", cmd);
+					//cmd = 90; //枚举类型的变量只能赋枚举列写出来的值，不能赋值整型，
+					//编译器认为这是类型转换，不允许
+					
+					int cmd2 = QUIT; //枚举的本质是整数值
+					printf("cmd = %d\r\n", cmd2);
+					cmd2 = 9;
+					printf("cmd = %d\r\n", cmd2);
+					return 0;
+			}
+			
+		1.2 新增bool类型			
+			bool flag = true;
+			if (flag)
+			{
+				printf("true");
+			}
+			if (!flag)
+			{
+				printf("false");
+			}
+			笔试题：请写出伪代码来实现以下数据类型与0比较：int, float, bool
+		1.3 小数，默认都是double类型 
+			add(2.3, 4.5); //默认参数都是double类型
+			int -> long -> float -> double默认数据类型转换，反向转换不允许
+			
+	2. 命名空间
+		命名空间是为了大型项目开发中避免命名冲突的一种机制。
+		当一个项目中，参与的人员越多，或者使用的类库越多，就有可能出现命名冲突，比如，同一个函数名实现不同的功能。引入命名空间，相当于给自家建院墙。其它人使用我家的东西的时候：***家：工具
+	
+		namespace B
+		{
+				void func()
+				{
+						printf("world\r\n");
+				}
+		}
+		int main()
+		{
+				//方法1，作用域::标识符
+				A::a = 9;
+				A::func();
+				B::func();
+				
+				//方法2，先提示要用哪个命名空间，再使用它里面的标识符
+				using namespace A;
+				a = 90;
+				func();
+		
+				//方法3，先提示哪个命名空间的哪个标识符，再使用标识符
+				using A::func;
+				func();
+        }
+	3. 输入cin输出cout流   getline(cin,mystr);这样输入的mystr中间有空格也不会打断，可以输入姓名->jia lei
+		#include <iostream>
+		using namespace std;
+		int main()
+		{
+				int a = 9;
+				float b = 3.4;
+		
+				cin  >> a >> b;
+				cout << a << "," << b << endl;          
+				return 0;
+		}
+		3.1 按进制输出 #include <iomanip>
+			int a = 1234;
+			cout << "十进制" << dec << a << endl;
+			cout << "八进制" << oct << a << endl;
+			cout << "十六进制" << hex << a << endl;
+			cout << setbase(16) << a << endl;
+		3.2 设置域宽和位数
+			cout << setw(10) << a << endl;
+		3.3 设置填充符
+			cout << setw(10) << setfill('-') << setiosflags(ios::left) << a << endl;
+			cout << setprecision(8) << setiosflags(ios::fixed) <<setw(10) << d << endl;
+				//setprecision(7)设置小数位的有效位是7位
+				//setiosflags(ios::fixed)小数位不足的用0补齐
+	4. 函数重载 function overload
+		函数同名不同参，叫函数重载。
+		int add(int a, int b)
+		{
+				return a + b;
+		}
+		
+		double add( double a, double b)
+		{
+				return a + b;
+		}
+		
+		int main()
+		{
+				cout <<  add(2, 3) << endl;
+				cout << add(2.3, 3.6) << endl;
+				
+				return 0;
+		} 
+		c++在编译的时候，会把函数名字进行命名倾轧(name mangling)
+		例： int add(int, int, int); -> add_int_int_int 
+		例： double add(double, double); -> add_double_double
+		c语言,在编译的时候，没有进行命名倾轧，以上两个add函数，编译的时候，无法区分，调用的时候无法区分。
+		所以，c语言编译报错。
+		命名倾轧是在.cpp和.h都要写清楚。
+		练习题：数组中元素按不同的格式进行输出。
+			例：元素和元素之间用空格隔开，或者用*隔开
+		void output(const int * arr, int len, char ch);
+		void output(const char * arr[], int len, char ch);
+
+	6. 函数参数默认值
+		原则：
+			a. 函数参数默认值是从右到左依次写，不能跳跃
+			c. 即有函数声明，又有函数定义时，默认值应该写到函数声明的时候，********************
+				如果不小心在函数声明和函数定义时都有默认值，那么，只有声明时的默认值生效。***************
+			d. 函数的默认值和函数的重载一定要能够区分。
+				不能出现二义性（ambiguous） -- 计算机需要做出选择 -- 臣妾做不到啊！
+			例：下面的例子是有问题的
+				void print(int a){}
+				void print(int a, int b = 9){}
+				这两个函数当调用者传递一个整型参数时，编译器就不知道具体应该调用上面哪一个函数。
+				所以会编译报错。
+	7. 引用 
+		什么是引用
+		定义引用
+			例： 
+				int & r = 200; //错的，r不分配内存，不能直接存放200
+				但是const int & r = 200;是对的。编译器将这句话解释为--int temp = 100;const int &r = temp;
+			
+			例：
+				int num[10] = {0};
+				int * p = &num[0];//p = num; //定义一个指针指向数组的第0个元素
+				int & r = num[0]; //定义一个引用，这个引用是给数组的第0个元素起个别名
+				int (*p1)[10] = &num; //定义一个指针指向整个数组    
+				int (&r1)[10] = num; //定义一个引用，这个引用是给整个数组起个别名
+			例： 
+				int num[10] = {1, 2};
+				int & r1 = num[0];
+				int & r2 = num[1];
+				int & arr[2] = {r1, r2}; //数组中不能存放引用
+			例:
+				int &r = num;
+				int & * p = &r; //引用是一个别名，它不分配内存，不能用指针指向它。
+			例：
+				int sum(int & r, int & h)//使用引用来传参，实际代表的是变量的别名
+				{
+					return r + h;
+				}
+				
+			引用和指针的区别
+				1. 引用必须初始化，指针可以不初始化
+				2. 引用在修改的时候，实际上是修改被引用的变量的值；指针的修改，可以修改指向的变量。
+				3. 引用不会被分配内存，和被引用的变量占同一块内存；指针，在32位机，4字节。
+				4. 引用的运算，实际上是被引用变量的运算；指针的运算是移动一个数据类型的地址
+				5. 可以定义void * 指针，但，不定义void引用
+				
+	8. 内联函数
+		内联函数的定义，就是在普通函数的定义前面加inline关键字。
+		这仅仅是一个建议。编译器看到inline关键字，可能会把当前的函数在调用处展开。
+		只有简短的函数，才会被编译成内联函数。
+		内联函数函数体比较简短，不建议有if/switch...case/for/while/do...while/递归
+		类内定义的函数优先编译成内联函数。
+		
+				void MyClock::run()
+				{
+					while (1)
+					{
+						tick();这里调用时不用加：：
+						show();
+					}
+				}	
+	拷贝构造函数Person(const Person &another);固定写法，不能更改
+	深拷贝，浅拷贝：Person p2 = p1；
+		浅拷贝：Person p2(p1);b是person类刚才创建的，现在拿b当参数又给a传参
+		m_Height = new int (height)//函数传参进来height
+		int * m_Height;
+		浅拷贝在析构函数中会重复释放内存。	
+		堆区的内存空间在这里释放。
+		在析构函数中将构造函数中的m_height释放if(m_height != null) {delete m_height; m_height = null;}
+	怎么解决：
+		析构函数不用管。自己创建一个深拷贝函数，A::A(const A & anotherA)拷贝anotherA里面的所有东西
+				申请堆内存。
+	
+	类对象作为类成员：
+		要构造本类（人）的对象，先要构成它包含的哪个类（手机）的对象。
+		析构的时候，先析构（人）本身再析构它的里面（手机）的对象
+		
+	this是个指针常量，永远指向变量本身：本质是Person * const this 	
+	成员函数后加const	相当于：const Person * const this 连指向都成固定了，不能修改this-》xxx	
+	常函数：void show()const	指针的指向都不可修改了
+	常对象：const Person b；
+	如果一个变量非要修改，定义这个变量时加关键字：mutable int m;
+		常对象只能调用常函数
+		不变的对象		不变的函数例如打印
+	const：
+		常量指针：不能通过指针修改指向变量的值，但是指针可以指向别的变量。
+			const int *p = &a;  *p = x; 错，想修改指向的变量值。const 修饰int值不能变
+			p = &b;对，可以指向别的变量
+		指向常量的指针：指针常量-》指针常量的值不能改，不能存一个新的地址，不能指向别的变量
+			int * const p = &a;  *p = 20;对，可以改变指向的变量的值
+			p = &b;错，不可以指向别的变量						const 修饰p，p不能重新指向
+				
+	extern ：本文件a.c全局注意是全局定义int a = 100，在另一个文件如果要使用a，得在文件开头部分extern int a；声明。声明一下就能用a了a还是100	
+		他的作用是：本文件声明一个全局变量，这个全局变量在别的文件里面定义好了，
+		如果直接在本文件extern int a；会报错，因为别的文件没有定义a。extern不知道去哪里找这个a。
+		如果直接在本文件全局变量int a，别的文件又全局变量定义int a；就重定义了，还会报错。。可以函数内定义局部的
+		extern int a = 10；错，变量的重定义
+		全局变量只要能访问就能修改，所以比较危险。可以定义的时候不初始化，用的时候在函数内部初始化也行。
+		不应该在.c中用extern直接声明，最好的方式是：
+		1.c中定义  某个.h中extern声明，其他c文件直接include 1.h文件，这样全局变量就能直接使用了。
+	
+	全局变量存储在堆上。heap	
+	全局变量不能这样初始化：int c=a+b;不是确定的数就不可以；因为全局变量不能在编译时确定，声明时就得确定下来。
+		
+	继承：
+		class 子类 ：继承方式public 父类
+			派生类					基类
+		
+		继承方式：公共继承、保护继承、私有继承
+		
+		父类子类中有名字一样的属性，访问子类变量：son.m_a  访问父类:son.father::m_a 
+		父类子类中有名字一样的方法，访问子类函数 son.function（） 访问父类:son.father::function（）
+		如果名字不一样，直接son.func()或者sun.m_a就可以
+		
+	运算符重载：					
+		赋值=： 类比较==  ！=   类+类   <<类输出：哎只能利用全局函数重载  
+		class Person{
+		public:
+			Person(int age)
+			{
+				m_age = new int(age);
+			}
+			Person & operator=(Person &p) =的时候先释放本来的堆区空间，从新分配
+			{
+				if(m_age != null)
+				{
+					delete m_age;
+					m_age =null;
+				}
+				m_age = p.m_age;
+				return *this;  返回对象本身，则可以重复调用 =
+			}
+			
+			m_age = new int (*p.m_age);属性在堆区
+		}
+	内存分区：
+		全局区：全局变量、静态变量static、常量const修饰的
+		常量区：常量、字符串。				
+		代码区：存放2进制机器指令、是只读的
+		堆栈区
+	对于1个进程：有4g的虚拟地址空间，这个4G怎么布局
+		1.代码段-.text 存放二进制
+		2.数据段-已经初始化的全局变量+静态变量
+		3.bss段：未初始化的全局变量或静态变量
+		4.堆-匿名内存映射 
+		5.栈-编译器自动分配释放
+		
+	引用做函数返回值：									
+	***		注意不能返回局部变量的引用。				永远存的0x11的地址  这个地址中可以放别的值
+			引用的本质就是指针常量：int * const a=&b;a的指向不能变，但是指向的内容可以变
+			扩展：常量指针：const int *p = &a;p指向一个常量，常量的值不能改，但是p可以指向别的位置。
+----------------------------------------------
+	反码：正数的反码=源码      负数的反码=源码符号位不变，其他按位取反  -7=1 1111000BIN				源         反           补
+	补码：正数的补码=源码		负数的补码=源码符号位不变，其他位取反，再+1		-7=1 1111001	-1---1000001-----11111110------11111111
+	补码可以解决 -1+1=0的问题
+
+
+	函数对象-->又名仿函数
+		自己可以自己被调用了多少次。	类内部int count;构造函数初始化为0；每次调用时count++;成员属性记录状态；函数对象可做别的函数的参数
+		谓词：返回值是bool才能叫谓词。 重载的是bool operator() ( int val);（）  bool com(int v1,int v2);
+															有1个参数1元谓词     2个参数2元谓词
+		参数：Pred 就是谓词
+		类名+（）； person（）；这就是匿名函数对象。匿名对象
+
+		内建函数--include <functional>
+
+
+
+
+
+	多继承怎么赋值：
+			KindergartenKid::KindergartenKid(string name, int score, int year, int month, int day)
+				:Baby(name), Student(score), birthday(year,month,day),num(3)
+		怎么重载=
+		KindergartenKid& KindergartenKid::operator =(const KindergartenKid & another)
+			{
+				cout << "operator = is called" << endl;
+				Student::operator=(another);
+				Baby::operator=(another);
+				//释放空间，再重新申请内存，拷贝内容
+				return * this;
+			}
+	--a直接就减了
+	Person& Person::operator--()
+	{
+		m_age--;
+		return *this;
+	}
+	a--；先不减，等会再－
+	Person Person::operator--(int a)
+	{
+		Person p;
+		m_age--;
+		return p;
+	}	
+		
+	<< 输出流运算符
+			//这是一个外部函数，想用到类内的私有成员，它是友元函数
+			ostream & operator <<(ostream & out, const 类型 & 对象名another)
+			{
+				out << another.成员变量;
+				return out;
+			}	
+		
+	类型& operator =(const 类型 & 对象名another) 
+			{
+				if (this == &another)
+				{
+					return * this;
+				}
+				this->len = another.len;
+				delete []this->p;
+				this->p = new ...[this->len];
+				memcpy(this->p, another.p, this->len);
+				return * this;
+			}	
+		
+	静态
+		类内声明的静态变量属于类
+		修饰成员变量 存放在数据段 不属于某个对象 属于类 用于对象间传递数据
+			类内声明    static int data;
+			类外初始化  int 类名::data = 3;
+			使用        类名::data 
+		修饰成员函数 属于类				
+			类内声明 static int func(参数列表);
+			类外定义 int 类名::func(参数列表){函数体}
+			调用方法：    类名::func(实际参数);    对象名.func()
+		静态常成员常量
+			声明的同时要赋值 static const int data = 9;	
+		virtual int func() final {} //该函数不能被子类重写 -- 不能重写就不能实现多态
+```
+
+> extern C：还按照c的方式编译。不然你按照c++的方式编译，add被命名成了add_int_int，再调用时找不到函数了就
+>
+>
+> 	类内函数用const-----本质是const修饰的this指针
+> 	所以this指向的内容不能被更改
+> 					
+> 	mutable：const修饰的又可以被修改了
+> 					
+> 	封装：将想隐藏的隐藏起来，想暴露的暴露出来（给你接口）
+>
+>
+> ```c
+> 对象大小：
+> 	空类：1字节大小（区分不同对象）
+> 	demo里面1个int 1个static int sizeof（demo）  4
+> 	编译的时候就分配好空间了，不在分配对象的时候分配
+> 				static在静态区
+> 							sizeof（变量）4
+> 
+> 深拷贝浅拷贝
+> 内联函数。减少栈的使用。代码量，函数在调用处被展开。逻辑简单编译时展开
+> 
+> 宏预编译时展开，简单的文本替换
+> 为什么要用do-while(0)将函数宏包围起来？
+> #define foo(x) {bar(x);bar(z)}
+> if(1) foo(x);else bin(x)---->展开if(1) {bar(x);bar(z)}; else bin(x)  直接语法错误。
+> 
+> struct与class
+> static成员变量的使用，必须是public，不然外面调用不到了
+> 
+> c++的空类，默认会产生，默认构造、拷贝、析构、取址、赋值运算符函数
+> 
+> 构造有参数可以重载，析构不能重载，没参数
+> 
+> 构造函数public外面才可以调用
+> 
+> 深浅拷贝：
+> 
+> 自己写个string类。自己写个vector数组类：实现构造析构赋值
+> 
+> 什么是多态。
+> 
+> 虚函数怎么实现的？虚函数表---重新放个函数地址
+> ```
+
+### string容器
+
+```c
+string容器：它是个类。
+		int find(const string &str,int pos=0)  查找str在本字符串中第一次出现的位置
+		int find(const char c,int pos=0)		找谁，默认从头开始找
+		string& replace(int pos,n,const string& str) 替换从pos开始的n个字符，替换为str的所有字母
+				string s = "abcdefghij";
+    			s.replace(1,3,"111111");  a111111efghi
+
+		string& insert(int pos,const cahr* str)从pos位置插入str
+		string& earse(int pos,int n)删除从pos位置开始的n个字符
+		compare（string str） >0 ==0 <0
+	**	string& substr(int pos,int n); 	返回从pos开始的n个字符组成的字符串
+```
+
+### map容器
+
+```c
+map容器：默认按照key从小到大排序，不管插入顺序。map<T,T> a;	默认构造，拷贝构造(map<int,int>&a)，赋值就是“=
+	map不允许插入重复的key元素。insert时自动忽略。
+			map插入的时候随便放进去就好了，它内部是无序的，没有头部尾部概念。
+			a.insert(pair<int,int>(1,10)).			(*it).first			it->second
+					make_pair(1,10)一样的
+			删除：earse(m.begin());迭代器方式   earse(m.begin()，m.end());区间方式删除
+				earse(3);按照key值方式删除
+		
+			查找：map<int,int>::iterator pos=m.find(3),	找到返回所在位置迭代器，找不到反回m.end
+```
+
+### set容器
+
+```c
+set容器：集合，集合中的元素不会重复的。
+			find（elem） 返回迭代器，若不存在返回v.end()
+			set.count() 统计元素个数（其实只有0或1）
+			insert（elem）
+			clear（）清空
+			erase（pos）删除迭代器位置的元素  erase（s.begin(),s.end()）区间删除
+			erase（elem）
+```
+
+### vector容器
+
+```c
+输入不定长的vector
+	{
+		v.push_back(x);
+		if（getchar()=='\n'）
+		或者写if(cin.get()=='\n')  break;
+	}
+**	vector单端数组	动态扩展可以随时插入新数据  不想数组一样，申请固定大小
+	只能push_back插入数据    可以pop_back删除
+	insert(迭代器，n，elem)，pos位置插入n个elem
+	insert(迭代器，elem)；pos位置插入elem
+
+	erase(迭代器)； erase(迭代器1，迭代器2)；
+
+**	vector的迭代器可以+3  +4 -2 这么移动
+	
+	赋值V2 = V1；直接容器赋值
+	empty();size();
+	resize(num,elem)指定长为num并用,var之前没值的位置以elem填充新位置;  resize(num）新位置用0填充；
+										若num小于原来大小变小，删除末尾元素
+
+	首元素V.front();    尾元素：V.back();
+
+**	这个容器里面没有排序、翻转的函数。这些通用函数是在algorithm中集成的
+```
+
+### list容器
+
+```c
+STL中的链表是个双向循环链表☆  支持两端的操作    
+			empty()是否为空;size()元素个数;resize(num,elem)指定长为num并用elem填充新位置;  resize(num）新位置用0填充；
+										若num小于原来大小变小，删除末尾元素
+			push_back(elem)；pop_back();
+			push_front(elem);pop_front();
+			list<int> L2(L1.begin(),L1.end()); list<int> L2(L1)拷贝构造；list<int> L2（10,1000）10个1000；
+		   	list<int>L;			
+			首元素L.front();    尾元素：L.back();  迭代器只能++  —-，不能+n   list不能随机访问，要自己移动迭代器去看
+			insert(pos,elem);insert(pos,n,elem); 		clear();
+			
+			erase(beg,end);删除[beg,end)数据，返回下个数据的位置
+			erase(pos)：   删除pos位置的数据，返回下个数据的位置
+			remove（val）根据值删除--是删除所有的val节点，如果没有val节点，就不删了
+			
+			reverse();反转，list的内部方法就可以调用
+			sort（）；排序，list的内部方法就可以调用@@@@@@但是他不能调用sort的algorithm算法，因为不支持随机访问
+					//人家的排序会根据你的数据量大小自动选底层的不同的排序算法、
+	【】因为不支持随机访问数据结构不支持标准算法。
+```
+
+### queue容器
+
+```c
+1.也不允许遍历
+		push(elem);pop();back()队尾元素；front()队头元素；empty()size()
+```
+
+### stack容器
+
+```c
+stack：
+		1.不允许遍历行为	2.可以判空、元素个数、
+			push(elem);pop();top();empty()是否为空;size()
+```
+
+### algorithm算法
+
+```c
+降序规则：bool fun(int v,int v2){return v1>v2;}   L.sort(fun);给他一个规则他按照你的规则进行排序
+	
+		类对象排序排序规则：  bool fun(Person &p1,Person &p2)
+								{								
+									if(p1.age == p2.age)
+									{
+										return p1.height > p2.height//如果年ling相同，按身高降序
+									}else
+									{
+										return p1.age < p2.age//按年龄升序
+									}
+								}
+		对于vector《string》不能实现数组的输入，会一直卡到那里。
+				vector<string> strVec;
+				string i;
+				int a{ 0 };
+				while (cin >> i) {
+					strVec.push_back(i);
+				}
+	
+	查找：find是查值的，find_if是查比较的，find_if有比5大的数字直接传参进去bool{return val>5；}
+			vector<int>::itrator it =  find（v.begin(),v.end(),val）;找到返回所在位置迭代器，找不到反回v.end（）。
+		  vector<Person>::itrator it =  find（v.begin(),v.end(),person1）;找自定义数据类型数据
+				但是计算机不知道怎么比较？？所以自己得在class内部实现 == 的重载 bool operator==(const Person &p1)
+	拷贝：将v1全部拷贝到v2。新的v2类型要与v1一致提前指定大小	v2.resize(v1.size());	if a&b都相等返回true，，否则返回false
+				copy(v1.begin(),v1.end(),v2.begin());															
+	排序：sort(v.begin(),v.end(),fun);fun是排序规则，不填默认升序。
+	对调位置：reverse（v.begin(),v.end()）；就2个参数（list不能用这个，因为他的空间不连续）
+	
+	替换：replace(v.begin(),v.end(),oldvalue,newvalue);替换所有的oldvalue
+	 	  replace_if(v.begin(),v.end(),com,100);bool com（int val）{return val>30;}：第三个参数是谓词
+	求和：int total = accumulate(v.begin(),v.end(),起始累加值);返回总数之和。
+	源码：最高位表示数的符号，其他位表示数值。例如+7= 0 0000111Bin.  -7=1 0000111Bin	0是正数
+	两容器交换数据：swap(v1,v2);类型必须相同。链表可以交换，vector也可以，要求<int>里面数据类型一样
+```
+
+> 斐波那契数列
+
+```c
+# 斐波那契数列
+a = 1
+b = 0
+c = 0
+
+n = 10
+while n:
+    if(n <= 0):
+        return
+    c = a+b
+    a = b
+    b = c
+    n -= 1
+    print(c,end=" ")
+'''
+def ysf(mylist,n):
+    if(n == 0):
+        return;
+    count = 0;
+    while len(mylist)>2:
+        n = 2;
+
+        if(count > len(mylist)):
+             count = 0;
+        while n:
+             count += 1;
+             n -= 1;
+        del(mylist[count%len(mylist)])
+    return mylist
+if __name__ == "__main__":
+    mylist = ["songjiang","sunwukong","caocao","lindaiyu","yangyuhuan","zhaofeiyan","likui","bajie","guanyu","xuyou","dianwei"]
+    new1 = ysf(mylist,3)
+    print(new1)
+```
+
+
+
+## python
+
+````c
+os库函数：
+os.popen("cmd")可以执行命令，特点是不会与界面交互
+os.system("cmd")，特点是会与界面上交互
+os.rmdir() 强制删除
+os.remove()  Python无权限删除windows中的文件，所以会执行失败，在linux中可以成功
+-----------
+  深浅拷贝：b = copy.deepcopy(a)
+		xx  is yy:判断id(xx) == id(yy)??  其实就是是不是一个对象的，一个id表示一个对象
+		xx == yy :判断xx的值是不是等于yy的值呢？？？
+      
+   进程：在普通函数中打印出来的getpid()与主程序中打印出来的getpid一样
+		p = Process(target=f,args=('Jack',))f函数就是个进程，类似linuxc中的线程
+		创建以后要p.start()开启进程，回收用p.join（）
+
+		线程：t1 = threading.Thread(target=fun,args=(x,))  args是个元组
+		t1.setDaemon(True):设置为守护线程，与主线程一起死
+		t1.start()
+		t1.join()--阻塞等待t1死后为他收尸
+------------
+	二维数组初始化：
+	[[0 for i in range(10)]for j in range(9)] ;也可以用numpy
+---------------
+	global关键字，若想在python的函数内部对全局变量做修改，需要在函数内部先global var;
+声明一下，否则函数内部修改的变量是局部变量，不是全局变量。
+--------------
+python：--神奇的用法
+父类：self.属性=子类（）
+子类（父类）：继承
+调用：父类定义父对象，父对象.属性.子类的方法（） 
+--------------------- 
+  python 的print格式化：
+str(num) + str1 必须将前面的num转化成字符串才可以拼接
+print(num,'xxxxx',num);数字与字符串连起来打印
+print("%s %s %s"%(n1,n2,n3))
+print("{0} de {1} {2}".format(n1,n2,n3)) 
+  
+python获取当前os系列，版本1  
+python -c "import platform;print(platform.dist())" 
+  
+	pip安装更换为国内源：
+		matplotlib：图形化界面库
+		numpy：专门做张量运算的/矩阵运算的库
+		opencv-python：python的opencv库
+	pip install numpy -i https://mirrors.aliyun.com/pypi/simple/
+
+	豆瓣 ：https://pypi.douban.com/simple/ 
+	阿里 ：https://mirrors.aliyun.com/pypi/simple/ 
+	中国科学技术大学：https://pypi.mirrors.ustc.edu.cn/simple
+	清华：https://pypi.tuna.tsinghua.edu.cn/simple
+		
+
+	判断list是否为空：if list或者if not list不能写成if list is none(这个代表的是id(list))肯定不是空的
+	list=[]  虽然list是空的但是id(list)已经分配了栈空间
+	#创建widget窗体
+	root = Tk	
+	# 设置宽高，设置的时候乘号是’x‘字母，括号带双引号
+	root.geometry("320x240")
+	# 创建lable控件，text内容是s
+	lb = Label(root,text=s)
+	# 将lable放进去
+	lb.pack()
+	# 防止程序退出
+	root.mainloop()	
+  
+  --------生成器
+1.
+def fab(max):
+	n,a,b=0,0,1
+	while(n<max):
+		yiled b
+		a,b=b,a+b
+		n=n+1
+for i in fab(5):
+	print(i)
+2.
+list=[x+x for i in range(10)]:生成列表表达式
+生成器：返回迭代器的函数。
+generator=(x+x for i in range(10)):生成器表达式。
+（1）：next(generator)
+	   next(generator)  不断调用，每次返回下个值。（这种方法基本不用）
+（2）：for i in generator:  遍历生成器每个数据
+	       print i
+ 
+  
+## python
+数组的大小是定的但是数据可变化，元组的大小与元组内的数据都在初始化的时候定下来了，列表大小与数据都是可以动态变化的
+所以数组介于元组与列表之间。
+string s = “aaa”；则s的大小就定下来的，在c++中。除非申请空间的时候就弄大点。
+stack在python中对应的是list，push->append;pop->pop;top()->list[-1]  顶端
+对于链表，python中的list底层就是链表
+
+对于有复杂度要求的题，记住一条准则：
+时间复杂了，空间复杂度可以降低
+空间复杂度高了，时间复杂度可以降低
+
+if mystack.empty() 全等于 if mystack == []
+（1+2）>> 1：就是将a+b除以2再取整数部分  全等于(a+b)//2  // 此符号就是取整
+- os.getcwd()  获取当前执行命令的路径，不是当前执行的文件的路径。
+- os.getenv('LANG')获取当前环境变量
+- os.listdir(“路径”)     列出当前文件夹下所有文件与文件夹
+- os.path.isdir('filename')    判断filename是不是个文件夹
+- os.mkdir('xxx')   新建文件夹名字为xxx--单个文件夹
+- os.makedirs('1层/2ceng/3层/xxx')
+- os.path.exists('xxx')  判断文件是否存在
+- os.path.realpath('./file')  文件的绝对路径
+try:
+	os.remove('./file')  删除文件，不一定成功，所以得判断一下
+except:
+	print（“没成功删除”）
+
+```python
+strA.startswith(strB)  字符串A是否以字符串B开始，结束  
+strA.endswith(strB)
+logging模块：默认>warnning的日志才会打印
+loggging.debug("xxx")
+loggging.info("xxx")
+loggging.warning("xxx")
+loggging.error("xxx")
+loggging.critical("xxx")
+loggging.basicconfig(level=logging.DEBUG)  更改默认打印等级
+
+```
+
+- glob
+
+  - ```python
+    print(glob.glob("lesson*.txt"))  打印所有lesson开头并且txt结尾的文件
+    ```
+
+- recursive  递归的
+
+```python
+import fnmatch   #子串匹配返回true or false
+print(fnmatch.fnmatch("lesson.py","l*.py"))   返回true
+
+--- 
+获取文件信息
+print(filename.stat())    创建时间
+stat + filename：Modify time--文件数据最后一次变更时间
+				 Change time--文件元数据最后一次变更时间(权限-所属者)
+
+---
+import time
+print(time.ctime(12345654))   将数字转换为人类可读的时间写法
+---
+读写文件
+f = open("1.txt",'r',encodeing='utf-8')
+text = f.readlines()		每行都读取进来
+f.close()	必须关闭
+更建议用以下方式：
+with open("1.txt",'r'，encoding='utf-8')  as f:
+    text = f.readlines()     这种方式自动关闭，不用自己关close
+f.write(字符串)     写的都是字符串
+
+----
+from tempfile import TemporaryFile
+f = TemporaryFile()
+---
+import shutil   移动文件
+shutils.copy('filename','./xxdir')  把文间移入dir
+shutils.copy('filename','./xxdir/newname')  把文间移入dir并重新命名为newname
+shutils.copytree('filedir','../')   递归复制本文件夹及文件夹内的所有到上个文件夹中
+shutils.move('可以是文件也可以是文件夹'，'移动到哪里呢')
+---  重命名文件
+os.rename('filename','newname')    可以时文件也可以是文件夹名字
+name = 'myadd'+'name'  字符串拼接赋值也可以重命名
+
+---  删除文件
+os.remove('filename')  只能删除文件
+shutils.rmtree('xxidr')  删除文件夹
+
+--- 读压缩包内的文件
+import zipfile      只针对zip文件
+with zipfile.ZipFile('xxx.zip','r')  as f:
+    print(f.namelist())   可以打印出来所有的压缩包内的文件名  
+    for i in f.namelist():
+        print(i.encode('cp437').decode('gbk'))  如果文件名有中文这么处理打印出来
+---numpy
+numpy.arange(10)   生成n个数字的一维数组
+data.reshape(2,5)  把它变成二维的
+data.reshape(2,5).T   再转置
+numpy.sqrt(data)   每个数字都开根
+np.genfromtxt('1.txt',delimiter=',')  提取1.txt中数据，1.txt中数据是以‘，’分割的
+data.astype(int)  data中每个数据都转化为int类型
+---pandas
+处理series 1列的数据
+处理dataframe  x列的数据
+切片是一段连续的数字才可以切片，切下来的数字是连续的
+
+
+----- zip压缩 zip -r xx.zip ./*
+解压缩：
+with zipfile.ZipFile(xx.zip，‘r’) as zp:
+    zp.extrat('1.txt')   将压缩中的1.txt取出来
+    zp.extractall()   全部解压到当前目录
+压缩：
+with zipfile.ZipFile(xx.zip，‘w’) as zp:
+    for i in files:
+        zp.write(i)     1个1个文件塞进去
+ with zipfile.ZipFile(xx.zip，‘a’) as zp:
+        zp.write(‘3.txt’)   zip中已有，再往里压压  
+
+ ---- excel  openpyxl
+wb = load_workbook(filename='xx.xlsx')  只能加载已存在的
+wb.sheetnames
+sheet = wb['sheet1']
+wb.save(filename='xx.xlsx')
+cell = sheet['A1']  cell = sheet(row = 1,clumn = 1)
+data = cell.value
+cell.row  cell.column
+cell.corodinate   cell的坐标
+cells= sheet('A1:B6')  范围
+cells= sheet('1:5')
+cells= sheet('A:Z')
+提取单元格中部分数据：=MID(A1,左面空几个，从这里开始数几个字符)
+````
+
+### import
+
+```c
+包的调用
+	'''版本1'''
+	#from pack import pack_test     # 脚本调脚本里面的方法。脚本是个文件
+	#pack_test.pack_func()           # 从包里面导一个需要的文件，调用的时候文件+"."+function名字
+										#这里还可以将文件名字改为as file   file.function()也可调用函数
+	'''版本2'''
+	#from pack.pack_test import pack_func        #从包里面的那个文件导入文件中某个function可以将函数名字as 为fun
+	#pack_func()						
+	'''版本3'''	
+	还可以import 对象，则可以在文件中直接调对象的方法----
+		obj.fun()		
+  '''版本4'''	
+	import cls 类  也可以导入然后供子类继承	，这里导入的是文件名。同一级目录下也可以直接导入，不在同目录也可以：from 面向对象 import myclass
+	Stu k("jialei",99) 		#python里面实例化得用一个变量去接受，不能这样做	
+	k = Stu();		上面是c++的写法	
+		
+		
+	如果父类有相同的方法,子类会优先调用先被继承的类的方法。	
+		
+	要拓展父类的属性的时候，最后还要加super父类源有的属性，不然会提示原有属性不存在	
+```
+
+
+
+### string
+
+```c
+'''
+		print(myStr.capitalize())   # 不能改变原字符串，第一个字母大写输出
+		print(myStr.upper())    # 不能改变原字符串，只是以大写输出
+		#newstr = myStr.center(8,"*")    #打印到中间
+		newstr = myStr.upper()      #不能改变原字符串，但是可以将大写赋值给另一个字符串
+
+		print(myStr.count("k",0,5))     # jackkk 还是左闭右开
+		'''
+		'''str = "01\t234\t56789"
+		print(str.endswith("3",0,4))    # true 01234 还是左闭右开，不算4
+		print(str)
+		
+		#find方法：index方法
+		str = "0123456789"
+		print(str.find("3465"))      # 返回子串的下标位置，如果子串不存在返回-1
+		print(str[str.find("345")])
+		# print(str.index("3465"))    # 正常返回子串下标，如果子串不存在抛出异常
+		'''
+
+		'''
+		mystr = "1234mk55"
+		print(mystr.isalpha())  #都是字母？
+		print(mystr.isdigit())  #都是数字？
+		print(mystr.isupper())  #都是大写？
+		print(mystr.islower())  #都是大写？
+		print(mystr.isspace())  #都是空格？
+		'''
+		'''
+		mystr = "nihao"         # 多个英文单词，每个首字母大写，其他字母小写的字符串就是title格式
+		print(mystr)
+		print(mystr.title().istitle())  #原串还是不会变的
+		mystr = mystr.title()   #字符串转换过来
+		print(mystr)
+		'''		
+		'''
+		my2 = ["a","b","c"]
+		mystr = "***"
+		newstr = mystr.join(my2)  #a***b***c 只把自己往对方中间插
+		print(newstr)
+		'''
+
+		#mystr = "192.168.1.23"
+		#list = print(mystr.split("."))  # 将原来的字符串截取不用的字符，以list接受
+
+		#mystr = "33\n44\n33"
+		#mylist = mystr.splitlines()     # 截取换行符
+		#print(mylist)
+
+		'''
+		mystr = "len:213412"
+		print(mystr.startswith("gi"))       # 是否以某子串开头
+		if(mystr.startswith("len")):
+			list = mystr.split(":")
+			lenth = int(list[1])
+			print(lenth)                    # 截取字符串某部分，并转化
+
+		str = "NiHao"
+		print(str.swapcase())           # 大写转小写，小写转大写
+
+		'''			
+
+		字符串列表的输入：
+		s = input().split()    "1,2,3,4,5"
+		split() 默认以空格分隔，割完形成列表  strip() 默认删除开头与结尾的空格
+		if i in list:可以直接判断i是不是在list中，不用循环判断了，用起来很简单。
+		newlist = sorted(oldlist)  新的列表会排序
+		list = [int(i) for i in s]  则list就是对应的列表存的int数据
+      
+字符串处理函数：
+	capitalize():将字符串第一个字符转换为大写
+	center(width, fillchar)：返回一个指定的宽度width居中的字符串，fillchar为填充的字符，默认为空格。
+	count(str, beg=0, end=len(string))：返回str在string里面出现的次数，如果beg或者end指定返回指定范围内str出现的次数
+	endswith(suffix,beg=0,end=len(string)):检查字符串是否以obj结束，如果beg或者end指定则检查指定的范围内是否以obj结束，
+										   如果是，返回True，否则返回False
+	expandtabs(tabsize=8):把字符串string中的tab符号转化为空格，tab符号默认的空格数是8。
+	find(str, beg=0, end=len(string)):检查str是否包含在字符串中，
+									  返回开始的索引值，否则返回-1
+	index(str, beg=0, end=len(string)):跟find()方法一样，只不过，如果str不在字符串中会报出一个异常。
+
+	isalpha():如果字符串至少有一个字符并且所有字符都是字母则返回True，否则返回False
+	isdigit():如果字符串只包含数字则返回True否则返回False
+	isnumeric():如果字符串中只包含数字字符，则返回True，否则返回False（识别不出小数点，只能判断整数字符串）
+	
+	istitle():如果字符串是标题化的(见title())则返回True，否则返回False
+	title():将字符串设置为title格式，说白了首字母大写。(且操作对象，凡是在字符串中有多个英文单词，会将每个英文单词的首字符大写)
+	join(seq):以指定字符串作为分隔符，将seq中所有的元素(的字符串表示)合并成一个新的字符串(将list转换为string)	
+	len(string):返回字符串的长度
+	lstrip():截掉字符串左边的空格
+	rstrip():删除字符串末尾的空格
+	replace(old,new,[max]):把将字符串中的old替换成new，如果max指定，则替换不超过max次
+	注意：max代表的是替换次数
+	split(str="",num=string.count(str)):以str为分割符截取字符串，如果num有指定值，则仅截取num个子字符串
+	splitlines(num=string.count('\n')):按照行分割，返回一个包含各行作为元素的列表，如果num指定则仅切片num个行
+	startswith(str, beg=0, end=len(string)):检查字符串是否是以obj开头，是则返回True，否则返回False。
+										   如果beg和end指定值，则在指定范围内检查。
+	swapcase():将字符串中大写转化为小写，小写转换为大写	
+	str[起始下标：终止下标：步长];左闭右开  
+		起始下标：从0开始
+				  -1：最后1个元素
+		步长：正数向后跳跃；负数向前跳跃
+```
+
+
+
+### list
+
+```c
+'''
+			l = [23, [1, 2, 3], 5, "xiaoming", 34, 54, 67]
+			# print(l[-1])        # 打印列表最后一个
+
+			print(l[:3:2])
+			print(len(l))
+
+			'''
+
+			# 函数的封装,声明
+			def mylist_trave(mylist):
+				for i in mylist:
+					print(i)
+			'''
+			mylt = [12,3.41,"helo",(1,2,3),[4,5,6]]
+			mylist_trave(mylt) 
+			'''
+
+			'''
+			if __name__ == "__main__":      # 整个python程序入口
+				# 函数的调用，没有形参的类型
+				mylt = [12,3.41,(1,2,3),[4,5,6]]
+				mylist_trave(mylt)
+			'''
+
+			def mylist_print(mylist):
+				for i in range(len(mylist)):        # range很重要，可以实现分行打印
+					print(mylist[i])                # 这里i的类型是int型的。   for i in mylist  这里i是变化的mylist的成员
+
+			def mylist_appen(dst,src):
+				dst.append(src)
+
+			if __name__ == "__main__":
+				mylt = [1, 2, 3, 4]
+				src = ["helo", "wrold"]
+				mylist_appen(mylt, src)     #将src作为一个元素加进去[1, 2, 3, 4, ['helo', 'wrold']]
+				mylt.pop()          #弹出最后一个元素
+				mylt += src         #将src中元素一个一个加进去[1, 2, 3, 4, 'helo', 'wrold']
+				print(mylt)         #****这些操作都会改变原来的列表
+```
+
+
+
+### dict()
+
+```c
+x=dict()
+x={'key1':1,'key2':2,...}
+访问：x['key']
+增加：x['newkey'] = xxx
+修改：x['key'] = xxx
+删除：del x['key']
+```
+
+### map()
+
+```c
+map(fun,列表，...) 将fun作用于每个输入的列表中的数据上
+exp：
+	a=[1,2,3,4] b=[1,2,3,4]
+	map(square,a)  ->[1,4,9,16]
+	map(lambda x:x*x,a) ->[1,4,9,16]
+	map(lambda x,y:x+y,a,b) ->[2,4,6,8]
+```
+
+### 二维数组
+
+```c
+a=[1,2,3] b=[4,5,6] c=[7,8,9]
+zip(a,b,c) [(1,4,7),(2,5,8),(3,6,9)]
+将a，b，c这3个1维数组按列压成1个3行的二维数组
+```
+
+
+
+### 爬虫
+
+```c
+豆瓣 ：https://pypi.douban.com/simple/ 
+	阿里 ：https://mirrors.aliyun.com/pypi/simple/ 
+	中国科学技术大学：https://pypi.mirrors.ustc.edu.cn/simple
+	清华：https://pypi.tuna.tsinghua.edu.cn/simple
+	这是为了获得ssl证书的认证，要不然会报错pip install 包名 -i http://pypi.douban.com/simple/ --trusted-host pypi.douban.com
+	
+		
+	import requests		关键字运用
+	kv = {'q':'Python'}
+	r = requests.get("https://www.so.com",params=kv)
+	print(r.status_code)
+	print(r.request.url)
+	soup.title  #汤的title
+	soup.a #汤的含链接的标签（只能显示第一个含连接的）
+	soup.a.name #a标签的名字  soup.title.name
+	soup.a.pqrent.name	#a父亲的名字
+	soup.a.attrs  #标签a的属性信息，属性包含[class/id/href：链接]
+
+	提取网站链接方法：
+		list_1 = re.findall('<a href=".*?" class=ulink',html.text)
+							找这串字符串中的.*?代表的那部分，从html.text文档中 结果会以列表形式赋值给list_1
+```
+
+
+
+### 人工智能
+
+```c
+机器学习：numpy，matplotlib
+		算法：
+		监督学习：线性回归，逻辑回归（有人教你，训练接自带标签）
+		无监督学习：聚类（自己乱学，自己分类，没人教，训练集不带标签）
+		SVM：支持向量机
+		强化学习：有奖惩机制（环境反馈）作为输入，输出结果可以作为输入
+	opencv：
+	TensorFlow：人工智能框架--谷歌的
+	mindspore：华为的人工只能框架：自动并行，二阶优化，全场景协同
+
+	深度学习：
+		卷积神经网络：CNN
+		案例：语音识别
+		百度AI平台使用
+			人脸对比，语音合成，语音识别
+		彩色图片存储起来就是三维（RGB)的，每个每个数据都是二维（图片横款）的，二维的每个数据都是一维的
+					相当于三张图片叠加（R通道）（G通道）（B通道），每张图就是纯二维的图片了
+	语音合成-->将合成的语音播放（pygame/pyaudio）
+	语音合成--->文字转语音（存起来双击（调用语音播放软件）可以播放）--->百度ai-->短语音python合成
+	语音采集——->pyaudio（官方有实例文档）-->将语音采集为文件存起来双击（调用语音播放软件）可以播放
+	语音识别-->声音文件在屏幕打印出对应文字-->百度aipspeech
+	语音播放-->pygame.mixer--->直接调用函数（打开文件）就可以播放不用打开别的软件
+
+	图片显示-->不通过直接双击（用tkinter去显示）
+		img_open = Image.open("1.jpg") # 将jpg照片转为img图片
+		photo = ImageTk.PhotoImage(img_open)
+		img_label = Label(root,imag=photo)
+	图片采集（调用摄像头）：CV2库退出时可以保存1张图片信息
+	图片中眼睛采集：还用CV2库
+	人脸对比：import requests 	import base64发图片信息给百度让它给你分辨你读取返回值的对比度95%就说明是同1个人照片
+	https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=%s&client_secret=%s'%(API_Key,Secret_Key)
+```
+
+
+
+### 求解一元二次方程
+
+```c
+解方程组：y = x + 1,y = -x + 1
+
+#导入sympy     pip install sympy -i https://alibaba.xxxxx
+from sympy import *
+
+#定义变量
+x = Symbol('x')
+y = Symbol('y')
+print(solve([x + 1 - y,-1 * x + 1 - y],[x,y]))
+
+输出结果：{x: 0, y: 1}
+```
+
+
+
+# stm32
+
+```c
+```
+
+
+
+# 其他
+
+```c
+程序：
+  一个程序可以通过运行的时候监听某个端口去工作（服务端监听6666端口），
+若无客户端访问，则它处于listing状态，若有客户端访问，则增加一个established状态的项，同时那个listen状态的条目也在。
+这个server端就是看有没有程序连接6666端口，则它去处理这个端口发来的数据并返回数据给client。
+
+国产CPU厂商
+x86：AMD/Intel、上海兆芯、中科院海光；AMD,INTEL,X86_64又叫amd64，因为64bit的x86是amd先搞出来的
+ARM：华为鲲鹏、天津飞腾；arm
+MIPS：中科院龙芯-性能较低，市场不好
+alpha：申威，性能高、单处理器达260核心
+powerpc：老苹果  
+  
+总线演变：
+1.CPU、RAM、IO在一条总线上，在同步模式下工作，互锁，所有设备被限定在同一个通用的block，整个系统的速度会被最慢的设备限制
+2.南桥(IO总线)，cpu与内存工作在系统总线，独立于所有的IO设备，IO低速总线与高速总线分开
+3.内存与北桥间的总线叫做内存总线
+  cpu与北桥之间的总线叫做前端(系统)总线
+  数据离开内存总线与系统总线后通常传到IO总线（即PCI总线，目前最通用的IO总线）
+-----buffer与cache
+swap 空间是磁盘空间，不是硬件的内存，这种磁盘可以当做内存用
+swappiness=0：先用物理mem，然后再用swap的mwm
+swappiness=100：先用磁盘，这样的os速度很慢，会很卡
+默认值是60，意思是当内存使用超过40%时，就开始用swap磁盘。
+/proc/sys/run/swappiness 临时修改swappiness值
+/etc/stsctl.conf 增加vm.swappiness=100永久修改 sysctl -p使修改生效
+
+
+buffer:CPU要写data至block，先放至buffer，从cache中拿写的速度快
+cache：cpu读block数据，block太慢，先放至cahce  
+
+echo -e :激活转义字符 \x 发警告声 \x字体颜色背景
+echo -n:不换行输出
+eval：两次扫描之后若有cmd就执行cmd
+example：test.txt的内容为hello world
+		myfile='cat test.txt'
+echo $myfile--cat test.txt
+eval $myfile--hello world  eval只能扫一遍命令，这里不对。需注意**
+eval是echo的升级版，本身也会echo。
+logger:往/var/log/message 里面写东西  
+  
+IPSAN
+共享存储服务器
+可以同时将多个server的磁盘共享到同一个server中  
+  
+头文件应当自包含：
+1.c中include stdint.h
+1.h中没有包含，但是函数传参中有unit32数据类型
+所以需要包含1.h的c文件必须自己包含stdint，这样不好
+应该在1.h中自己include stdint头文件，这样需要使用1.h的c文件直接包含1.h就好
+
+ASCII：128个 ANSI:包含ascii 
+编码时一个0x34对应汉语：中；对应台湾字：蔠  这种不是一对一
+对于unicode编码方式是一对一的，有100万个字符，地球的文字都可以覆盖
+不同的编码方式在文件开头就定下来了：0xabcd 就规定了后面是怎么翻译的
+unicode LE：小端
+unicode BE：大端-->容错低，一旦丢失一个字节，整个文件乱码
+UTF8：无头部 ---->容错高，丢失字节只会让一个字符乱码，不影响其他
+UTF8-BOM：有头部
+
+
+serial串口日志在/var/log/libvirtd/qemu/virtname.seriallog中，可以看到开机自启的log（dm-1,error）
+观察fstab中的分区是否都已经成功挂载。
+若磁盘挂载有问题，会进入紧急模式，umount有问题的挂载点，然后fsck -y /dev/mapper-root即可修复
+修复完成再次执行fsck /dev/mapper-root可以看到此分区已经clean，说明磁盘已经被修复
+对于xfs文件系统修复的时候用的不是fsck命令，有专用的命令，需要自己查一下。
+xfs_repair -L /dev/mapper/root  回显done即修复完成
+
+oom：out of memory os内部没内存了频繁杀死进程
+/sys/devices/system/cpu/cpux/online   echo 1或0进去可以将对应的CPU离线或者上线（磁盘、内存条也类似）
+/sys/bus/platform/drivers/各种驱动安装后在这里可见
+/sys/bus/platform/devices --/sys/devices/platform 内核根据设备树解析出来的部分device_node结构体转化而来的platform_dev结构体
+```
+
+> -----KVM+QEMU
+> kvm负责cpu与内存的虚拟化
+> qemu负责网卡，磁盘，io的虚拟化
+> 两者结合实现真正的虚拟化
+
+---
+
+### 桥接与NAT
+
+- 桥接：虚拟机与宿主机在同一网段，外界能访问虚拟机虚拟机也能访问外界（同一网段内其他主机）
+- NAT：虚拟机可以访问外部其他主机，但是其他主机看不到它
+NAT映射：路由器中有个NAT映射表，当私网ip（192.168.1.1）出去时会变成
+（10.10.10.10）外界不知道其实是192.168.1.1发出来的数据。这个ip的映射就是NAT映射
+
+---
+
+> 虚拟机配了直通就不支持热迁移了，除非USB这种外设支持热迁移
+> VNC的连接断开在/libvirt/qemu/xx.log中都能看到。若VNC界面乱码，可以reset清屏就好了
+> /dev/dmx--->dm就是device mapper设备映射
+> 此文件是/dev/mapper/目录下的软连接
+
+> CPU的活动3种
+>
+> 内核空间：进程上下文(能到内核空间，肯定说明进程在执行syscall)--这个syscall的上文下文都是进程，只不过现在因为syscall成了内核空间
+> 内核空间：中断上下文，与任何进程无关。
+> 内核空间与用户空间区别：可执行指令与可访问的寄存器不同
+> 用户空间转换到内核空间的方法：syscall或硬件中断
+> 						因为软中断就是在内核空间触发的(往swi中写东西，用户空间根本不能访问这个reg)
+> 						切换时需要用栈保护现场
+
+> nginx：支持高并发的反向代理server
+> 1.客户端不需要看待真实的server就可以通过反向代理server从真实的server中获取数据
+> 2.www.freecplus.com----->192.157.2.2:80----->真实ip+port8080
+> 3.apache-tomcat是做真实的server的，一个server就是一个tomcat进程
+> 4.nginx就是中间配置客户端与真实server之前的配置
+> 5.实现高并发、反向代理、负载均衡(一个请求被多个server处理)
+> 6.负载均衡方式：
+> 	+ fair （自动调节）
+> 	+ 默认（轮询server）
+> 	+ weight（调节每个server的权重去均衡）
+
+---
+### grub
+
+> boot分区被破坏如何恢复
+> 现象：低版本linux黑屏，啥都看不到；高版本linux进入grub_resue>命令行
+> 解决办法：
+> 1.挂载对应的iso以cdrom方式启动，进入Troublbooting模式---即平时说的rescue模式
+> 2.选择continue选项-->os自动选择根-->可以自动挂载原来的镜像
+> 3.格式化原来的boot分区之前挂载/boot的磁盘
+> 4.挂载启动磁盘，然后开始给boot目录中添加启动所需文件
+> 	-安装kernel包提供：linux内核与initramfs
+> 	-安装grub:
+> 		+grub-install /dev/sda1:安装部分grub文件
+> 		+用grub命令进入grub界面
+> 		+set root=(hd0,0)  设置启动分区
+> 		+setup (hd0) 往启动分区加开机文件--->注意这里是（hd0）
+>
+> 磁盘的mkfs会修改磁盘的UUID，所以以后fstab中建议用UUID而不是直接写路径，容易弄错。--除非UUID改变
+>
+> - （hd0,gptx）（hd1,gptx）这都是分区名
+>- ls (hd0，gpt1)  查看分区格式     带linux的就是存放grub的分区(filesystem is ext2) ext2才是存grub的分区
+> - set prefix = (分区名)/boot/grub
+> - insmod normal  安装模块
+> - normal 运行模块
+>- 进入终端后update-grub
+
+---
+
+> grub2-editenv list == 列出来的就是grubenv里面的变量，可以通过grub2-set-default 去设置
+> grub-双击tab自动补全：可以查看grub的版本
+> grub2-mkconfig生成cfg的好处：
+> 内核升级的时候会重新根据/etc/default/grub 重新生成cfg文件，所以我们建议改cfg的时候通过改/etc/default/grub
+>        然后用命令生成cfg文件。
+> initramfs生成：dracut -H -f /path/initramfs-$(uname -r)  $(uname -r)
+>     	其实安装内核的时候再post阶段就会有这个命令
+>     	rpm -qa --scripts xxx包名
+> mbr分区：古老的分区方法
+>  + 最多4个分区-每个多大2t
+>  + os安装在主分区
+>  + 扩展分区要占1个主分区
+> gpt分区：现在用的比较多-windows64 位以后基本都用的这种方式
+>  + 无限多的分区
+>  + 无限大的容量
+
+> ---
+> 
+> ---openvswitch缩写就是ovs
+> ovs-vsctl add-br br0增加网桥br0--网桥就是虚拟路由器，创建的网桥默认有个虚拟端口br0
+> ovs-vsctl add-port br0 eth0  给br0增加eth0的物理端口
+> 
+> ---ulink
+> ulink删文件时，已经打开的文件不会立即删除，依然可以进行读写，但是进程结束后文件就会被删除
+
+---
+
+> ### 截屏软件（超级好用）
+>
+> ```
+> snipaste.exe   打开之后，F1截屏
+> 						F3粘贴
+> 						ESC退出
+> ```
+
+## 正则表达式
+
+### Linux-egrep
+
+```c
+字符串匹配
+		基础正则：
+		扩展正则：egrep
+		egrep  “[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}”  filename 在filename查找ip地址
+			   注意“ 位数	 值范围		仅分割意思   .在正则中有别的意思
+		\：在这里是转义字符 因为'.'是匹配任意1个字符的
+		. 匹配任一字符   			abc. 可以匹配abcd/abc9,,
+		[]匹配括号中任一字符		[abc]d   =ad/bd/cd
+		^：位于中括号内的时候-[^lxy] 匹配除lxy以外的任意1个字符
+		  位于中括号外的时候- ^con  匹配开头是con的行
+	数字限定符：
+		？：[0-9]？\.[0-9]    前面0-9要不要都可以(紧跟在它前面的单元匹配0次或1次)
+		
+		$:匹配行末尾			;$ 匹配行末是；的行
+		^$：空行
+	\bth：表示以th开头的行
+	th\b：表示以th结尾的行
+	？：紧跟在它前面的单元匹配0或1次ex: [0-9]?\.[0-9]-->x.[0-9] x可有可无  ‘.’需要转义
+	正则中‘’ 与“”一样的
+	+：紧跟在它前面的单元匹配1或多次
+	*：紧跟在它前面的单元匹配0或多次
+	{N}：紧跟在它前面的单元匹配N次
+	{N,}:紧跟在它前面的单元匹配至少N次
+	{M,N}：紧跟在它前面的单元匹配至少M次，至多N次
+```
+
+### python-正则
+
+```py
+python中的正则：
+re.findall("正则式子"，输入的字串)   re.search("xx",f.read());只找第一次出现的结果
+“^abc$”   以abc开头并结尾的字符串
+“a*” 匹配*号前的字符0次或多次
+“（ABC）{3,5}”  匹配abc字符串，最少3次最多5次
+“s” 匹配空白字符。‘\n \t \r’
+“((0-9){4})([0-9]{3}) ([0-9]{4})”  分组匹配输入的字符串
+例如，将身份证分组识别出来：re.search("((0-9){4})([0-9]{3}) ([0-9]{4})","14262319950201131d")
+按照key，value的方式存储：
+re.search("(？P<provice>(0-9){4})(?P<city>[0-9]{3}) (?P<birthday>[0-9]{4})","14262319950201131d").gruops()
+re.split("[0-9]","alex11name22jack33nike")
+以数字为分割符，将此字符串分成4段  返回列表
+```
+
+### c-正则
+
+```c
+c中使用正则：
+1-转换
+int regcomp(regex_t *compile,const char *pattern,int cflags);
+1.struct (编译-子串-->结构体)   c语言不认识正则串，可以用struct存起来，这就是编译了
+2.正则串
+3.标志：扩展正则--忽略大小写--识别换行符号
+2-
+int regexec(regex_t *compiled,char * string,size_t len,regmatch_t add[],int eflags)
+1.compiled是上面转换后的结构体指针
+2.待正则的表达式
+3+4：存正则的数组
+```
+
+
+
+## static const 全局变量
+
+```c
+static int a；定义在函数a中，只属于函数a。定义在函数b中只属于函数b
+
+	const：
+	1.局部变量：未初始化，值是随机的。全局变量与静态变量未初始化，编译器自动将它初始化为0.
+  1）内存中的位置：静态存储区
+
+  2）初始化：未经初始化的全局静态变量会被程序自动初始化为0（自动对象的值是任意的，除非他被显示初始化）
+
+  3）作用域：作用域仍为局部作用域，当定义它的函数或者语句块结束的时候，作用域随之结束。
+
+ 注：当static用来修饰局部变量的时候，它就改变了局部变量的存储位置（从原来的栈中存放改为静态存储区）及其生命周期（局部静态变量在离开作用域之后，并没有被销毁，而是仍然驻留在内存当中，直到程序结束，只不过我们不能再对他进行访问），但未改变其作用域。
+
+2.全局变量
+
+在全局变量之前加上关键字static，全局变量就被定义成为一个全局静态变量。
+
+ 1）内存中的位置：静态存储区（静态存储区在整个程序运行期间都存在）
+
+ 2）初始化：未经初始化的全局静态变量会被程序自动初始化为0（自动对象的值是任意的，除非他被显示初始化）
+
+ 3）作用域：全局静态变量在声明他的文件之外是不可见的。准确地讲从定义之处开始到文件结尾。
+
+注：static修饰全局变量，并未改变其存储位置及生命周期，而是改变了其作用域，使当前文件外的源文件无法访问该变量，
+    static修饰局部变量，只是改变了它的生存周期，并未改变其作用域。
+好处如下：（1）不会被其他文件所访问，修改（2）其他文件中可以使用相同名字的变量，不会发生冲突。对全局函数也是有隐藏作用。而普通全局变量只要定义了，任何地方都能使用，使用前需要声明所有的.c文件，只能定义一次普通全局变量，但是可以声明多次（外部链接）。注意：全局变量的作用域是全局范围，但是在某个文件中使用时，必须先声明。
+
+c++：
+静态成员函数只能访问静态成员变量。----普通成员变量得有对象才有值，而静态成员函数不需要对象也可以调用的。所以这样
+
+        特点：
+
+         1.不要试图在头文件中定义(初始化)静态数据成员。在大多数的情况下，这样做会引起重复定义这样的错误。即使加上#ifndef #define #endif或者#pragma once也不行。 
+
+         2.静态数据成员可以成为成员函数的可选参数，而普通数据成员则不可以。
+
+         3.静态数据成员的类型可以是所属类的类型，而普通数据成员则不可以。普通数据成员的只能声明为 所属类类型的指针或引用。
+
+    2.成员函数
+
+    用static修饰成员函数，使这个类只存在这一份函数，所有对象共享该函数，不含this指针。
+    静态成员是可以独立访问的，也就是说，无须创建任何对象实例就可以访问。base::func(5,3);当static成员函数在类外定义时不需要加static修饰符。
+    在静态成员函数的实现中不能直接引用类中说明的非静态成员，可以引用类中说明的静态成员。因为静态成员函数不含this指针。 
+
+不可以同时用const和static修饰成员函数。
+
+C++编译器在实现const的成员函数的时候为了确保该函数不能修改类的实例的状态，会在函数中添加一个隐式的参数const this*。但当一个成员为static的时候，该函数是没有this指针的。也就是说此时const的用法和static是冲突的。
+
+我们也可以这样理解：两者的语意是矛盾的。static的作用是表示该函数只作用在类型的静态变量上，与类的实例没有关系；而const的作用是确保函数不能修改类的实例的状态，与类型的静态变量没有关系。因此不能同时用它们。
+
+const的作用：
+
+1.限定变量为不可修改。
+
+2.限定成员函数不可以修改任何数据成员。
+
+3.const与指针：
+
+const char *p 表示 指向的内容不能改变。
+
+char * const p，就是将P声明为常指针，它的地址不能改变，是固定的，但是它的内容可以改变。
+
+```
+
+# 定位问题
+
+```c
+1.stm32g030f6p6:进休眠无法恢复，原因adc初始化中的一个函数调用第二次调用时发生死循环。--j-link
+2.CI工程上构建的sha256值与自己编译的不一样（etc/profile环境变量未生效），定时间的服务--华为自研
+3.vmtools查询带内信息，网卡数量太多，导致查询带内信息失败。网卡缓冲区不够。
+4.用例查询开机失败：通过pty的方式查询，通过vmtools状态查询。
+```
+

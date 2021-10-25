@@ -18,5 +18,13 @@ Sequencer：顺序，序列
 Regular：常规的
 regulator ：调节器
 fragment  分段，分开
+squence：顺序
+fusion computer:融合计算
+nfv：网络虚拟化
+pendding：待处理
+bond：网卡组
+raise：失败用例
+cdrom：光驱
+submission：服从
 ```
 
