@@ -145,6 +145,14 @@
 > 		adc_softwareStartConvcmd(); 使能adc1开始转换。
 > 	}
 
+---
+
+> cubemx直接生成的LL库的adc初始化函数会卡死，如图部分：
+>
+> ![image-20211027185938393](C:\Users\X1 YOGA\AppData\Roaming\Typora\typora-user-images\image-20211027185938393.png)
+
+> 经过同事测试直接删除没不良影响。
+
 ### 结构体
 
 ```c
@@ -195,6 +203,8 @@ typedef union
 
 ### IIC
 
+> > https://blog.csdn.net/zhanghuaichao/article/details/48266309 对iic的解读，每个函数定义
+>
 > IIC驱动程序：基于stm32f10x_ll_iic.c 固件库 
 > 	分为总线的驱动iic.c与器件的驱动程序lm75a.c 
 > 	iic.c中集成：iic配置初始化函数	
@@ -462,7 +472,7 @@ ctrl+/ ：搜索当前函数或变量在整个工程中出现的位置，看哪�
 > typedef enum{
 > 	uint32_t byte;
 > 	struct {
-> 		bit1:1;
+> 		bit1:1;先写的bit是lsb，最下面的bit是msb
 > 		...
 > 	};
 > }; 这里的这种方法共用地址，定义的变量初始化的时候可以用var.byte=0去初始化
