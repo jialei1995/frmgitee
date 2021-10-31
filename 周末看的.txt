@@ -1,0 +1,37 @@
+黑盾代码总结：
+全局变量类型的声明位置：
+app_bms.h里面：
+	S16_BITS;S8_BITS;
+	S_HALFWORD;--uint8_t  16bit
+	S_SHALFWORD;--int8_t  16bit
+	S_WORD;--uint8_t  32bit
+	S_SWORD;--int8_t  32bit
+	S_DWORD;--uint8_t  64bit
+	S_SDWORD;--int8_t  64bit
+	CHGStatuesSt 充电状态---有的需求里面不需要这
+	BattStatuesSt;  电池状态--充满？放完？放电？充电
+	syspara--包括以上的结构体的变量
+	SysFlag--各类状态，各种flag
+	
+	syspara与SysFlag变量在这里声明
+app_alarm.h里面：
+	AlarmSt;--各种alarm状态
+	typedef struct
+	{
+		uint8_t              alarmFlag;
+		uint8_t              Times;
+		uint8_t              ReTimes;
+	} ALARM; ---会定义很多alarm的变量，
+app_config.h，app_config_def.h里面：
+	定义了很多关于电池的cfg参数宏，这些宏最后会赋值到sh367x的
+	AlarmFilter会以这些宏为边界值去判断ALARM变量的状态。
+	ALARM变量最后会写入到syspara里面。
+app_flash.h里面：
+	FlashPara这个结构体变量里面放的数据最后写的时候就会写道flash里面，具体写的位置就是flash
+	中的最后一页里面。
+	main.c开始放的是app程序头是gtdsxxx,FLASH里面最后一页开头放的appmask。
+	bootloader读的appmask位置是这里不是80018f8位置
+flash.h里面：
+	定义的函数都是flash操作的基本函数如，擦除，读写，lock，unlock
+	这些函数都是hal库里面集成的，直接拷贝过来就可以用
+pcmonitor.c里面的结构体就是通讯的时候会用到的变量结构体。
