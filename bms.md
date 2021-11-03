@@ -201,6 +201,15 @@ typedef union
 > 		就是uart的发送函数；+gpio高低电平
 > 	}
 
+> ---
+>
+> 要使用printf之前需要在uart.c里面增加如下代码：
+>
+> ```c
+> ```
+>
+> 
+
 ### IIC
 
 > > https://blog.csdn.net/zhanghuaichao/article/details/48266309 对iic的解读，每个函数定义
@@ -586,7 +595,9 @@ ctrl+/ ：搜索当前函数或变量在整个工程中出现的位置，看哪�
 
 > #define FLASH_USER_END_ADDR   (FLASH_BASE + 0X8000)    app_flash.h中8000是flash的size,这里用宏替代***
 >
-> system_stm32g0xx.c文件设置中断偏移量VECT_TAB_OFFSET改成1900
+> 3.将cinfigure中的IROM1改成800 18f8
+>
+> system_stm32g0xx.c文件设置中断偏移量VECT_TAB_OFFSET改成1900,这个是程序的开始位置
 >
 > #define VECT_TAB_OFFSET  0x1900U
 
@@ -598,3 +609,33 @@ ctrl+/ ：搜索当前函数或变量在整个工程中出现的位置，看哪�
 >
 > 3.将cinfigure中的IROM1改成800 0000
 
+
+
+# keil报错
+
+uint8_t is not a type name ; 原因：在某个.h文件中声明的函数名字没写对，只有
+
+void (uint8_t *txdBuf,uint16_t len);
+
+2. ST-link驱动怎么升级？点击device connect然后点击确定（需要将板子+st-link+笔记本连接起来才能升级）
+
+![image-20211030115323689](C:\Users\X1 YOGA\AppData\Roaming\Typora\typora-user-images\image-20211030115323689.png)
+
+还是连接不上
+
+![image-20211030115904853](C:\Users\X1 YOGA\AppData\Roaming\Typora\typora-user-images\image-20211030115904853.png)
+
+# 其他常识
+
+#### 2v的电芯300a放电有危险吗？
+
+没有，人体电阻1000k。站到300a导线中间，则电流就流不过去了，因为2/1000k=0.000002a一点危险都没有。
+
+#### 测绝缘的机器2500v，为啥把人打不死？
+它的输出只有2ma，两端断开的时候它就是2500v，但是人手解除的时候，人是2ma,2ma*2k=4v 接触的同时人身体的电压只有4v，并不是2500v
+
+#### 保护板上的充电mos与放电mos怎么开启的？
+
+正常放电的时候充电mos与放电mos都是闭合的，如放电有保护，则关闭放电mos，则现在不能放电只有充电mos是闭合的。此时如果充电，在放电mos的二极管会有0.7v压降，但是并不影响充电，保护板检测到有充电电流的时候会闭合放电mos，减小功耗的损失。
+
+正常充电的时候充电mos与放电mos都是闭合的，如充电有保护，则关闭充电mos，则现在无法充电了，但是可以放电。放电时充电mos有0.7v压降，但是并不影响放电，保护板检测到放电电流的时候会闭合充电mos，减小功耗的损失。
