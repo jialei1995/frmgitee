@@ -26,5 +26,9 @@ bond：网卡组
 raise：失败用例
 cdrom：光驱
 submission：服从
+clust 集群
+thresholds 阈值
+simultaneous 同时
+vantange 优势
 ```
 
