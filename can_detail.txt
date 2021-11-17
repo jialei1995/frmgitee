@@ -47,3 +47,46 @@ CAN：抗干扰  BMU-->lecu
 
 33771：采样芯片-->相比分立器件好处就是可以同一时刻采样多节电池电压，速度极快
 认识继电器控制的高边驱动与低边驱动方式的特点--看图
+AD1426  采集电压，14bit   cpu是12bit的
+sh36730x  采集电流电压温度
+ina219  采集电流
+
+——————————————
+其实无所谓请求帧数据帧：
+我们发的帧都是ID+数据/cmd
+可以自己规定收到哪个id的哪个数据后执行对应的操作，都是自己定的。
+那些标准帧与扩展帧呢？
+扩展帧29bit里面包含了仲裁机制，其实对于我们来说标准帧就够用了，只是车上发来的数据有扩展帧。
+
+看门狗的喂狗最简单的方法就是在定时器中断中IWDG_ReloadCounter();reload计数值，让它无法计数到最大数值。
+就不会触发看门狗。
+
+一般看门狗的时钟源频率不会很高，分频下来--差不多x秒才会触发复位的。
+
+短路的一瞬间会有100a通过板子，如果几百us内可以保护则板子不会坏。如果几秒内都不保护则板子会坏。
+stm32内部有几个bkp reg，专门用来存运行过程中的一些掉电不消失的数据，写几个reg与flash一样不会掉电消失。
+
+固件库里面有直接集成的对flash的op，LL库里面没有直接集成对flash的函数，得自己从hal库移植。
+怎么用time直接写delay函数？
+{
+	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);    72m/(8+1)=8m time时钟源分频下来是8m
+	fac_us = SystemCoreClock/8000000;// 8m/8m=1
+}
+void Delayms(u16 nms)//通过以下函数写个延时函数，不需要中断的。
+{
+    u32 temp;
+    SysTick->LOAD = (u32)nms*fac_ms;     reload值         
+    SysTick->VAL = 0x00;                  当前计数值     
+    SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk ;  控制和状态reg，使能systick，开跑
+    do
+    {
+        temp=SysTick->CTRL;
+    }while((temp&0x01)&&!(temp&(1<<16)));   当CTRL第1bit为0 || 16bit为1，跑完load值之后ctrl会置位
+    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;  失能systick
+    SysTick->VAL = 0x00;                        
+}
+NVIC_InitStructure.NVIC_IRQChannel=USB_LP_CAN1_RX0_IRQn;//则中断处理函数就是USB_LP_CAN1_RX0_IRQHandler()
+NVIC_IRQChannel就对应中断
+
+vscode添加头文件：
+Ctrl+Shift+P 打开命令 输入configuration 点第一个才有 c_cpp_properties.json

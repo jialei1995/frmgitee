@@ -30,5 +30,11 @@ clust 集群
 thresholds 阈值
 simultaneous 同时
 vantange 优势
+shunt  分流器
+Polarity 极性 CPOL
+Phase  相位	CPHA
+conjunction 连结，联合
+Insulation  隔热、隔音、绝缘
+tray        盘
 ```
 
