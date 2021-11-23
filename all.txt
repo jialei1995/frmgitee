@@ -9,10 +9,12 @@
 	通过虚拟总线之前的关系枚举cdev，为每个字符设备创建cdev结构体，注册到设备树内核中。
 	
 	useradd jl;增加用户
-	userdel -r jl:彻底删除用户，若不加-r参数，删除用户后/home下还会存在jl的目录
+	userdel jl；删除用户  之后还要rm /home/jl
+	userdel -r jl:彻底删除用户。
 
 	chown root /home/test  把这个目录或文件的属主设为root，别人就不能访问(还看对other的访问权限0664.)
-	chown jl:jl 1.c  
+	chown jl:jl 1.c   目录或文件属主root group：root
+
 
 	PS:ctrl+j 把色彩范围的复制出来，按住ctrl+点击抠出来的印章，前景色选成红色，alt+delete填充，ctlr+d取消选区
 
@@ -27,7 +29,9 @@ C++:
 	&&&普通的成员函数也不属于类的对象上的，它只有1份。通过this指针判定是谁在调用它。
 					this指针指向被调用的成员函数所属的对象（this->对象）
 				this指针隐含在每一个普通的成员函数内部
-				return *this；就是返回对象本身
+			普通成员函数	return *this；就是返回对象本身
+
+	非静态成员函数是普通成员函数吗？是的**
 
 	类内成员函数返回值是Person&  返回的是对象本身。。----如果是链式编程，还是要返回本体，不然的话，返回的不是本体，
 																p2.addage(p1).addage(p1);第二次add不是加到p2上了，是加到新建的变量中了
@@ -274,7 +278,7 @@ io：
 
 一个只有main的程序，既是线程也是进程，可以通getpid()与pthread_self().获取线程号与进程号。
 
-字符串定义的时候可以直接赋值。
+字符串定义的时候可以直接赋值。char a[] = 'sadas';
 				或者struct node mynode={
 					.name = "123",
 					.mystr = "sdfgds",	结构体定义的时候字符串也可以直接赋值。
@@ -316,6 +320,8 @@ os.system("cmd")，特点是会与界面上交互
 os.rmdir() 强制删除
 os.remove()  Python无权限删除windows中的文件，所以会执行失败，在linux中可以成功
 
+dos命令：
+copy 1.txt 2.txt 相当于linux的cp
 
 线程间通信：可以在用户空间就通信，通过全局变量。
 进程：
