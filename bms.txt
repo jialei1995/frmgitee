@@ -481,8 +481,8 @@ ctrl+/ ：搜索当前函数或变量在整个工程中出现的位置，看哪�
 > typedef enum{
 > 	uint32_t byte;
 > 	struct {
-> 		bit1:1;先写的bit是lsb，最下面的bit是msb
-> 		...
+> 		bit1:1;先写的bit是lsb，最下面的bit是msb。低地址
+> 		...高地址
 > 	};
 > }; 这里的这种方法共用地址，定义的变量初始化的时候可以用var.byte=0去初始化
 > 往变量里面赋值的时候可以用var.bit的方法去1bit1bit的赋值
@@ -776,15 +776,50 @@ Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
 	public	类型 mem2
 }
 
+以下两者都类似C语言传地址区别就是
+out:要求在函数内部必须给传出参数x赋值，在函数外部x可以没值。
+ref：要求在函数外部必须给参数x赋值，函数内部可以修改也可以不修改
+
+params:函数传参数要求是数组,加上params参数后可以直接传数组中每个数据
+注意这个params可变参数必须是形参列表中的最后一个参数;一个形参列表中最多只能出现一个可变参数。
+int []s = {1,2,3};
+void test(params int[] score)
+调用：test(1,2,3);  直接传数组中各个参数即可。
+
+求数组长度：arr.Length() 内置方法
+
+
+重载：函数名称相同，参数不同。
+参数不同分为：如果参数个数相同，则类型不能相同
+如果参数类型相同则个数不能相同。
+方法的重载跟返回值没关系---
+
+命名空间：可以理解为类的文件夹，命名空间有很多类
+怎么在项目2中用项目一里面的类：
+在项目2的开始:using 项目一的名称，则项目1里面的类在项目2都能用了
+
+ArrayList:
+ArrayList list=new ArrayList();更优越的数组
+（长度可变，存放类型不单一）
+Add(任意类型);Add(new int[]{1,2,3});直接添加数组
+ArrayList.Count();相当于数组中的length
+AddRange(集合); 添加集合
+clear();清空
+remove(x);传入谁就删除谁
+removeat(0);删除下标是0的元素。
+reverse();反转
+sort();排序--类型差不多才能比较，要不然不能比较
+removerange(0,4);删除0-4的元素
+insert(1,"元素"); 在下标前插入。
+insertrange(0,new string[] {"xx","yy"}); 插入集合
+contains(1); 判断集合是否包含1这个数据
 
 
 
+HashTable:
 
-
-
-
-
-
+(int[])x; 将x转化为数组类型
+if(x is Persion) (i is int[]) 判断x是什么类型，Persion类，数组
 
 
 
