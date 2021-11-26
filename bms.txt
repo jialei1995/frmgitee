@@ -815,17 +815,59 @@ insertrange(0,new string[] {"xx","yy"}); 插入集合
 contains(1); 判断集合是否包含1这个数据
 
 
+----------------
+HashTable:键值对集合（键是唯一的）
+增：
+add(键，值);键与值都可以是任意object类型
+th[x] = y;也是添加数据的方法,如果原key存在直接覆盖对应的值
+包含：
+th.contains() == th.containskey()
+删：
+clear();清空
+remove(key);根据key删
 
-HashTable:
+键值对集合怎么遍历：
+foreach(var item in ht.Keys()){Console.WriteLine(ht[item])}
+--------------var
+var.GetType();获取var的数据类型--c#每个数据有自己的类型，强类型语言。
+
+var关键字，可以定义任意类型数据，可以根据值自己推断类型。
+var n=12,"str",3.24,111m
+var缺点，声明变量的时候必须初始化。
+-------------------stopwatch
+stopwatch st = new Stopwatch();
+st.start();(运行代码) st.stop();  运行结束打印st.Elapsed可以查到耗时时长。
 
 (int[])x; 将x转化为数组类型
+int[] n = new int[100];新建长度为100的数组。
 if(x is Persion) (i is int[]) 判断x是什么类型，Persion类，数组
 
 
 
+构造函数可以重载。
+类当中有一个默认的无参数的构造函数，当写一个新的构造函数后，不管有没有，之前的默认的无参数的构造函数都会被干掉。
+
+----------------------PATH类
+alt+shift+f10：查看类在哪个命名空间中
+Path.getfilename(); 获取路径下的文件名
+获取字符串中某个字符最后一次出现的索引：获取路径最后一个\后的名称
+int index = str.lastindexof("\\"); 
+str=str.substring(index+1); 获取str中的子串
+--
 
 
+静态类如果我们想使用类里面的方法需要
+Class.way();去调用
+普通的类可以定义一个对象，通过对象调用方法。
+-----FILE
+-创建文件
+FILE.create(@"c:\a\b\c.txt");
+-删除
+FILE.delete(@"c:\a\b\c.txt");
+-复制
+FILE.copy(@"c:\a\b\old.txt",@"c:\a\b\new.txt");
 
-
-
+--winform 界面
+静态类里面的字段全局可以访问。
+Test._mem = this;  将当前窗体赋值给Test的mem成员---此成员是静态类的成员，全局可以访问。
 
