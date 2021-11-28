@@ -1,0 +1,59 @@
+
+C#:
+ctrl+k+d   自动对齐，注意k弹起来再按d ctrl是一直按下的
+ctrl+k+c   选中注释，先k再c
+#region (注释)+ #endregion  将需要折叠的代码放到region中间，然后点击小-，即可折叠。
+
+数据类型：
+字符串 string var="nihao 你好";  可以为空
+字符   char  c = 'x'; 不能为空
+int  整数
+double  小数
+float   小数
+decimal  金钱（小数）   decimal money=100m;   最后面有个m
+String  与 string  一样的都能定义数据
+String：.net平台的类  string：c#的关键字
+
+符号：
++ ：连接字符串   当+两边有一边是字符串，则+的作用就是连接
++：两边都是数字  则+作用是连接
+占位符： {0} {1} {n}
+Console.WriteLine("第一个数字是{0},第二个数字是{1}",n1,n2); 先挖坑，再填坑
+控制台输入的数据只能用string去存储,不能说输入的是数字就用int去存
+string  var = Console.ReadLine();
+怎么截取控制台输入的多个数据？不会的时候就分3次从控制台读取
+在表示路径的字符串前加个@，则路径只需要一个\即可。ps：
+string path=@"F:\a\b\c\d\e\1.txt"  如果没有@,则需要
+string path="F:\\A\\B\\C\\D\\1.TXT"  
+@：取消\在”“中的转义作用
+@：将”“中的字符串按照原格式输出
+
+除了类型兼容的类型转换：double--int
+类型不兼容的类型强制转换用convert。
+Convert.toDouble(var);  转换工厂
+枚举类型与int类型是相互兼容的，可以直接转换，
+Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
+(要转换的枚举类型)Enum.parse(typeof(要转换的枚举类型)，”要转换的字符串“);
+枚举：  声明在命名空间之内，class之外，以供此命名空间内的其他方法调用
+[public] enum ENUM_NAME
+{
+	值1，
+	值2，
+	。。。
+	值n
+}
+使用 ENUM_NAME var=ENUM_NAME.值1;定义变量并赋值，枚举类型的值是通过枚举名点出来的。
+所有类型的数据都可以.ToString();转换成string
+
+结构：
+[public可省略] struct STRUCT_NAME
+{
+	public 类型 mem1;  如果前面不加public，则这些成员外部无法访问
+	public	类型 mem2
+}
+
+
+捕获错误：
+try	{convert.toint32(xx)}
+catch {提示输入错误}
+如果try里面的程序能成功执行则不会跳到catch，如果try里面不能成功执行则会跳到catch
