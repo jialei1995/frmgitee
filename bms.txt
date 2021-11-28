@@ -481,8 +481,8 @@ ctrl+/ ：搜索当前函数或变量在整个工程中出现的位置，看哪�
 > typedef enum{
 > 	uint32_t byte;
 > 	struct {
-> 		bit1:1;先写的bit是lsb，最下面的bit是msb
-> 		...
+> 		bit1:1;先写的bit是lsb，最下面的bit是msb。低地址
+> 		...高地址
 > 	};
 > }; 这里的这种方法共用地址，定义的变量初始化的时候可以用var.byte=0去初始化
 > 往变量里面赋值的时候可以用var.bit的方法去1bit1bit的赋值
@@ -723,6 +723,7 @@ VPRO在gpioinit的时候没有置1.需要初始化的时候置1，不然sh367309
 四舍五入：x= (10y+5)/10;	若10y的个位数>5 则最终取值+1，若<5则最终取值-1.
 
 
+<<<<<<< HEAD
 
 
 
@@ -738,4 +739,153 @@ VPRO在gpioinit的时候没有置1.需要初始化的时候置1，不然sh367309
 
 
 
+=======
+C#:
+ctrl+k+d   自动对齐，注意k弹起来再按d ctrl是一直按下的
+ctrl+k+c   选中注释，先k再c
+#region (注释)+ #endregion  将需要折叠的代码放到region中间，然后点击小-，即可折叠。
+
+数据类型：
+字符串 string var="nihao 你好";  可以为空
+字符   char  c = 'x'; 不能为空
+int  整数
+double  小数
+float   小数
+decimal  金钱（小数）   decimal money=100m;   最后面有个m
+String  与 string  一样的都能定义数据
+String：.net平台的类  string：c#的关键字
+
+符号：
++ ：连接字符串   当+两边有一边是字符串，则+的作用就是连接
++：两边都是数字  则+作用是连接
+占位符： {0} {1} {n}
+Console.WriteLine("第一个数字是{0},第二个数字是{1}",n1,n2); 先挖坑，再填坑
+控制台输入的数据只能用string去存储,不能说输入的是数字就用int去存
+string  var = Console.ReadLine();
+怎么截取控制台输入的多个数据？不会的时候就分3次从控制台读取
+在表示路径的字符串前加个@，则路径只需要一个\即可。ps：
+string path=@"F:\a\b\c\d\e\1.txt"  如果没有@,则需要
+string path="F:\\A\\B\\C\\D\\1.TXT"  
+@：取消\在”“中的转义作用
+@：将”“中的字符串按照原格式输出
+
+除了类型兼容的类型转换：double--int
+类型不兼容的类型强制转换用convert。
+Convert.toDouble(var);  转换工厂
+枚举类型与int类型是相互兼容的，可以直接转换，
+Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
+(要转换的枚举类型)Enum.parse(typeof(要转换的枚举类型)，”要转换的字符串“);
+枚举：  声明在命名空间之内，class之外，以供此命名空间内的其他方法调用
+[public] enum ENUM_NAME
+{
+	值1，
+	值2，
+	。。。
+	值n
+}
+使用 ENUM_NAME var=ENUM_NAME.值1;定义变量并赋值，枚举类型的值是通过枚举名点出来的。
+所有类型的数据都可以.ToString();转换成string
+
+结构：
+[public可省略] struct STRUCT_NAME
+{
+	public 类型 mem1;  如果前面不加public，则这些成员外部无法访问
+	public	类型 mem2
+}
+
+以下两者都类似C语言传地址区别就是
+out:要求在函数内部必须给传出参数x赋值，在函数外部x可以没值。
+ref：要求在函数外部必须给参数x赋值，函数内部可以修改也可以不修改
+
+params:函数传参数要求是数组,加上params参数后可以直接传数组中每个数据
+注意这个params可变参数必须是形参列表中的最后一个参数;一个形参列表中最多只能出现一个可变参数。
+int []s = {1,2,3};
+void test(params int[] score)
+调用：test(1,2,3);  直接传数组中各个参数即可。
+
+求数组长度：arr.Length() 内置方法
+
+
+重载：函数名称相同，参数不同。
+参数不同分为：如果参数个数相同，则类型不能相同
+如果参数类型相同则个数不能相同。
+方法的重载跟返回值没关系---
+
+命名空间：可以理解为类的文件夹，命名空间有很多类
+怎么在项目2中用项目一里面的类：
+在项目2的开始:using 项目一的名称，则项目1里面的类在项目2都能用了
+
+ArrayList:
+ArrayList list=new ArrayList();更优越的数组
+（长度可变，存放类型不单一）
+Add(任意类型);Add(new int[]{1,2,3});直接添加数组
+ArrayList.Count();相当于数组中的length
+AddRange(集合); 添加集合
+clear();清空
+remove(x);传入谁就删除谁
+removeat(0);删除下标是0的元素。
+reverse();反转
+sort();排序--类型差不多才能比较，要不然不能比较
+removerange(0,4);删除0-4的元素
+insert(1,"元素"); 在下标前插入。
+insertrange(0,new string[] {"xx","yy"}); 插入集合
+contains(1); 判断集合是否包含1这个数据
+
+
+----------------
+HashTable:键值对集合（键是唯一的）
+增：
+add(键，值);键与值都可以是任意object类型
+th[x] = y;也是添加数据的方法,如果原key存在直接覆盖对应的值
+包含：
+th.contains() == th.containskey()
+删：
+clear();清空
+remove(key);根据key删
+
+键值对集合怎么遍历：
+foreach(var item in ht.Keys()){Console.WriteLine(ht[item])}
+--------------var
+var.GetType();获取var的数据类型--c#每个数据有自己的类型，强类型语言。
+
+var关键字，可以定义任意类型数据，可以根据值自己推断类型。
+var n=12,"str",3.24,111m
+var缺点，声明变量的时候必须初始化。
+-------------------stopwatch
+stopwatch st = new Stopwatch();
+st.start();(运行代码) st.stop();  运行结束打印st.Elapsed可以查到耗时时长。
+
+(int[])x; 将x转化为数组类型
+int[] n = new int[100];新建长度为100的数组。
+if(x is Persion) (i is int[]) 判断x是什么类型，Persion类，数组
+
+
+
+构造函数可以重载。
+类当中有一个默认的无参数的构造函数，当写一个新的构造函数后，不管有没有，之前的默认的无参数的构造函数都会被干掉。
+
+----------------------PATH类
+alt+shift+f10：查看类在哪个命名空间中
+Path.getfilename(); 获取路径下的文件名
+获取字符串中某个字符最后一次出现的索引：获取路径最后一个\后的名称
+int index = str.lastindexof("\\"); 
+str=str.substring(index+1); 获取str中的子串
+--
+
+
+静态类如果我们想使用类里面的方法需要
+Class.way();去调用
+普通的类可以定义一个对象，通过对象调用方法。
+-----FILE
+-创建文件
+FILE.create(@"c:\a\b\c.txt");
+-删除
+FILE.delete(@"c:\a\b\c.txt");
+-复制
+FILE.copy(@"c:\a\b\old.txt",@"c:\a\b\new.txt");
+
+--winform 界面
+静态类里面的字段全局可以访问。
+Test._mem = this;  将当前窗体赋值给Test的mem成员---此成员是静态类的成员，全局可以访问。
+>>>>>>> 15628c49b56e57ac173c645bbe2c81dc4d6c0264
 
