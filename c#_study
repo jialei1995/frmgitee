@@ -52,8 +52,89 @@ Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
 	public	类型 mem2
 }
 
-
 捕获错误：
 try	{convert.toint32(xx)}
 catch {提示输入错误}
 如果try里面的程序能成功执行则不会跳到catch，如果try里面不能成功执行则会跳到catch
+
+
+获取当前sys时间：
+Datetime.Now 格式是时间的格式，需要转换成字符串 Tostring()；
+Datetime.Now.Hour()  获取小时
+Datetime.Now.Second()  获取秒
+
+
+
+
+构造函数可以重载。
+类当中有一个默认的无参数的构造函数，当写一个新的构造函数后，不管有没有，之前的默认的无参数的构造函数都会被干掉。
+
+----------------------PATH类
+alt+shift+f10：查看类在哪个命名空间中
+Path.getfilename(); 获取路径下的文件名
+获取字符串中某个字符最后一次出现的索引：获取路径最后一个\后的名称
+int index = str.lastindexof("\\"); 
+str=str.substring(index+1); 获取str中的子串
+--
+
+
+静态类如果我们想使用类里面的方法需要
+Class.way();去调用
+普通的类可以定义一个对象，通过对象调用方法。
+-----FILE
+-创建文件
+FILE.create(@"c:\a\b\c.txt");
+-删除
+FILE.delete(@"c:\a\b\c.txt");
+-复制
+FILE.copy(@"c:\a\b\old.txt",@"c:\a\b\new.txt");
+
+--winform 界面
+静态类里面的字段全局可以访问。
+Test._mem = this;  将当前窗体赋值给Test的mem成员---此成员是静态类的成员，全局可以访问。
+
+-------------
+SoundPlayer 创建对象sp
+sp.SoundLocation=@"wav格式的音乐路径";
+sp.Play()  播放音乐
+
+------------获得焦点
+label.Focus();让文本框获得焦点
+	
+------------自动换行
+btnword.WordWrap = true/false;  设置文本框中的内容是否自动换行
+MessageBox.Show(str);  打印提示
+
+---------------单选框  多选框
+checkBox   多选框控件
+radiobox    单选控件
+GroupbOX   容器，将多个单选控件放进去，则只能单选了
+
+
+-----pictureBox
+创建对应的对象x
+x.Image = Image.FromFile() 文件路径 ，则对应的图片会自动显示到picturebox中
+
+Directory.GetFiles(文件加路径);获取文件加中所有文件的全路径名
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -723,23 +723,6 @@ VPRO在gpioinit的时候没有置1.需要初始化的时候置1，不然sh367309
 四舍五入：x= (10y+5)/10;	若10y的个位数>5 则最终取值+1，若<5则最终取值-1.
 
 
-<<<<<<< HEAD
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-=======
 C#:
 ctrl+k+d   自动对齐，注意k弹起来再按d ctrl是一直按下的
 ctrl+k+c   选中注释，先k再c
@@ -859,33 +842,4 @@ st.start();(运行代码) st.stop();  运行结束打印st.Elapsed可以查到�
 int[] n = new int[100];新建长度为100的数组。
 if(x is Persion) (i is int[]) 判断x是什么类型，Persion类，数组
 
-
-
-构造函数可以重载。
-类当中有一个默认的无参数的构造函数，当写一个新的构造函数后，不管有没有，之前的默认的无参数的构造函数都会被干掉。
-
-----------------------PATH类
-alt+shift+f10：查看类在哪个命名空间中
-Path.getfilename(); 获取路径下的文件名
-获取字符串中某个字符最后一次出现的索引：获取路径最后一个\后的名称
-int index = str.lastindexof("\\"); 
-str=str.substring(index+1); 获取str中的子串
---
-
-
-静态类如果我们想使用类里面的方法需要
-Class.way();去调用
-普通的类可以定义一个对象，通过对象调用方法。
------FILE
--创建文件
-FILE.create(@"c:\a\b\c.txt");
--删除
-FILE.delete(@"c:\a\b\c.txt");
--复制
-FILE.copy(@"c:\a\b\old.txt",@"c:\a\b\new.txt");
-
---winform 界面
-静态类里面的字段全局可以访问。
-Test._mem = this;  将当前窗体赋值给Test的mem成员---此成员是静态类的成员，全局可以访问。
->>>>>>> 15628c49b56e57ac173c645bbe2c81dc4d6c0264
 
