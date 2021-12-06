@@ -31,6 +31,7 @@ string path="F:\\A\\B\\C\\D\\1.TXT"
 除了类型兼容的类型转换：double--int
 类型不兼容的类型强制转换用convert。
 Convert.toDouble(var);  转换工厂
+Convert.tobyte(var)  转换成字节
 枚举类型与int类型是相互兼容的，可以直接转换，
 Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
 (要转换的枚举类型)Enum.parse(typeof(要转换的枚举类型)，”要转换的字符串“);
@@ -222,3 +223,20 @@ private void DoWork() //线程函数中不直接操作控件，而是通过委�
 MyInvoke mi=new MyInvoke(UpdateTextBox); //定义此委托变量mi的时候需要传进去一个函数（此函数就是入参string，返回值void）
 this.BeginInvoke(mi,new object[]{"我是一个文本框"}); //需要传入委托变量与入参，入参是new出来的string。
 }  
+
+
+
+
+
+疑问：C#中界面一中的uart与界面2中的uart之前的关系是什么，为啥有2个界面都创建了port_DataReceivedds中断函数
+界面1中的中断函数只处理了crc校验，与vol的显示
+
+界面2中的uart中断中进行了复杂的uart协议的处理
+
+是不是当前是界面x，则其他的uart就是死的，只有界面x中的uart是处于链接状态的，当前界面的uart才可以进行uart的通信呢
+
+form1.cs中的117行crc校验，后面的数据不是应该-4的<<，-3的不左移吗？为啥啊
+
+(Uart.RcvBuf.ReDataBuf[Uart.RcvBuf.ReDataBuf.Length - 3] << 8 | Uart.RcvBuf.ReDataBuf[Uart.RcvBuf.ReDataBuf.Length - 4]).ToString("X"))
+
+FORM2.CS中a2的回复直接开始回复bin数据了？？不是先是长度+帧数量吗？
