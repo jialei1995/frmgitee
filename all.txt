@@ -320,8 +320,7 @@ os.system("cmd")，特点是会与界面上交互
 os.rmdir() 强制删除
 os.remove()  Python无权限删除windows中的文件，所以会执行失败，在linux中可以成功
 
-dos命令：
-copy 1.txt 2.txt 相当于linux的cp
+
 
 线程间通信：可以在用户空间就通信，通过全局变量。
 进程：
@@ -5434,3 +5433,45 @@ x={'key1':1,'key2':2,...}
 增加：x['newkey'] = xxx
 修改：x['key'] = xxx
 删除：del x['key']
+
+
+dos命令：
+copy 1.txt 2.txt 相当于linux的cp
+mstsc 远程桌面链接
+set  查看系统中默认的环境变量
+定义变量：set name=xxx
+查看具体的变量：set name 定义的值是什么
+删除变量： set name=  =为空就相当于删除
+set /a var=4/2  进行算数运算要加/a 
+echo %varname%  打印变量，变量要用两个%包围起来
+pause 暂停cmd程序，防止dos退出
+set /p var=请输入数据   进行交互给var赋值
+hostname 查看主机名
+@echo off关闭脚本中的命令回显，一般第一行都写
+rem + 注释 或 ::两个冒号+注释
+exit 退出，相当于return
+--goto 
+goto part1
+xxxx
+
+:part1
+echo i am jl
+
+start /max-min f:\1.txt 以最大化或最小化方式打开f盘中的文件1.txt
+start d:\"program file (x86)"\aaa\bbb\d.exe  打开exe程序
+中间的program file (x86)有空格，所以这部分需要用""括起来 
+start www.baidu.com   以默认浏览器打开网页
+
+在程序a中调用b.bat
+call f:\b.bat  如果b.bat在同一目录可以直接调用不用加绝对路径
+
+sort 1.txt > 2.txt  重定向功能
+
+chkdsk磁盘修复命令
+chkdsk f: 修复选定的磁盘
+
+sfc /?查看修复系统相关
+/scannow：蓝屏或黑屏后 扫描或修复
+
+
+
