@@ -5466,6 +5466,9 @@ start www.baidu.com   以默认浏览器打开网页
 call f:\b.bat  如果b.bat在同一目录可以直接调用不用加绝对路径
 
 sort 1.txt > 2.txt  重定向功能
+默认按照每行的首字母排序。
+/r：按照每行的首字母倒序
+sort < 1.txt  将1.txt排序后输出到屏幕。<默认可以省略
 
 chkdsk磁盘修复命令
 chkdsk f: 修复选定的磁盘
@@ -5473,5 +5476,49 @@ chkdsk f: 修复选定的磁盘
 sfc /?查看修复系统相关
 /scannow：蓝屏或黑屏后 扫描或修复
 
+dos生成空文件：
+echo > 1.txt
 
+1 屏幕  2err流
 
+echo %errorlevel%  判断是不是0来判断上条命令是否执行成功
+
+dir C:\Users\macbookpro\code | find/findstr "txt"  查找返回中的名称中含txt的行
+find或findstr后面的词要用""括起来
+
+cmd && echo success || echo nosuccess
+cmd执行成功则继续执行echo success，后面的echo不执行
+若cmd执行失败则echo nosuccess，前面的echo不执行
+
+左下角：附件：cmd：右键：以管理员运行
+
+reg:增加开机启动项
+开启默认启动项：HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+reg add HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v test /t REG_SZ /d "C:\"Program Files (x86)"\Notepad++\notepad++.exe" /f
+注意：  /d之后的目录要用“”括起来才行
+/v: 注释，表明这个启动项是什么
+/t 类型 
+/d 具体的文件目录
+/f 强制执行
+
+打印当前递归目录中所有以.c结束的文件名：for /?
+for /r c:\Users\macbookpro\code %i in (*.c) do echo %i
+若在脚本中写，需要两个%才行
+批量创建文件或文件夹：md/mkdir  创建文件夹 
+FOR /L %variable IN (start,step,end) DO command start表示开始位置，step步长，每次加多少，end到哪结束
+FOR /L %i IN (30,2,50) DO md new%i  在当前目录新建名为newx的多少个文件夹。
+
+for /f %%i in (demo.txt)  do md %%i  以demotxt中每行数据为文件夹名，创建文件夹
+若在脚本中写，需要两个%才行
+/f：表示是文件。
+
+type nul > 1.txt  创建文件1.txt
+echo > 2.txt 创建2.txt
+---------netstat
+netstat -a  显示所有端口
+netstat -n  以数字形式显示
+netstat -o  显示对应的进程号
+
+tasklist | find "chrome"  查询进程
+taskkill /im 进程名 /f 强制杀死任务进程名
+taskmgr  打开任务管理器
