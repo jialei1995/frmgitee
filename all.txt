@@ -1799,6 +1799,9 @@ linux内核移植：
 		
 		#program comment  编译期间可以打印调试信息。
 **************************************驱动开发******************************************
+		make modules 编译板子中需要用到的modules。
+		//如果直接make modules_install会将编译的模块放到当前所在的系统中，这是不对的。
+		我们需要将编译的模块放到板子的/root/lib/modules == ubuntu/~/rootfs
 	    make modules_install INSTALL_MOD_PATH= ~/rootfs	将模块安装到rootfs中  
 					则   ~/rootfs/lib/ 下多了1个/lib/modules文件夹
 				
@@ -5522,3 +5525,26 @@ netstat -o  显示对应的进程号
 tasklist | find "chrome"  查询进程
 taskkill /im 进程名 /f 强制杀死任务进程名
 taskmgr  打开任务管理器
+
+
+
+------------sourceinsight
+自动对齐：
+option->file option->auto indent：取消indent open brace/indent close brace
+
+----------u-boot
+可以先将内核，文件系统，u-boot，设备树，驱动烧写到sd卡或者emmc。
+通过拨动拨码开关选择板子以什么方式启动：
+emmc/uart（下载系统到内存启动）/nfs/sd卡/
+
+linux启动过程：
+reset->rom->uboot->内核设备树->文件系统->app程序
+
+通过nfs服务链接ubuntu与开发板。需要在ubuntu配置nfs服务，然后在板子上进行mount挂载ubuntu上
+共享的文件夹。挂载成功两个目录就共享了。
+
+交叉编译：在intel平台使用arm-linux-gcc编译出属于开发板的二进制程序，此程序只能在arm上执行，无法在intel执行
+
+
+
+
