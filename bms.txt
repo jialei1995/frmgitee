@@ -739,3 +739,14 @@ ps：sysflag.bits.mem1 = 1   这种操作会报警
 
 
 
+看到这里有点奇怪，i2c write是以ack+stop结束通信，而i2c read是以nack+stop结束通信的，原因如下：
+
+i2c write的时候，master在写完最后一个字节之后slave会回ACK，然后master发送stop信号结束通信
+
+i2c read的时候，master在接收完slave发送的最后一个字节之后会回NAK，因为这个时候master已经接收到足够的字节，NAK告诉slave不要在发送数据了。
+
+
+读需要再次发个restart信号，因为读之前需要先写地址。真正读数据的时候需要restart一下，再发读地址，然后才是读的数据。
+如果读里面没有restart，总线上发的数据就还是写的，就不是读了。
+
+写直接发送start信号之后就可以一直发数据了
