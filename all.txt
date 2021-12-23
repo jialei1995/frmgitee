@@ -5546,5 +5546,121 @@ reset->rom->uboot->内核设备树->文件系统->app程序
 交叉编译：在intel平台使用arm-linux-gcc编译出属于开发板的二进制程序，此程序只能在arm上执行，无法在intel执行
 
 
+制作的内核，dtb最终需要拷贝到板子的/boot目录中
+制作的lib/modules 最终需要拷贝到板子的/lib目录中
+直接reboot板子就会用新的内核与新的modules启动（启动之前最后执行一下sync，同步拷贝的文件）
+
+
+u-boot编译：
+进入u-boot目录
+make distclean--删除之前存在的编译缓存，如果是直接下载的u-boot源码则不用执行
+make xx_defaultconfig----生成.config文件
+make
+
+制作完成的uboot会生成uboot.bin文件
+这个uboot.bin 需要烧写到emmc或sd卡
+
+echo 0 > /sys/block/mmcblk1boot0/force_ro  本来emmc中的这部分是只读的，现在改成可写
+dd if=u-boot.bin  of=/dev/mmcblk1boot0  bs=512 seek=2  写入emmc，uboot.bin
+echo 1 > /sys/block/mmcblk1boot0/force_ro  改成只读状态
+也可以用烧写工具直接往emmc中烧写uboot
+
+ 驱动与测试程序一般是一起用的。
+ 写的驱动只是底层，测试程序才是将来你依据这个驱动需要开发的东西。
+需要将驱动模块安装到板子上，然后运行测试程序看看能否正常响应。
+
+
+main(argc,argv);
+程序传的参数默认是以空格分隔，如果不想以空格分隔，可以将参数用""包含起来。ps:
+./hello jl xj   3个参数
+./hello "jl xl"  2个参数
+
+gcc -o hello hello.c -v：加v可以查看详细的编译过程
+预处理：在系统默认目录中查找头文件，展开宏  -E（也可以手动分开执行每一步）生成.i文件
+编译：.c-->.s 						-S
+汇编：.s-->.o 						-c
+链接：*.o、*.so-->.app colloct		-o
+
+makefile:
+$@:目标文件
+$<:第一个依赖文件
+$^:所有依赖文件
+%.c：所有.c文件
+.PHONY:clean假想目标，make clean的时候不会真的生成clean文件
+普通的目标：make目标的时候会生成目标文件的。
+
+变量：
+A := abc 及时变量，现在A的值就确定下来
+B = 123  用到此变量时值才会缺定
+all:
+	@echo $A:加@则命令行本身不显示，只显示打印结果
+	@echo $B
+
+A := $(C) 及时变量，现在A的值就确定下来，是空，因为此时C都还没赋值呢
+B = $(C) 用到此变量时值才会缺定，则B的值是abc 
+C = abc
+C += 123 ：此时C的值为--abc 123 
+A ?= 延时变量，只有第一次定义才会起作用，后面再使用?=就不再起作用了，忽略此句
+---
+A = a b c
+B = $(foreach f,$(A),$(f).o)
+则此时的B=a.o b.o c.o
+
+C = a b c d/
+D = $(filter %/,$(C)) 从C中匹配目录字符，则D = d/
+E = $(filter-out %/,$(C))  从C中剔除d/， 则E = a b c
+files = $(wildcard *.c):匹配此makefile所在的文件夹中的所有存在的.c文件（真实文件）。
+filesx = $(patsubst %.c,%.d,$(files))：将files变量的结果中所以有的.c变成.d赋值给filesx，
+对于不符合.c结尾的字符串，照搬下来不做修改
+实例：---------------------------------------------
+objs = a.o b.o c.o
+dep_files := $(patsubst %, .%.d,$(objs))
+dep_files := $(wildcard $(dep_files))
+CFLAGS = -Werror -I. （-Iinclude表示在include目录查找）  表示头文件在当前目录查找
+test:$(objs)
+	gcc -o test $^  利用所有的.o生成目标文件
+ifneq ($(dep_files),)  如果此变量不为空
+include $(dep_files)
+endif
+%.o:%.c
+	gcc $(CFLAGS) -c -o $@ $< -MD -MF .$@.d  防止因为.h文件修改而不编译
+distclean:
+	rm $(dep_files)
+
+顶层目录的CFLAGS：编译所有.c文件都会用到的编译选项
+顶层目录的LDFLAG：链接最后程序时用到的链接选项
+子目录中的EXTRA_CFLAGS:只给当前目录下的文件（不包含子目录）设置的额外的编译选项，可以不设置
+子目录中的CFLAGS_xxx.o：只给当前目录中具体的某个xxx.c文件设置的编译选项，编译其他.c时不加此选项
+
+obj-y += xxx.o  表示要编译当前目录中的xxx.c文件
+obj-y += yyy/   表示要编译当前目录下的yyy子目录
+
+------------------------tty与uart
+tty-teletype 远程打印机后来演变成终端，所有的终端都是tty
+tty--线缆--uart--pc   pc可以通过操作键盘在tty显示打印
+echo xxx > /dev/tty0  当前打开ttyx，则打印信息就输出到ttyx。---当前选中的前台终端
+tty0是当前最前面打开的终端，打开那个那个就是tty0（它不是一个终端是任意一个终端）
+
+echo xxx > /dev/tty  当前是那个终端，则输出就会打印到那个终端
+我们平时的echo xxx 默认就是echo xxx > /dev/tty
+如果有3个终端：
+shell1在/dev/ttyS0     在这个终端里面的/dev/tty就是ttyS0
+shell2在/dev/tty1
+shell3在/dev/tty2
+
+在各自的shell中echo数据到/dev/tty就是打印到对应的tty终端，不会打印到别的shell终端去
+/dev/tty 表示当前终端，打开那个终端，在此打开的终端上的/dev/tty就是那个终端。
+
+---/dev/console
+console是某个终端，我们可以选取一个终端作为console，通过cmdline指定
+console=tty0时，/dev/console就是前台程序的虚拟终端
+console=ttyS0时，/dev/console就是ttyS0
+console=tty时，/dev/console就是前台程序的虚拟终端
+
+
+
+
+
+
 
 
