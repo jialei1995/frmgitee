@@ -1012,6 +1012,9 @@ c阶段：
 					3.清除GIC的中断标志
 					4.结束中断
 	底层的寄存器。【防止编译器优化】（每次拿值不要从内存中拿，要从寄存器拿）
+		例如：两句话
+		i = 1;i = 2;如果不加volatile，编译器会将i=1过滤掉不执行。
+		但是对于reg来说，i=1会有动作，i=2也会有动作，编译器不可以优化的。
 		(*(volatile unsigned int*)0x11000c40)地址里的值是volatile的
 							提示编译器对象的值可能在编译器未监测到的情况下改
 
@@ -5658,9 +5661,115 @@ console=ttyS0时，/dev/console就是ttyS0
 console=tty时，/dev/console就是前台程序的虚拟终端
 
 
+--------------驱动开发流程
+1.确定主设备号： 
+2.定义自己的fileoperations结构体
+3.实现对应的read/write/open函数
+4.把fileoperations结构体告诉内核：注册驱动程序
+5.谁来注册驱动？得有个入口函数：安装驱动时会调用此函数
+	入口函数中调用register_chrdev(); 注册驱动
+6.出口函数实现
+	出口函数中调用unregister_chrdev();卸载驱动
+				  class_destroy(); 
+7.完善：提供设备信息，自动创建设备节点
+	入口函数中创建设备类
+		hello_class = class_create(THIS_MODULE,"hello_class");
+	入口函数中创建设备
+		device_create(hello_class,NULL,MKDEV(major,0),NULL,"hello");执行完就可以看到/dev/hello设备了
+		
+本文件的makefile:
+KERN_DIR = /下载的内核代码makefile所在目录
+all:
+	make -C $(KERNELDIR) M=`pwd`  modules //编译模块就是make modules
+	$(CROSS_COMPILE)gcc -o hello_drv_test hello_drv_test.c CROSS_COMPILE在linux目录中已经配置，会传下来的
+clean:
+	make -C $(KERNELDIR) M=`pwd`  modules clean
+
+obj-m += hello_drv.o
+-------------------物理地址的映射
+驱动里面不能直接操作真正的reg地址，需要ioremap后才能操作：
+所以变量RCC_PLL不能直接=地址，必须使用ioremap的结果去操作。
+volatile unsigned int * RCC_PLL = ioremap(0x0002222,4);映射此地址，4字节
+
+卸载驱动的时候要iounremap()；
 
 
 
+用户空间调用write(buf)写道内核空间的数据，在内核空间不能直接操作访问buf，
+需要copy_from_user后，访问修改内核空间的数据，再传回去。
 
 
+
+-----对于smbus协议
+如果操作的是开关设备，有个quickcmd
+s+addr+r/w+ack+stop  不需要发送data，r/w就是1/0就可以控制dcdc的开或关。
+IIC的read/write与smbus的read/write不同，我们平时接触的大多IIC器件其实都用的是smbus协议
+ps:
+iic的block write 
+s+addr w+ack+interl reg+ack+datax+ack+stop
+smbus的block write 
+s+addr w+ack+interl reg+byte_count+ack+datax+ack+stop
+
+iic的block read 
+s+addr w+ack+interl reg+ack+restart+addr r+datax+nack+stop
+smbus的block read
+s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
+
+尽量优先使用smbus，大多器件都支持smbus。
+
+
+	
+iic的重要结构体：
+i2c_adapter{
+	num;//第几个iic控制器
+	传输函数(即read/write)函数
+}
+i2c_client{
+	addr;//从机地址
+	struct i2c_adapter* adapter;//挂载在哪个iic设备上
+}
+i2c_msg{   i2c传输的数据结构
+	buf；数据 
+	length；长度
+	i2c_client；//msg本身就含有了目的地址
+}
+很重要的函数：
+i2c_transfer(struct i2c_adapter* adapter,struct i2c_msg*msg,int num);//num表示msg数组数量，一般第一次发器件地址，再发内部reg地址，再发数据
+	传输函数，最终会调用更底层的transfer函数
+	
+	
+linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调用内核提供的iic的drv函数。
+
+还可以使用i2c_tools工具去访问iic设备：
+	我们可以使用i2c_tools的命令检测iic从设备：
+	i2cdetect:
+	i2cdetect -l:查看板子有几个iic控制器
+	i2cdetect 0:查看0号iic控制器接了几个从设备，接的从设备有没有驱动。
+		UU：表示此设备存在并且内核已经集成对应的设备的驱动程序
+		其他：表示有此设备，但是内核没驱动程序
+		
+	使用smubs协议：
+	i2cset -f -y 0 0x1e 0(写) 0x4(data)
+		-f：对于UU的设备，内核不允许通过其他方式操作从机，需要-f强制执行
+		0表示0号总线
+	
+	i2cget -f -y 0 0x1e 0xc(光强reg)         (读iic数据)
+	i2cget -f -y 0 0x1e 0xe(距离reg)
+	使用iic协议：
+	i2ctransfer -f -y 0  w2@0x1e 0 0x4 
+	往0号总线，w2：写2字节  @0x1e：写到0x1e器件地址 写入0 0x4
+	i2ctransfer -f -y 0 w1@0x1e 0xc r2
+	读0xc内部reg数据，w1@0x1e 0xc r2先写内部reg地址，1字节，再去读2字节。
+	
+--------------sigio信号怎么触发--这就是异步通知
+可以通过外部kill -SIGIO 进程id 则可以触发此进程中对于SIGIO的处理函数
+如果事先没有提供对SIGIO的处理函数，则默认此信号会杀死该进程。
+
+驱动里面的异步通知怎么实现：
+驱动给应用程序发信号
+
+
+---------------pin_ctrl子系统 引脚控制
+几百个引脚，配置寄存器太多了，每个寄存器都自己找，麻烦死了
+device + pin_ctroller：将引脚复用与引脚配置写到设备树中，直接配置就好。
 

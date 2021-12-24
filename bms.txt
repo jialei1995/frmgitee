@@ -750,3 +750,23 @@ i2c read的时候，master在接收完slave发送的最后一个字节之后会�
 如果读里面没有restart，总线上发的数据就还是写的，就不是读了。
 
 写直接发送start信号之后就可以一直发数据了
+
+-----对于smbus协议
+如果操作的是开关设备，有个quickcmd
+s+addr+r/w+ack+stop  不需要发送data，r/w就是1/0就可以控制dcdc的开或关。
+IIC的read/write与smbus的read/write不同，我们平时接触的大多IIC器件其实都用的是smbus协议
+ps:
+iic的block write 
+s+addr w+ack+interl reg+ack+datax+ack+stop
+smbus的block write 
+s+addr w+ack+interl reg+byte_count+ack+datax+ack+stop
+
+iic的block read 
+s+addr w+ack+interl reg+ack+restart+addr r+datax+nack+stop
+smbus的block read
+s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
+
+尽量优先使用smbus，大多器件都支持smbus。
+
+
+	
