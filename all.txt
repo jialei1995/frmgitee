@@ -5773,3 +5773,130 @@ linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调�
 几百个引脚，配置寄存器太多了，每个寄存器都自己找，麻烦死了
 device + pin_ctroller：将引脚复用与引脚配置写到设备树中，直接配置就好。
 
+----------中断：
+触发方式：
+按键 
+定时器 
+网络数据
+指令不对
+数据访问问题
+reset 
+中断的处理：
+1.初始化：设置中断源，使可以产生中断
+2.执行程序
+3.产生中断
+4.针对不同的异常跳去不同地址执行程序
+5.处理{
+	保存现场（存各种寄存器值）
+	处理异常（调用中断处理函数）
+	恢复现场
+}
+
+线程是CPU调度的基本单位，每个线程都有自己的栈。
+
+linux中中断不能嵌套，不能被优先级更高的中断打断。
+单片机中都可以，linux中不可以？
+
+对于耗时长的中断2种处理办法：
+1.将中断分成上下两部分
+	中断上半部处理紧急事件，无法被其他中断打断（此时中断是disable）
+	下版本处理非紧急事件，此时会被中断打断
+	PS：中断进入后一般都是先清除中断，再处理数据。可以把清中断放在上半部，处理数据放到下半部
+
+可以理解为linux中有个硬件中断的数组，有个软件中断的数组：
+硬件中断的数组只有硬件才能触发，触发的时候会跳到对应的处理函数
+软件中断数组可以通过检查全局标记flag去触发，软件中断在硬件中断里面顺便处理的(例如可以放到定时器中断中)，
+处理完硬件中断，顺便检查是否有flag标记再去处理软件中断。
+ 
+ps:
+中断入口
+关闭中断--此时不允许再次被打断，因为不允许嵌套
+preempt_count++;
+中断上半部 --需要执行的线程组装到work结构体中，将结构体整体放入队列中
+preempt_count--；
+if(preempt_count == 0)//如果在此过程被打断之后，下次再进入中断的时候preempt_count初始就为1，会进入else分支
+{
+	preempt_count++;
+	开启中断--此后的过程可以被打断
+	中断下半部--慢过程，下半部是软件中断实现。
+	关闭中断
+	preempt_count--；
+}else{
+	直接退出
+}
+处理完成
+	
+2.用内核线程处理中断，线程处理中断下半部，整个下半部中断程序与app一起参与调度。
+
+内核worker线程
+work queue队列
+需要将需要执行的线程组装到work结构体中，将结构体整体放入队列中（这个事情在中断上半部中作）
+
+涉及中断的结构：
+从request_irq()函数往里面看
+
+--------------------休眠与唤醒，--利用下面这些函数实现io阻塞唤醒。应用程序的io阻塞其实是驱动里面阻塞实现的
+****其实用信号量也可以实现的****
+1.初始化休眠队列waitqueue
+	static DECLARE_WAIT_QUEUE_HEAD(waitqueue)；用这个宏初始化
+	init_waitqueue_head(&waitqueue);添加队列中的某事件
+	add_wait_queue(waitqueue,event);删除队列中的某事件
+	remove_wait_queue(waitqueue,event);
+2.调用wait_event_xxx(waitqueue,event);进入休眠
+	wait_event_interuptable（waitqueue，con）队列头或者信号中断都可以唤醒
+	wait_event(waitqueue，con)；不可中断的，只有队列头可以唤醒
+	wait_event_timeout();
+	wait_event_interuptable_timeout();
+	当条件满足程序向下进行，条件不满足，将当前任务添加到等待队列中，当前程序阻塞，等待被条件唤醒。
+3.调用wakeup_event_xxx(waitqueue);唤醒休眠，唤醒队列头，内核调度等待队列中的任务进入运行态。
+	wakeup_event_interuptable();
+ps:在驱动中
+wait_event_t myqueue;定义全局队列
+init_waitqueue_head(&myqueue);在open函数中初始化
+wait_event(myqueue,flag);在read函数中写-看当前是否可读，事件可以是一个flag，判断此flag是否是1
+是1可以读，是0则将当前任务添加到等待队列。程序睡眠阻塞到这里。
+
+flag=1；
+wakeup(myqueue,flag);在write中copy_from_user后则可读了，此时falg置1，唤醒队列头。
+	
+	
+
+
+----------------------阻塞非阻塞IO 其实就是IO是否可读，是否可写，不能操作的时候阻塞还是非阻塞
+信号量：互斥机制，例如同一个字符设备不能打开2次，得在open里面获取信号量
+获取：获取到(信号量减1)程序向下进行，没获取到则阻塞
+down(struct semaphore);该阻塞只能被信号量唤醒，外界kill都杀不死，得有信号量才行
+down_interruptible(struct semaphore);该阻塞可以被信号量或中断唤醒
+down_trylock(struct semaphore);尝试获取信号量，根据返回值获取到程序向分支1进行，获取不到不阻塞，程序向分支2进行。不会阻塞程序
+信号量的释放:（信号量加1）
+up(struct semaphore);
+初始化信号量:
+sema_init(struct semaphore);
+
+--互斥体 
+其实就是二值(0-1)的信号量，使用方法及场合与信号量一致
+初始化：
+struct mutex my_mutex;
+mutex_init(&my_mutex);
+获取互斥体：
+mutex_lock(&my_mutex);
+释放互斥体：
+mutex_unlock(&my_mutex);
+
+--我们默认open的时候默认就是阻塞的open，如果想不阻塞的open，需要加NOBLOCK
+驱动里面的hello_read()中可以获取到open的时候的file->f_flags是阻塞还是非阻塞打开。
+
+
+
+一个程序怎么同时监管3个uart？开3个线程？应用程序中如果读uart1卡死，则uart2与uart3的数据都读不到，程序卡死了
+利用驱动poll：
+应用程序调用select监管多个设备，多个文件描述符，一切皆文件文件描述符就是设备
+可以监视多个文件描述符，直到一个或多个文件描述符到达ready状态，这时候可以直接进行IO操作不用阻塞
+select(numfds,readfds,writefds,errfds,timeout);监视可读的，可以的，异常的文件描述符
+
+
+
+
+
+
+
