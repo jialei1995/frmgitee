@@ -673,7 +673,51 @@ CPHA=0，表示第一个边沿：
 对于CPOL=1，idle时候的是高电平，第一个边沿就是从高变到低，所以是下降沿采样，上升沿输出
 CPHA=1，表示第二个边沿：
 对于CPOL=0，idle时候的是低电平，第二个边沿就是从高变到低，所以是下降沿采样，上升沿输出
-对于CPOL=1，idle时候的是高电平，第一个边沿就是从低变到高，所以是上升沿采样，下降沿输出
+对于CPOL=1，idle时候的是高电平，第二个边沿就是从低变到高，所以是上升沿采样，下降沿输出
+有的从机芯片的对极性的设置根本没要求，设置成0或者1都没关系
+我们需要看从机手册是哪个边沿读取数据来确定cpu应该设置成哪种相位。
+若从机是上升沿读取/采样数据我们需要设置哪种极性与相位的结合
+若从机是下降沿读取/采样数据我们需要设置哪种极性与相位的结合
+
+gpio模拟spi：有的spi从机还多有个D/C引脚线，控制你发的是cmd还是数据
+1.gpio初始化：
+设置cs片选引脚为output
+设置SPIMISO为输入input----可见主机的输出对从机来说相当于输入，
+						从机的读为上升沿，则主机设置的时候应该是上升沿写，下降沿读
+设置SPIMOSI为output
+设置SPICLK为output
+2.一般从机的初始化函数可以在对应的手册中找到----主机给那些reg发那些数据，发完就初始化完成了
+oled_write(cmd)  发cmd的函数
+{
+	set_dc(0);表示发送的是cmd
+	set_cs(0);拉低电平，开始发送数据
+	spi_send(cmd);
+	set_dc(1);恢复dc
+	set_cs(1);拉高cs电平，停止发送数据
+}
+oled_write(data)  发data的函数，区别就是对d/c引脚设置的不同
+{
+	set_dc(1);表示发送的是data
+	set_cs(0);拉低电平，开始发送数据
+	spi_send(data);
+	set_dc(1);恢复dc
+	set_cs(1);拉高cs电平，停止发送数据
+}
+spi_send(byte)
+{
+	for(i = 0;i < 8;i++)//这个从机要求上升沿读，所以我们要在上升沿发数据
+	{
+		set_clk(0);     拉低clk准备数据，因为我们需要在上升沿发
+		set_do(byte & 0x08);  发送数据的最高bit
+		set_clk(1);		拉高clk发送数据出去，产生上升沿sck时，do数据已经准备好了并发出去了
+		val<<1;         将数据左移1bit
+	}
+}
+set_do(val)往spi的do引脚发送数据
+{
+	if(val)GOIO_DO |= 1<<6;
+	else GOIO_DO |= ~(1<<6);
+}
 
 fromelf --bin --output .\g030f6p6_ll\BLX6020_01_162_V120_V025.bin .\g030f6p6_ll\BLX6020_01_162_V120_V025.axf
 
@@ -1272,3 +1316,332 @@ union长度怎么计算
 
 
 	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+-------------FreeRTOS：
+keil的配置output文件夹下的晶振配置需不需要配置呢？
+start.c文件中SYSTEM_CLOCK就是时钟，配置的晶振时钟需要与它一致。
+
+	
+在main.c文件最上面需要定义每个任务的栈大小：
+StackType_t Task1Stack[20];
+StackType_t Task2Stack[20];
+StackType_t Task3Stack[20];
+...
+StackType_t TasknStack[20];
+
+定义任务入口：
+void Task1(){任务1代码}
+void Task2(){任务2代码} 
+
+任务控制块：
+{
+	栈顶；
+	任务节点；
+	任务栈起始地址
+	任务名称
+}
+
+静态任务创建函数：
+TaskHandle_t xTaskCreateStatic(TaskFunction_t pxtaskcode,//任务入口
+								char * pcName, // 任务名称，字符串
+								uint32_t ulStackDepth,//任务栈大小
+								void * const params,//任务形参
+								StackType_t * const StackBuffer,//任务栈起始地址
+								TCB_t * const pxTasjBuffer;//任务控制块指针
+								)
+怎么移植：
+FreeRTOSConfig.h中定义的configTICK_RATE_HZ  决定了系统多久进行一次任务时间片的分配
+	
+	
+	
+	
+单任务静态内存调用流程：----需要指定栈空间
+main()
+{
+	bsp_init();//初始化其他外设
+	AppTaskCreate_Handle = xTaskCreateStatic(
+							(TaskFunction_t)renwufun,
+							(const char*)"renwuname"，
+							128,堆栈大小
+							NULL，给任务函数传参
+							(*StackType_t *) StackBuffer,任务堆栈
+							(statictask_t *)&renwufun_TCB,任务控制块句柄
+							);
+	if(AppTaskCreate_Handle != NULL)
+	{
+		//任务创建成功
+		vTaskStartScheduler();//启动任务，开启调度
+	}else
+	{
+		//任务创建失败
+	}
+}
+
+在renwufun中我们可以继续创建任务
+renwufun()
+{
+	LED_Handle = xTaskCreateStatic(
+							(TaskFunction_t)renwuLED,
+							(const char*)"LEDname"，
+							128,堆栈大小
+							NULL，给任务函数传参
+							(*StackType_t *) LEDStackBuffer,任务堆栈
+							(statictask_t *)&LEDrenwufun_TCB,任务控制块句柄
+							);
+	if(LED_Handle != NULL)//返回值AppTaskCreate_Handle是任务句柄
+	{
+		//任务创建成功
+		vTaskStartScheduler();//启动任务，开启调度
+	}else
+	{
+		//任务创建失败
+	}
+}
+-----------
+单任务动态内存调用流程：------不需要指定栈空间
+main()
+{
+	BaseType ret = pdPass;
+	bsp_init();//初始化其他外设
+	ret = xTaskCreate (
+							(TaskFunction_t)renwufun,
+							(const char*)"renwuname"，
+							128,堆栈大小
+							NULL，给任务函数传参
+							(*StackType_t *) StackBuffer,任务堆栈
+							(statictask_t *)&renwufun_TCB,任务控制块句柄
+							);
+	if(ret == pdPass)//返回值AppTaskCreate_Handle是任务句柄
+	{
+		//任务创建成功
+		vTaskStartScheduler();//启动开启调度任务，这个是个空闲任务，优先级是0（最低的优先级）
+	}else
+	{
+		//任务创建失败
+	}
+}
+renwufun函数里面可以定义多个任务。
+{
+	taskENTER_CRITIVAL();//进入临界区，此时不会被打断？别的进程肯定不会打扰
+	xTaskCreate（renwu 1）;
+	xTaskCreate（renwu 12）;
+	xTaskCreate（renwu n）;
+	taskEXIT_CRITIVAL();//退出临界区
+}
+
+
+---------------方法1：main函数初始化硬件与os，最后开始调度--伪代码实现
+int main()
+{
+	//硬件初始化
+	hardware_init();
+	//rtos初始化，内存，堆，全局var
+	rtos_init();
+	//创建任务1，但不执行，因为没开启调度
+	rtos_taskcreate(task1);
+	//创建任务2，但不执行，因为没开启调度
+	rtos_taskcreate(task2);
+	//启动rtos，开启调度任务，真正开始任务调度
+	rtos_start();
+	
+}
+
+void task1()
+{
+	while(1){}
+}
+
+void task2()
+{
+	while(1){}
+}
+
+---------------方法2用的多：main函数初始化硬件与os，创建一个任务直接启动调度器，在启动任务中创建各种任务
+当所有任务创建成功后将自己删除。
+
+int main()
+{
+	//硬件初始化
+	hardware_init();
+	//rtos初始化，内存，堆，全局var
+	rtos_init();
+	//创建主任务
+	rtos_taskcreate(apptack);
+	
+	//启动rtos，开启调度
+	rtos_start();
+	
+}
+void apptack()
+{
+	rtos_taskcreate(task1);
+	rtos_taskcreate(task2);
+	...
+	rtos_taskdelete(apptack);//所有任务都创建好，删除主任务
+}
+
+void task1()
+{
+	while(1){}
+}
+
+void task2()
+{
+	while(1){}
+}
+
+
+--------------任务状态：
+就绪态：任务一旦被创建就会进入就绪态
+运行态：具有最高优先级的就绪态任务才会抢占CPU进入运行态，运行态的任务被更高优先级任务打断就会
+重新进入就绪态等待CPU调度
+阻塞态：sleep，等信号量（资源）的时候就会进入阻塞态，
+挂起suspend：让一个任务进入挂起态唯一方法就是调用vTaskSuspend(),把挂起任务恢复的唯一办法就是
+调用vTaskResume()或者vTaskResumeFromISR()
+
+任务状态切换：
+1.就绪态中具有最高优先级的任务就会进入运行态
+2.运行态任务被更高优先级任务打断的时候原任务就会重新变成就绪态
+3.运行态的任务调用sleep或者等待某个资源，资源不可达时就会进入阻塞态
+4.阻塞态任务获得资源时会进入就绪态，可以等待CPU的调度，不会直接变成运行态
+5.阻塞态，就绪态，运行态的任务调用函数vTaskSuspend()就会进入挂起状态，挂起的任务恢复的唯一途径就是
+调用vTaskResume()或者vTaskResumeFromISR()恢复，恢复之后不会直接进入运行态，而是进入就绪态，等待CPU调度
+
+
+
+typedef struct tskTaskControlBlock
+{
+	pxtopstack;  栈顶指针
+	pxstack;   栈首地址指针
+	uxpriority;  任务优先级
+	taskname[x];  任务名称 
+	statelist;	  状态列表
+	eventlist;    事件列表
+}
+
+
+调度机制：
+1高优先级任务优先执行，可以抢占低优先级任务
+2高优先级任务不停止，低优先级任务永远无法执行
+(除非在高优先级的任务中主动调用vTaskDelay())，调用后低优先级任务就可以占上CPU了。
+3同等优先级任务，轮流执行：时间片轮转
+
+怎么管理任务：
+1.找到最高优先级的运行态或就绪态任务，运行它
+2.如果大家平级，轮流执行 
+
+谁去调度的？
+TICK定时器，在tick中断中去调度。
+
+
+rtos里面有3类链表：
+1.readylist
+	{
+		根据优先级不同有n个链表
+		readylist[0]：优先级为0的任务链表，里面可能有优先级为0的x个任务
+		readylist[1]：优先级为1的任务链表，里面可能有优先级为1的x个任务
+		readylist[2]：优先级为2的任务链表，里面可能有优先级为2的x个任务
+		readylist[3]：优先级为3的任务链表，里面可能有优先级为3的x个任务
+		readylist[4]：优先级为4的任务链表，里面可能有优先级为4的x个任务
+	}
+2.delaylist阻塞链表
+	优先级不同也是只有一个链表
+3.suspendlist挂起链表
+	优先级不同也是只有一个链表
+tick中断根据优先级查找可以执行的高优先级任务；程序执行的过程中任务也可能会跳到其他类型的链表中（例如阻塞，sleep）
+任务移动到其他链表中后，下次再调度的时候就会变化的 
+
+xQueueCalcHandle = xQueueCreate(); 创建队列，用于任务间数据通信的，生产者消费者
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
