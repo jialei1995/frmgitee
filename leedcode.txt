@@ -1,0 +1,108 @@
+ 
+层次遍历树：c++
+vector<int> levelOrder(TreeNode* root) {
+	queue<TreeNode*> queue;
+	vector<int> res;
+	if(root==NULL)return res;//若传入NULL，直接返回空vector
+	queue.push(root);
+	while(!queue.empty()){
+		TreeNode *node=queue.front();//临时变量储存当前需要处理的节点
+		queue.pop();				//出队列 的同时，将当前出队列的元素的左右孩子都入队列
+		res.push_back(node->val);	//结果保存在vector
+		if(node->left){
+			queue.push(node->left);
+		}
+		if(node->right){
+			queue.push(node->right);
+		}
+	}
+	return res;
+}
+
+python实现：
+def levelOrder( root: TreeNode) -> List[int]:     
+	if not root: return []
+	res = []
+	queue = []
+	queue.append(root)
+	while queue:
+		node = queue.pop(0)    python中的list无法从头部删除元素，错误。python中的pop可以控制从左边删除还是右边删除。pop(0)就是从左边删除
+		res.append(node.val)
+		if node.left: queue.append(node.left)
+		if node.right: queue.append(node.right)
+	return res
+	'''以下才是可以成功的代码，用到了collections.deque()。
+	if not root: return []
+	res, queue = [], collections.deque()
+	queue.append(root)
+	while queue:
+		node = queue.popleft()
+		res.append(node.val)
+		if node.left: queue.append(node.left)
+		if node.right: queue.append(node.right)
+	return res
+	'''
+层次遍历树，格式不同2：
+def levelOrder(self, root: TreeNode) -> List[List[int]]:
+	if not root: return []
+	res = []
+	queue = []
+	queue.append(root)
+	while queue:         在每一次的循环中将queue当前树某1层中所有的数据全部弹出
+		tmp = []
+		for _ in range(len(queue)):在每一次的循环中将queue当前树某1层中所有的数据全部弹出  
+			node = queue.pop(0)   
+			tmp.append(node.val)
+			if node.left: queue.append(node.left)
+			if node.right: queue.append(node.right)
+		res.append(tmp)
+	return res
+	
+寻找相交链表的第一个焦点的位置：
+太他妈巧妙了，两个指针一个a,一个b。过程就是a将heada遍历一边然后遍历headb，b将headb遍历一边遍历heada。若有焦点就会退出循环，若没有焦点
+最终a,b都会指向null。因为a与b走的路程是一样的。每次循环2者都在移动。
+def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> ListNode:  太他妈巧妙了
+	a = headA
+	b = headB
+	while(a != b):
+		a = a.next if a else headB
+		b = b.next if b else headA
+	return a
+自制的升序排序好的栈：
+#include <stack>
+class SortedStack {
+public:利用一个辅助栈
+    stack<int> stack1;
+    stack<int> stack2;
+    
+    void push(int val) {    
+            while(!stack1.empty() && val > stack1.top()){  若栈1不是空的，看新加的val是不是最大值，不是最大值，先将栈1的大于val的数字
+                stack2.push(stack1.top());					放到栈2，再放val到栈1.  val放进栈1后再将栈2里面的数据放回栈1. 栈2就是临时用一下
+                stack1.pop();								用完就成空的了。
+            }
+            stack1.push(val);
+            while(!stack2.empty()){
+                stack1.push(stack2.top());
+                stack2.pop();
+        }
+    }
+删除未排序链表中的重复节点，保留前一个节点组成新链表,在原来的链表上改变指针指向。
+ListNode* removeDuplicateNodes(ListNode* head) {
+        if(head == NULL) return head;
+        set<int> set;
+        ListNode*tail = head;
+        set.insert(head->val);
+        ListNode*tmp = head->next;
+        while(tmp){
+            if(set.find(tmp->val) == set.end()){如果遍历到的tmp点不在set中，则这点是需要的。
+                set.insert(tmp->val);
+                tail->next = tmp;
+                tail = tmp;
+                tmp = tmp->next;  先让tmp指向下个节点
+                tail->next = NULL;	再将准备返回的节点尾部指向空，不然会丢失原链表的后续节点
+            }else{
+				tmp = tmp->next;  若当前tmp已经在set中，则继续向后遍历
+			}
+        }
+        return head;
+    }

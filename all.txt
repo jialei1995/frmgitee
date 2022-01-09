@@ -1341,7 +1341,7 @@ C++:c++98||c++11 ||c++14
 			删除：earse(m.begin());迭代器方式   earse(m.begin()，m.end());区间方式删除
 				earse(3);按照key值方式删除
 		
-			查找：find(x);map<int,int>::iterator pos=m.find(3),	找到返回所在位置迭代器，找不到反回m.end
+			查找：map.find(x);map<int,int>::iterator pos=m.find(3),	找到返回所在位置迭代器，找不到反回m.end
 
 	set容器：集合，集合中的元素不会重复的。
 			find（elem） 返回迭代器，若不存在返回v.end()
@@ -2642,8 +2642,18 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	清华：https://pypi.tuna.tsinghua.edu.cn/simple
 		
 
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+	这就是所谓的“类型提示”（或“功能注释”；这些功能自Python 3.0起可用）。
+		-> List[int] 表示该函数应返回一个整数列表。
+		nums: List[int], target: int表示应该nums是整数列表，并且应该target是整数。
+	类型提示与程序执行无关，它们在运行时会被忽略
+	但是，这并不是硬性要求，即您仍然可以使用传递给这些参数的不同类型的对象来调用该函数
+	
 	判断list是否为空：if list或者if not list不能写成if list is none(这个代表的是id(list))肯定不是空的
 	list=[]  虽然list是空的但是id(list)已经分配了栈空间
+	
+	xx  is yy:判断id(xx) == id(yy)??  其实就是是不是一个对象的，一个id表示一个对象
+	xx == yy :判断xx的值是不是等于yy的值呢？？？
 	#创建widget窗体
 	root = Tk	
 	# 设置宽高，设置的时候乘号是’x‘字母，括号带双引号
@@ -2658,9 +2668,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		'''
 		print(myStr.capitalize())   # 不能改变原字符串，第一个字母大写输出
 		print(myStr.upper())    # 不能改变原字符串，只是以大写输出
-		#newstr = myStr.center(8,"*")    #打印到中间
-		newstr = myStr.upper()      #不能改变原字符串，但是可以将大写赋值给另一个字符串
-
+		#newstr = myStr.center(8,"*")    #打印str到**str**中间,最多8个
 		print(myStr.count("k",0,5))     # jackkk 还是左闭右开
 		'''
 		'''str = "01\t234\t56789"
@@ -2729,28 +2737,20 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 			# print(l[-1])        # 打印列表最后一个
 
 			print(l[:3:2])
-			print(len(l))
-
-			'''
-
-			# 函数的封装,声明
-			def mylist_trave(mylist):
-				for i in mylist:
-					print(i)
-			'''
-			mylt = [12,3.41,"helo",(1,2,3),[4,5,6]]
-			mylist_trave(mylt) 
-			'''
-
+			print(len(l))  打印list长度
+			
+			queue = []
+			node = queue.pop(0) 删除最开头的元素
+			node = queue.pop(x) 删除x位置的元素
+			node = queue.pop()  默认pop删除最后的元素
+	
 			'''
 			if __name__ == "__main__":      # 整个python程序入口
 				# 函数的调用，没有形参的类型
-				mylt = [12,3.41,(1,2,3),[4,5,6]]
-				mylist_trave(mylt)
-			'''
 
 			def mylist_print(mylist):
 				for i in range(len(mylist)):        # range很重要，可以实现分行打印
+				for i in mylist:
 					print(mylist[i])                # 这里i的类型是int型的。   for i in mylist  这里i是变化的mylist的成员
 
 			def mylist_appen(dst,src):
@@ -2759,10 +2759,18 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 			if __name__ == "__main__":
 				mylt = [1, 2, 3, 4]
 				src = ["helo", "wrold"]
-				mylist_appen(mylt, src)     #将src作为一个元素加进去[1, 2, 3, 4, ['helo', 'wrold']]
+				mylt.append( src)     #将src作为一个元素加进去[1, 2, 3, 4, ['helo', 'wrold']]
 				mylt.pop()          #弹出最后一个元素
 				mylt += src         #将src中元素一个一个加进去[1, 2, 3, 4, 'helo', 'wrold']
 				print(mylt)         #****这些操作都会改变原来的列表
+---------------------------dict
+x=dict()
+x={'key1':1,'key2':2,...}
+访问：x['key']
+增加：x['newkey'] = xxx
+修改：x['key'] = xxx  x['key']+=1增加key的值+1
+删除：del x['key']
+判断key是否在x中：if i in x:
 *********************************python的循环****************************************
 '''
 # 斐波那契数列
@@ -2886,10 +2894,11 @@ class Cat:
 	swapcase():将字符串中大写转化为小写，小写转换为大写	
 	str[起始下标：终止下标：步长];左闭右开  
 		起始下标：从0开始
-				  -1：最后1个元素
+				  -1：最后1个元素开始
 		步长：正数向后跳跃；负数向前跳跃
 ***************************************************list*************************************
 	b = eval(input().strip());程序从终端输入任意长度的元素
+	s = input().split()
 	[[1,2],[3,4],[x,x]...]  b就是个列表了 		
 	list[起始下标:终止下标:步长]
 	del(a[2])  删除a的第二个
@@ -5431,13 +5440,6 @@ exp：
 	map(lambda x:x*x,a) ->[1,4,9,16]
 	map(lambda x,y:x+y,a,b) ->[2,4,6,8]
 
-x=dict()
-x={'key1':1,'key2':2,...}
-访问：x['key']
-增加：x['newkey'] = xxx
-修改：x['key'] = xxx
-删除：del x['key']
-
 
 dos命令：
 copy 1.txt 2.txt 相当于linux的cp
@@ -6058,4 +6060,18 @@ make_heap()
 
 二叉查找树/二叉排序树：中序遍历此树得到从小到达的序列。
 左子树所有节点均<=该节点值，右子树所有节点值均>=该节点值 
+
+
+python中除以取取整数是：//
+普通的除以会返回小数：/
+类型转换：int(x)   不像C语言的(int)x
+
+
+
+
+
+
+
+
+
 
