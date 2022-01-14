@@ -36,5 +36,25 @@ Phase  相位	CPHA
 conjunction 连结，联合
 Insulation  隔热、隔音、绝缘
 tray        盘
+
+continuous==constantly  doing  不断dosth
+keep pace with the times  与时俱进
+misunderstanding  误解
+misconception  错误的概念
+regard .. as sth
+equite .. with sth
+on the contrary  与之相反
+from the cradle to the grave从摇篮到坟墓，一生
+lag behind  落后
+lack of doingsth  缺乏。。
+inevitable  不可避免的
+evitable  可以避免的
+
+lead to==cause==result in  导致
+stagnation 停滞不前
+boost  刺进，促进
+break down barries  克服障碍
+irritate  生气的
+time  关键
 ```
 

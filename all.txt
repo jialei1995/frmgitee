@@ -1338,6 +1338,7 @@ C++:c++98||c++11 ||c++14
 			map插入的时候随便放进去就好了，它内部是无序的，没有头部尾部概念。
 			a.insert(pair<int,int>(1,10)).			(*it).first			it->second
 					make_pair(1,10)一样的
+					也可以直接insert({1,2})  反正就是插入2个数字，这样最简单
 			删除：earse(m.begin());迭代器方式   earse(m.begin()，m.end());区间方式删除
 				earse(3);按照key值方式删除
 		
@@ -1350,6 +1351,28 @@ C++:c++98||c++11 ||c++14
 			clear（）清空
 			erase（pos）删除迭代器位置的元素  erase（s.begin(),s.end()）区间删除
 			erase（elem）
+	除了利用iterator遍历方法，还可以用
+	for(string ch:s){ 如果s是个vector<string>
+        cout<<ch<<" ";
+    }
+	for(char ch:s){  如果s是个string
+        cout<<ch<<" ";
+    }
+	for(int ch:s){  如果s是个int
+        cout<<ch<<" ";
+    }
+	集合也可以这么遍历set
+	for(vector<int> ch:v){ 遍历二维数组vector<vector<int>> v;
+        for(int i:ch){		遍历一维数组
+            cout<<i<<" ";
+        }
+        cout<<endl;
+    }
+	map的遍历比较特殊：
+	map<int,string> student;
+    for(auto &v : student)  因为map中每个元素类型是<int,string> 所以需要用auto指定变量类型。注意这里只能是& 不能用*
+    cout<<v.first<<endl;
+
 ****************************************vector***********************
 	输入不定长的vector
 	{
@@ -1357,6 +1380,9 @@ C++:c++98||c++11 ||c++14
 		if（getchar()=='\n'）
 		或者写if(cin.get()=='\n')  break;
 	}
+	v.pop_back();  弹出最后一个元素
+	vector<int> tmp;定义变量数组后不能直接tmp[0]=x赋值，需要用函数push_back去赋值
+	但是后续操作tmp的时候可以通过tmp[x]去访问初始化好的变量。
 **	vector单端数组	动态扩展可以随时插入新数据  不想数组一样，申请固定大小
 	只能push_back插入数据    可以pop_back删除
 	insert(迭代器，n，elem)，pos位置插入n个elem
@@ -2772,6 +2798,9 @@ x={'key1':1,'key2':2,...}
 删除：del x['key']
 判断key是否在x中：if i in x:
 *********************************python的循环****************************************
+for循环不能写成带分号的c语言格式的for,ps:
+for(i=0;i<len(nums);i++):  在python中语法是错误的。
+可以写成while去替代。
 '''
 # 斐波那契数列
 a = 1
@@ -5415,14 +5444,6 @@ c中true，false 直接包含stdbool.h即可。这里true=1lfalse=0
 这个server端就是看有没有程序连接6666端口，则它去处理这个端口发来的数据并返回数据给client。
 
 
-深度优先搜索：dfs
-{
-	满足条件：
-		操作退出
-	dfs（修改新的入参）
-
-}
-
 shell中${} 可以利用%截断
 var1=xx.zip
 var2=${var1%.zip}  则var2=xx 将.zip截断了
@@ -6067,7 +6088,7 @@ python中除以取取整数是：//
 类型转换：int(x)   不像C语言的(int)x
 
 
-
+链表的空头：dummyhead就是不存val只存next的一个临时节点。
 
 
 
