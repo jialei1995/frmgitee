@@ -56,5 +56,14 @@ boost  刺进，促进
 break down barries  克服障碍
 irritate  生气的
 time  关键
+
+politics 政治
+PRC  中国 people's republic of china
+renewable  可再生的
+either .. or .. 要么选择a，要么选择b
+demonstrate  展示，证明
+explosive  爆炸式的
+
+
 ```
 

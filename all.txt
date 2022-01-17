@@ -5461,9 +5461,14 @@ exp：
 	map(lambda x:x*x,a) ->[1,4,9,16]
 	map(lambda x,y:x+y,a,b) ->[2,4,6,8]
 
-
+-----------------------------------------------------
 dos命令：
 copy 1.txt 2.txt 相当于linux的cp
+move  1.txt ..\   移动1.txt至上层目录
+
+renmae 1.txt 2.txt  重命名文件 
+rename *.txt *.jpg  批量修改文件名
+
 mstsc 远程桌面链接
 set  查看系统中默认的环境变量
 定义变量：set name=xxx-----只在当前终端有用
@@ -5513,6 +5518,21 @@ echo %errorlevel%  判断是不是0来判断上条命令是否执行成功
 dir C:\Users\macbookpro\code | find/findstr "txt"  查找返回中的名称中含txt的行
 find或findstr后面的词要用""括起来
 
+if %v%==hello 	(echo ok)else 	(echo not)   else之后要有个空格
+				判断成功        判断失败
+if 	exist 	E:\test\tmp\1.bat 	(echo exist) 	else 	(echo not exist)  判断文件是否存在，存在执行cmd1，否则执行cmd2
+if exist E:\test\tmp\1.bat (
+	echo exist
+) else (
+	echo not exist
+)
+
+
+
+del xxx  删除文件
+mkdir 创建目录 
+rmdir/rd  删除目录
+
 cmd && echo success || echo nosuccess
 cmd执行成功则继续执行echo success，后面的echo不执行
 若cmd执行失败则echo nosuccess，前面的echo不执行
@@ -5528,17 +5548,23 @@ reg add HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v test 
 /d 具体的文件目录
 /f 强制执行
 
+循环for
 打印当前递归目录中所有以.c结束的文件名：for /?
 for /r c:\Users\macbookpro\code %i in (*.c) do echo %i
+for /d  %i in (*) do echo %i  遍历当前文件夹内的所有文件夹
+
 若在脚本中写，需要两个%才行
 批量创建文件或文件夹：md/mkdir  创建文件夹 
 FOR /L %variable IN (start,step,end) DO command start表示开始位置，step步长，每次加多少，end到哪结束
 FOR /L %i IN (30,2,50) DO md new%i  在当前目录新建名为newx的多少个文件夹。
 
+脚本中写：for /L %%i IN (1，1，10) do ping %1.%%i    执行此脚本的时候直接写：demo.bat  192.168.1 则执行的时候会ping 1-10的ip地址
+for  /L  %i  in  (1,1,10)  do  ping  192.168.1.%i   则执行的时候会ping 1-10的ip地址
+
 for /f %%i in (demo.txt)  do md %%i  以demotxt中每行数据为文件夹名，创建文件夹
 若在脚本中写，需要两个%才行
 /f：表示是文件。
-
+for  /f  %i in (demo.txt)  do echo %i   读文件内容
 type nul > 1.txt  创建文件1.txt
 echo > 2.txt 创建2.txt
 ---------netstat

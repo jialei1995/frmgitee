@@ -1100,14 +1100,302 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 
 ----
 
-```c
-sh367xx初始化
-SH30x_IICPort_Init(IICNum)； 初始化
-    	使能时钟
-    	结构体变量赋值
-    		
+```带操作系统的can初始化
+CAN1_SendData(u32 CanID,u8 *buff,u8 bytes)
+{
+	需要发送的数据需要在结构体里面包着
+	GT_CAN_CanMsg CanTxMessage;
+	标准函数进行发送     哪个can                  CanTxMessage中的帧id						标准帧还是扩展帧										 数据				数据长度
+	CAN_MessageTransmit( can_name_2, ( CAN_id_Status )( TxMsgData->IDE ), ( TxMsgData->IDE == GT_CAN_id_ext ) ? TxMsgData->ExtId : TxMsgData->StdId, TxMsgData->Data, TxMsgData->DLC );	
+}
 
+void GT_CAN0_ReceiveMsg( GT_CAN_CanMsg* RxMsgData )
+{
+	U32 CAN_ID;
+
+	CAN_id_Status   ide;
+	//标准函数就行can数据接收       帧类型-标准-扩展   数据					数据长度
+	CAN_MessageReceive( can_name_1, &ide , &CAN_ID, RxMsgData->Data, &( RxMsgData->DLC ) );
+
+	if( ide == GT_CAN_id_ext )
+	{
+		RxMsgData->ExtId = CAN_ID;
+		RxMsgData->IDE = ( GT_CAN_id_Status )ide;
+	}
+	else
+	{
+		RxMsgData->StdId = CAN_ID;
+		RxMsgData->IDE = ( GT_CAN_id_Status )ide;
+	}
+}
+void    CAN_INIT( CAN_name name, CAN_bps bps )
+{
+	switch( name )
+	{
+		case can_name_1:
+			CAN_1_Int();//配置gpio的模式 速度 
+			{
+					GPIO_InitTypeDef GPIO_InitStructure;
+					//使能io口的时钟
+					RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOA, ENABLE );
+					
+					GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+					GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+					GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+					GPIO_Init( GPIOA, &GPIO_InitStructure );
+
+					GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+					GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+					GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+					GPIO_Init( GPIOA, &GPIO_InitStructure );
+			}
+			CAN_SetBps( name, bps);//配置can控制的can结构体
+			{
+				CAN_InitTypeDef CAN_InitStructure;
+				CAN_TypeDef* CANx;
+				if( name == can_name_1 )
+				{
+				CANx = CAN1;
+				RCC_APB1PeriphClockCmd( RCC_APB1Periph_CAN1, ENABLE );//使能对应的can控制器时钟，之前的函数里面已经设置过了
+				}
+				else if( name == can_name_2 )
+				{
+				CANx = CAN2;
+				RCC_APB1PeriphClockCmd( RCC_APB1Periph_CAN2, ENABLE );//使能对应的can控制器时钟，之前的函数里面已经设置过了
+				}
+				CAN_DeInit( CANx );//库函数缺省初始化can
+				switch( bps )//根据bps不同配置不同的CAN_InitStructure
+				{
+					case bps_500:
+						CAN_InitStructure.CAN_SJW = CAN_SJW_1tq;            /*1-4*/
+						CAN_InitStructure.CAN_BS1 = CAN_BS1_9tq;            /*1-16*/
+						CAN_InitStructure.CAN_BS2 = CAN_BS2_2tq;            /*1-8*/
+						CAN_InitStructure.CAN_Prescaler = 6;                /*波特率36/(6*(1+9+2))
+																			36m分频/6/12=0.5m，就是500k
+				}
+				CAN_InitStructure.CAN_TTCM = DISABLE;   /*时间触发(启用时间触发模式时会替换最后两个字节)*/
+				CAN_InitStructure.CAN_ABOM = ENABLE;    /*自动离线管理*/
+				CAN_InitStructure.CAN_AWUM = ENABLE;    /*自动唤醒*/
+				CAN_InitStructure.CAN_NART = DISABLE;   /*ENABLE:错误不自动重传 DISABLE:重传*/
+				CAN_InitStructure.CAN_RFLM = DISABLE;   /*DISABLE:在接收溢出时FIFO未被锁定,当接收到FIFO报文未被读出,下一个收到的报文会覆盖原有的报文 ENABLE:在接收溢出时FIFO被锁定,下一个收到的报文会被丢弃*/
+				CAN_InitStructure.CAN_TXFP = DISABLE;   /*DISABLE:发送的FIFO优先级由报文的标识符来决定,ENABLE :发送的FIFO优先级由发送报文的顺序来决定*/
+				CAN_InitStructure.CAN_Mode = CAN_Mode_Normal; /*正常传输模式 CAN_Mode_Silent_LoopBack:CAN_Mode_LoopBack;*/
+				CAN_Init( CANx, &CAN_InitStructure );  初始化can结构体的配置，初始化can控制器
+			}
+			CAN_SetFilterExt( 0, 0, 0, CAN_FIFO0); /*设置过滤器对应的 CAN_FilterInitStructure，允许接收所有帧*/
+			{	入参：u8 number, u16 ID, u16 Mask, u8 FIFO_Type
+				CAN_FilterInitTypeDef  CAN_FilterInitStructure;
+				/* CAN 过滤器设置 */
+				CAN_FilterInitStructure.CAN_FilterNumber = number;
+				CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
+				CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
+				CAN_FilterInitStructure.CAN_FilterIdHigh = ID;
+				CAN_FilterInitStructure.CAN_FilterIdLow = 0x0000;
+				CAN_FilterInitStructure.CAN_FilterMaskIdHigh = Mask;
+				CAN_FilterInitStructure.CAN_FilterMaskIdLow = 0x0000;
+				CAN_FilterInitStructure.CAN_FilterFIFOAssignment = FIFO_Type;
+				CAN_FilterInitStructure.CAN_FilterActivation = ENABLE;
+				CAN_FilterInit( &CAN_FilterInitStructure );初始化过滤器结构体
+			}
+			CAN_ITConfig( CAN1, CAN_IT_FMP0, ENABLE );//设置接收fifo的pending中断，就是多会发生can的中断
+			{
+				#define CAN_IT_FMP0                 ((uint32_t)0x00000002) /*!< FIFO 0 message pending Interrupt*/
+				#define CAN_IT_FF0                  ((uint32_t)0x00000004) /*!< FIFO 0 full Interrupt*/
+				#define CAN_IT_FOV0                 ((uint32_t)0x00000008) /*!< FIFO 0 overrun Interrupt*/
+				#define CAN_IT_FMP1                 ((uint32_t)0x00000010) /*!< FIFO 1 message pending Interrupt*/
+				#define CAN_IT_FF1                  ((uint32_t)0x00000020) /*!< FIFO 1 full Interrupt*/
+				#define CAN_IT_FOV1                 ((uint32_t)0x00000040) /*!< FIFO 1 overrun Interrupt*/
+			}
+			BSP_IntVectSet( BSP_INT_ID_USB_LP_CAN_RX0, STM_Can1_RX_ISR );/*注册irq将优先级与函数对应*/
+			BSP_IntEn( BSP_INT_ID_USB_LP_CAN_RX0 );//ucos操作开启这个中断
+			break;
+	}
+}
+
+void STM_Can1_RX_ISR(void)  can对应的中断处理函数
+{
+	CanRxMsg   RxMessage;
+	CAN_Receive( CAN1, CAN_FIFO0, &RxMessage );
+	CAN1_ISR_Code( &RxMessage ); /*对收到的can数据怎么处理的代码*/
+}
 ```
+不带操作系统的can初始化
+void CAN1_Init(void)
+{
+	有这4个结构体需要初始化。
+	GPIO_InitTypeDef GPIO_InitStructure; 
+	NVIC_InitTypeDef NVIC_InitStructure;
+	CAN_InitTypeDef        CAN_InitStructure;
+	CAN_FilterInitTypeDef  CAN_FilterInitStructure;
+
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	/* 复用功能和GPIOB端口时钟使能*/    
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);                                                                      
+
+	/* CAN1 控制器时钟使能 */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE); 
+
+	/* Configure CAN pin: RX  引脚初始化 */  // PA11
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;       //上拉输入
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	/* Configure CAN pin: TX  引脚初始化*/   // PA12
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;     //复用推挽输出
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	CAN_StructInit(&CAN_InitStructure);     //先缺省初始化CAN_InitStruct结构体
+
+	/* CAN cell init */
+	CAN_InitStructure.CAN_TTCM=DISABLE;         //没有使能时间触发模式
+	CAN_InitStructure.CAN_ABOM=ENABLE;         //使能自动离线管理
+	CAN_InitStructure.CAN_AWUM=ENABLE;         //使能自动唤醒模式
+	CAN_InitStructure.CAN_NART=DISABLE;         //没有使能非自动重传模式
+	CAN_InitStructure.CAN_RFLM=DISABLE;         //没有使能接收FIFO锁定模式
+	CAN_InitStructure.CAN_TXFP=DISABLE;         //没有使能发送FIFO优先级
+	CAN_InitStructure.CAN_Mode=CAN_Mode_Normal; //CAN设置为正常模式
+	CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;      //重新同步跳跃宽度1个时间单位
+	CAN_InitStructure.CAN_BS1=CAN_BS1_2tq;      //时间段1为3个时间单位
+	CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;      //时间段2为2个时间单位
+	CAN_InitStructure.CAN_Prescaler=12;         
+	CAN_Init(CAN1,&CAN_InitStructure);         //利用这个can结构体初始化can控制器
+
+	/* CAN 过滤器设置 */
+	CAN_FilterInitStructure.CAN_FilterNumber = 0;
+	CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
+	CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
+	CAN_FilterInitStructure.CAN_FilterIdHigh = 0;
+	CAN_FilterInitStructure.CAN_FilterIdLow = 0x0000;
+	CAN_FilterInitStructure.CAN_FilterMaskIdHigh = 0;
+	CAN_FilterInitStructure.CAN_FilterMaskIdLow = 0x0000;
+	CAN_FilterInitStructure.CAN_FilterFIFOAssignment = CAN_FIFO0;
+	CAN_FilterInitStructure.CAN_FilterActivation = ENABLE;
+	CAN_FilterInit( &CAN_FilterInitStructure );  //初始化can过滤器
+    
+	/* enabling interrupt */
+	NVIC_InitStructure.NVIC_IRQChannel=USB_LP_CAN1_RX0_IRQn;对应can的中断处理函数
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	CAN_ITConfig(CAN1,CAN_IT_FMP0, ENABLE);  //设置接收fifo的pending中断，就是多会发生can的中断
+}
+
+typedef struct{
+	int32_t Current;
+	uint8_t RateVal;
+	uint8_t CMD;
+	uint8_t IDVal;
+	
+	uint8_t BatCnt;
+	uint32_t BatUseFlag;
+	uint8_t RcvFlag;
+	uint8_t RcvNoDataTime;
+
+}CANRCV;CANRCV canrcv;
+void USB_LP_CAN1_RX0_IRQHandler()//针对收到的can数据，怎么处理
+{
+	S_HALFWORD val;
+	CanRxMsg RxMessage;
+
+	CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);	收到的can数据存放到RxMessage结构体变量中		       
+	if( RxMessage.StdId == 0x100 )//如果收到的标准帧id是100
+	{
+		val.bytes.byte_h = RxMessage.Data[1];
+		val.bytes.byte_l = RxMessage.Data[2];
+		canrcv.Current = (int32_t)((val.halfword+(int32_t)CurrentDrift)); 将电流存起来
+		canrcv.CMD = RxMessage.Data[3];									  将cmd存起来，充放电指令
+		canrcv.RcvFlag = 1;												  将rcvflag置1
+		canrcv.RcvNoDataTime= 0;										  将DataFramID=1;全局变量
+		DataFramID=1;
+		TIM_SetAutoreload(TIM3, ((10+ data.ID* 10)* 100));//:10us		  设置定时器频率
+		TIM_Cmd(TIM3, ENABLE);//										使能定时器
+		TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);				定时器已开启，则定时器中断中就会发对应的数据，按照定时器的频率		
+
+	}
+	else if( RxMessage.StdId == 0x101 )//如果收到的标准帧id是101
+	{
+		canrcv.BatCnt= RxMessage.Data[0];
+		canrcv.BatUseFlag= ((RxMessage.Data[1]<<24)|(RxMessage.Data[2]<<16)|(RxMessage.Data[3]<<8)|(RxMessage.Data[4]<<0));
+	}
+	else if(( RxMessage.StdId == 0x200 )&&(0x47 ==RxMessage.Data[0]))//修改下位机ID的指令
+	{
+		if((data.ID  == RxMessage.Data[1])||(0xff  == RxMessage.Data[1]))
+		{			
+				if((RxMessage.Data[2]<=24)&&(RxMessage.Data[2]>=1)) 
+				{
+					canrcv.IDVal = RxMessage.Data[2];
+					flag.bits.IDChange = 1;						
+				}		
+		}
+		
+	}
+	if((0x130 == RxMessage.StdId)&&(0x89 == RxMessage.Data[0])&&(0x89 == RxMessage.Data[1])
+		&&(0xAB == RxMessage.Data[2])&&(0xAB == RxMessage.Data[3])
+	&&(data.ID == RxMessage.Data[4]))
+	{
+		NVIC_SystemReset();				//收到此指令则复位
+	}
+
+	if((0x188 == RxMessage.StdId)&&((data.ID == RxMessage.Data[0])||(0xff == RxMessage.Data[0])))
+	{		
+		CHG_LED = RxMessage.Data[1];	
+		DSG_LED = RxMessage.Data[2];
+		WARN_LED = RxMessage.Data[3];
+		CHG_SWITH = RxMessage.Data[4];
+		DSG_SWITH = RxMessage.Data[5];
+	}		
+	if((0x189 == RxMessage.StdId)&&(data.ID == RxMessage.Data[0]))
+	{		
+		if((RxMessage.Data[2]<=125)&&(RxMessage.Data[2]>=85)&&(RxMessage.Data[1]==0x48))
+		{
+				canrcv.RateVal = RxMessage.Data[2];
+				flag.bits.RateChange = 1;	
+		}
+	}	
+
+}
+
+
+uint8_t CAN_SendMsg(uint32_t id,uint8_t* buf,uint8_t len)
+{ 
+    uint8_t mbox;
+    uint32_t i=0; 
+    CanTxMsg TxMessage;  
+	if( id < 0x7ff )
+	{
+		TxMessage.StdId=id;     
+		TxMessage.IDE=CAN_ID_STD;   //使用STD识符
+	}
+	else
+	{
+		TxMessage.ExtId=id;     
+		TxMessage.IDE=CAN_ID_EXT;   //使用扩展标识符
+	}
+
+    TxMessage.RTR=CAN_RTR_DATA;
+    TxMessage.DLC=len;            
+    for(i=0;i<len;i++)
+	{
+		TxMessage.Data[i] = buf[i];  结构体中存放要发送的can数据
+	}
+	i = 0;
+    mbox= CAN_Transmit(CAN1, &TxMessage);  //TxMessage里面包含了can的结构与数据
+    while((CAN_TransmitStatus(CAN1, mbox)!=CANTXOK)&&(i<0xFFFF))判断can发送状态是否成功
+    {
+        i++;    
+    }
+    if(i>=0xFFFF)
+        return 0;
+    return 1;
+}
+
+
+
+
+
 
 
 
