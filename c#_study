@@ -466,3 +466,15 @@ string str = System.Text.Encoding.ASCII.GetString ( byteArray );
 	return x+y;
 };必须有分号，这相当于一行代码将函数赋值给委托变量
 这种委托的调用： 委托变量.invoke(3,4);
+
+
+https://blog.csdn.net/e295166319/article/details/77839798?spm=1001.2101.3001.6650.6&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6.pc_relevant_default&utm_relevant_index=10
+App.config文件的使用  vs
+修改的时候只能在xml文件中修改
+<appsetting>
+	<app key="ServerIP" value="127.0.0.1"></add>
+	<app key="user" value="cc"></add>
+</appsetting>
+
+string serverIP = ConfigurationManager.AppSettings["ServerIP"];程序中获取配置文件中的值
+string user = ConfigurationManager.AppSettings["user"];程序中获取配置文件中的值
