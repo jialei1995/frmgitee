@@ -20,6 +20,59 @@
 20、sizeof求对象大小
 21、指针和引用的区别
 
+void print_num(int i)
+{
+  std::cout << i << '\n';
+}
+std::function<void(int)> f_display = print_num;
+std::function<void(int)>相当于数据类型，这里是个void返回值，int入参的函数类型，赋值print_num。
+
+std::function<void()> f_display_42 = []() { std::cout << 42<< '\n'; }; lamda表达式，没入参
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

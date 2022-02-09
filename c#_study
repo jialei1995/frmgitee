@@ -328,6 +328,10 @@ void test(params int[] score)
 命名空间：可以理解为类的文件夹，命名空间有很多类
 怎么在项目2中用项目一里面的类：
 在项目2的开始:using 项目一的名称，则项目1里面的类在项目2都能用了
+-----------------------------泛型集合
+List:
+List<int> l = new List<int>();
+l.removeat(0);删除0上面的元素后，再次访问l的时候0位置就是删除之前1位置的数据
 
 ArrayList:
 ArrayList list=new ArrayList();更优越的数组
@@ -467,8 +471,6 @@ string str = System.Text.Encoding.ASCII.GetString ( byteArray );
 };必须有分号，这相当于一行代码将函数赋值给委托变量
 这种委托的调用： 委托变量.invoke(3,4);
 
-
-https://blog.csdn.net/e295166319/article/details/77839798?spm=1001.2101.3001.6650.6&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-6.pc_relevant_default&utm_relevant_index=10
 App.config文件的使用  vs
 修改的时候只能在xml文件中修改
 <appsetting>
@@ -478,3 +480,106 @@ App.config文件的使用  vs
 
 string serverIP = ConfigurationManager.AppSettings["ServerIP"];程序中获取配置文件中的值
 string user = ConfigurationManager.AppSettings["user"];程序中获取配置文件中的值
+=======
+收银系统：
+List<FatherClass> list = new List<FatherClass>();  new父类类型的变量，用list
+这样放数据的时候都堆到一起了，数据不容易查找，都不知道每个下标存的啥。
+
+
+
+List<List<FatherClass>> list = new List<List<FatherClass>>();  
+这种方法存的数据里面已经包含了商品类型，商品数量，相当于每次add的时候相当于存的同一类商品
+
+
+Guid.NewGuid().ToString()；获取唯一编码
+
+
+构造函数传参方法1：
+public Sam(string id, double price, double count): base(id, price, count)
+
+
+c#可以直接返回数组：
+PS：
+public static int[] test()
+{ 
+	int[] a = new int[]{ 1, 2, 3 };//这里是堆还是栈都可以
+	//int[] a = { 1, 2, 3 };  这个是栈
+	return a;
+}
+static void Main(string[] args)
+{
+	int[] vs = test();//直接定义数据变量直接=赋值就行，数组可以直接赋值，相当于一个数据类型
+	for (int i = 0; i < vs.Length; i++)
+	{
+		Console.WriteLine(vs[i]);
+	}
+}
+
+
+
+
+java-----------
+javac hello.java 会编译生成hello.class二进制文件
+java hello   会运行此二进制文件，运行的时候不用带.class 
+java没有头文件
+hello.java-----------java的文件命名
+public class hello{
+	
+	public static void main(String args[]){
+		System.out.println("Hello world!");
+	}
+}
+
+规范：类名首字母大写，文件名与类名要一致。、
+
+
+数据类型：
+int float
+int p2[] = {1，2，4}   静态分配，p在栈中，124在堆中
+int p[] = new int[100];      数组，在堆
+char str[] = new char[100];  数组，在堆 
+java里面数组都都在堆中
+char str[] = "123"  错误，不能这样定义字符串
+应该写String str2 = "123";  正确 
+java中堆空间不用的时候直接将指针指向NULL就可以了，java的垃圾回收机制会自动释放堆空间。
+小数点数字默认是double类型
+
+
+函数：
+void (*fun)(struct Person *p){}这里实现struct中的函数即可
+struct Person{
+	void (*fun)(struct Person *p);
+};
+
+
+对于直接在函数中new新对象需要我们主动释放p，不然如果函数重复执行就会大量内存泄露。
+void fun()
+{
+	Person * p = new Person();//p是栈对象指向堆空间，函数结束会释放p的栈空间，但是对空间不会释放
+}
+解决办法，专门定义一个class
+class sp{
+	Person * p;//栈对象
+	sp(Person * other)
+	{
+		p = other;
+	}
+	~sp()
+	{
+		if(p) delete p;
+	}
+}
+
+void fun()这个函数中p本身是栈对象，函数结束就会执行sp的析构函数，将Person释放。
+{
+	sp * p = new Person();
+}
+
+
+
+
+
+
+
+
+
