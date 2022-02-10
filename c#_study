@@ -577,8 +577,46 @@ void fun()这个函数中p本身是栈对象，函数结束就会执行sp的析�
 
 
 
-
-
+委托后加？.Invoke是什么意思
+using System;
+ 
+namespace YhTest1
+{
+    public delegate void GreetDelegate(string name);//定义委托类型
+    class Program
+    {
+        private static void English(string name)
+        {
+            Console.WriteLine("Hello!" + name);
+        }
+        private static void Chinse(string name)
+        {
+            Console.WriteLine("你好!" + name);
+        }
+        static void Main(string[] args)
+        {
+            GreetDelegate test1;//用委托类型GreetDelegate 定义变量test1
+            test1 = English;//给变量test1赋值English函数
+            test1?.Invoke("小明");//这句话可以打印出来，因为此时test1不是null的
+            test1 = null;
+            test1?.Invoke("lihua");//这句话不可以打印出来，括号里面是给test传的参数
+            test1 = Chinse;
+            GreetPeople("梨花", test1);//这句话可以打印出来，因为此时test1不是null的
+            Console.WriteLine("Ending.........");
+        }
+    }
+}
+.Invoke是什么意思：
+判断一下这个委托是不是为null；如果是则不执行委托，如果不是则执行该委托---该委托可能同时是多个函数；
+如果test1 = fun1;
+test1+=fun2;
+test1?.Invoke("梨花");  则这里就会执行fun1 再执行fun2。
+Hello!梨花
+你好!梨花
+Ending......
+invoke和begininvoke的区别
+invoke：在拥有此空间基础窗口句柄的线程上执行指定的委托
+begininvoke：在创建控件的基础句柄所在的线程上异步执行指定的委托
 
 
 
