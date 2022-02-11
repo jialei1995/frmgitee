@@ -1,0 +1,233 @@
+sif的reload=500，每隔500us进一次中断发数据 因为tim16是1M的周期，1就是1us。1s发2000bit数据
+uart的reload=1m/14400,每隔1m/14400us进一次中断，即每s进14400次中断，1s发14400bit数据
+但是串口是每s收发14400bit，所以time中断中发每个bit数据时需要发2次才行，因为它太快了
+
+if(SIFBUSData.SIFMode!=SIF_MODE_GTDS)
+{
+	if(SIFBUSData.SIFConnectFlag==SIF_CONNECT)  //SIF_CONNECT就是1
+	{
+		CFSIFProtocol();//1s发一次，则就调用CFSIFProtocol给整车发数据.存在可能接PC端的时候rx收到1，则会一线通发一线通数据给PC。
+	}	//但是这种问题并不会影响PC端的正常运行
+	else
+	{
+		SIFBUS_H;
+		LL_mDelay(20);
+		SIFBUSData.SIFConnectFlag= SIFBUS_READ;//一直读rx，若rx=1，则就调用CFSIFProtocol给整车发数据.也不一定rx是低就说明车是0，有可能mos断的，影响rx的数值
+	}
+}
+else//是gtds模式，uart接收数据会清零0
+{
+	SIFBUSData.SIFModetime++;//一直加会溢出吗？
+	SIFBUS_H;//tx置1后，根据rx的电平可以判断当前是否有整车链接
+}
+
+
+void UARTBUS_SendMsg(uint8_t *buf, uint16_t len)  uart的send
+{
+	uint16_t i = 0;
+	for (i = 0; i < len; i++)
+	{
+		SUartInfo.TrxData[i]=buf[i]; 将数据存到SUartInfo.TrxData[i]
+	}
+
+	SUart_Read_Disable();  失能rx，要发就要先失能rx
+	SUartInfo.UartStat = COM_START_BIT_DEAL;
+	SUartInfo.TrxdataCount= i;  总共要发多少
+	SUartInfo.Mode= TxEn;  mode为TxEn
+	ucSendBitCx = 0;
+	ucSendByteCx = 0;
+	////       AA__printf("UARTBUS_SendMsg  %d \r\n",SUartInfo.TrxdataCount);
+	GT_TIM_SET_AUTORELOAD(DEF_SUART_SampTime);  (1M/14400)  多久进一次中断，进一次中断发1bit数据，则1s发14400bit数据
+	GT_TIM16_CMD( ENABLE);	
+	
+}
+
+void SIFBUS_SendMsg(uint8_t *buf, uint16_t len)
+{
+	int i = 0;
+	for (i = 0; i < len; i++)
+	{
+		SUartInfo.TrxData[i]=buf[i];将数据存到SUartInfo.TrxData[i]
+	}
+	////       AA__printf("~~~~~~SIFBUS_SendMsg %d  ",SUartInfo.Mode);
+	SUart_Read_Disable();  失能rx，要发就要先失能rx
+	SUartInfo.UartStat = COM_START_BIT_DEAL;
+	SUartInfo.TrxdataCount= i; 总共要发多少
+	SUartInfo.Mode= SIFTxEn;  mode为SIFTxEn
+	ucSendBitCx = 0;
+	ucSendByteCx = 0;
+	////       AA__printf("   %d  ",SUartInfo.TrxdataCount);
+	HAL_Delay(20);
+	GT_TIM_SET_AUTORELOAD(SIF_BIT_TIME); 1M/500=2000  多久进一次中断，则1s发500bit数据
+	GT_TIM16_CMD( ENABLE);	
+	////       AA__printf("  \r\n");
+}
+
+
+void SUartTxDataPro(void )
+{
+	switch(SUartInfo.UartStat)  /*串口发送位状态判断*/
+	{
+		case COM_START_BIT_DEAL : 拉低tx进入发送数据状态
+		{
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)0);
+	
+			SUartInfo.UartStat = COM_DATA_BIT_DEAL;
+			ucAcquCx = 0;
+			ucSendBitCx = 0;
+		}
+		break;
+
+		case COM_DATA_BIT_DEAL :
+		{  根据实际数据拉电平tx
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)((SUartInfo.TrxData[ucSendByteCx] >> ucSendBitCx) & 0x01));
+
+				ucSendBitCx ++;
+
+				if(ucSendBitCx >= 8)
+				{
+					SUartInfo.UartStat = COM_STOP_BIT_DEAL;
+					ucSendByteCx++;
+				}
+		}
+		break;
+		case COM_CHECK_BIT_DEAL :
+		{
+		}
+		break;
+
+		case COM_STOP_BIT_DEAL ://发完数据拉高tx
+		{
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)1);
+
+				ucSendBitCx = 0;
+
+				if(ucSendByteCx <SUartInfo.TrxdataCount)//如果数据没发完则继续将状态置成COM_START_BIT_DEAL
+				{
+					SUartInfo.UartStat = COM_START_BIT_DEAL;
+				}
+				else
+				{
+					GT_TIM16_CMD( DISABLE); 如果数据发完了则
+					ucSendByteCx = 0;
+					SUartInfo.UartStat = COM_NONE_BIT_DEAL;
+
+					SUart_Read_Enable();//开启读功能
+					GT_TIM_SET_COUNTER( 0);
+				}
+		}
+		break;
+		default:
+			GT_TIM16_CMD( DISABLE); 
+			GT_TIM_SET_COUNTER( 0);
+		break;
+	}
+}
+
+
+void SifTxDataPro(void )  每隔500us进一次中断，则每个bit的数据的电平拉了都会持续500us。单位就是500us
+{
+	switch(SUartInfo.UartStat)  /*串口发送位状态判断*/
+	{
+		case COM_START_BIT_DEAL :   同步帧即起始帧就是先发96个0，1个1
+		{
+			ucAcquCx++;
+			if(ucAcquCx >= DEF_SIf_St_count)    /*由于发送时在立即拉低就进入判断，且自加，所以需要加到4，实际延时3个周期*/
+			{
+				GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)1);
+				SUartInfo.UartStat = COM_LEVEL_DEAL;
+				ucAcquCx = 0;
+				ucSendBitCx = 0;
+			}
+			else
+			{
+				GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)0);  
+			}
+		}
+		break;
+
+		case COM_LEVEL_DEAL:COM_LEVEL_DEAL与COM_LEVEH_DEAL两个阶段结合才能发出数据0或1；数据0就是两个低一个高，数据1就是2个高1个低
+		{
+			if((SIFBUS_READ==0)&&(ucAcquCx==0))
+			{
+				SUartInfo.UartStat = COM_ERR_DEAL;
+				SIFBUSData.SIFConnectFlag= SIF_NoCONNECT;
+				break;
+			}
+			
+			SIFBUSData.SIFConnectFlag= SIF_CONNECT;  
+			
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)0);
+
+			ucAcquCx++;
+			if(ucAcquCx >= ((2-(((SUartInfo.TrxData[ucSendByteCx] >> (7-ucSendBitCx)) & 0x01)))%3) )
+			{
+				ucAcquCx = 0;
+				SUartInfo.UartStat = COM_LEVEH_DEAL;
+			}
+		}
+		break;
+		case COM_LEVEH_DEAL:COM_LEVEL_DEAL与COM_LEVEH_DEAL两个阶段结合才能发出数据0或1；数据0就是两个低一个高，数据1就是2个高1个低
+		{
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)1);
+
+			ucAcquCx++;
+			if(ucAcquCx >= ((1+(((SUartInfo.TrxData[ucSendByteCx] >> (7-ucSendBitCx)) & 0x01)))%3)) 
+			{
+				ucAcquCx = 0;
+
+				ucSendBitCx ++;
+
+				if(ucSendBitCx >= 8)
+				{
+					ucSendByteCx++;
+					ucSendBitCx= 0;
+				}
+				ucSendBitCx%=8;
+				if(ucSendByteCx >= SUartInfo.TrxdataCount)
+				{
+					SUartInfo.UartStat = COM_STOP_BIT_DEAL;
+				}
+				else
+				{
+					SUartInfo.UartStat = COM_LEVEL_DEAL;
+				}
+			}
+		}
+		break;
+
+		case COM_CHECK_BIT_DEAL :
+		{
+
+		}
+		break;
+
+		case COM_STOP_BIT_DEAL :
+		{
+			GPIO_WritePin(SIF_OUT_Port, SIF_OUT_Pin, (GPIO_PinState)0);//拉低tx
+
+			ucAcquCx++;
+			if(ucAcquCx >= DEF_SIf_St_count)    /*持续96次说明进入不发数据的状态，则完事*/
+			{
+				ucAcquCx = 0;
+				ucSendBitCx = 0;
+				ucSendByteCx = 0;
+				SUartInfo.UartStat = COM_NONE_BIT_DEAL; 就是进入default的case中
+				SUartInfo.Mode=ModNoll;
+				GT_TIM16_CMD( DISABLE); 
+				GT_TIM_SET_COUNTER( 0);
+			}
+		}
+		break;
+
+		default:
+			ucSendBitCx = 0;
+			ucSendByteCx = 0;
+			SUartInfo.Mode=ModNoll;
+			SUart_Read_Enable();
+			GT_TIM16_CMD( DISABLE); 
+			GT_TIM_SET_COUNTER(0);
+		break;
+
+	}
+}
