@@ -2122,17 +2122,23 @@ crf文件--->类似ctags文件，跳转使用
 在keil中选择芯片型号的时候：设置里面可以看到rom的size会自动设置好0x8000=512k，ram的size也是，不同的cpu，rom大小不同。ram不同
 
 --------------编译工具链
+添加环境变量：控制面板--系统--高级系统设置--高级--环境变量--给path继续赋值 bin所在的目录即可
+keil设置里面的output选项表里面有编译的配置，即armcc的编译选项参数
 
+elf：可执行 link 文件file
 
+rtc
+LL_RTC_BKP_GetRegister  读bkp里面的值，bkp有32bit*8个
+LL_RTC_BKP_SetRegister
 
+tamper是后备寄存器，存到里面的数据是不会改变的，rtcinit的函数中只是用它来决定是不是需要初始化时间。因为复位后程序
+重新运行，用变量无法决定，需要用bkp里面的数据去决定是不是需要重新初始化时间。
 
+BCD格式，就是16进制入参。我们需要定时23：58：58  则需要传入参 0x23 0x58 0x58
+BIN格式，就是10进制入参。我们需要定时23：58：58  则需要传入参 23 58 58
 
-
-
-
-
-
-
+fromelf --text -v xxx.o > 1.txt  将xxx.o里面的内容显示出来重定位到1.txt中。
+fromelf --text -v xxx.axf > 1.txt .o文件都没有指定地址，.axf文件中会将所有的地址与大小都分配好
 
 
 
