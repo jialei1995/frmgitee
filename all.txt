@@ -5576,10 +5576,16 @@ tasklist | find "chrome"  查询进程
 taskkill /im 进程名 /f 强制杀死任务进程名
 taskmgr  打开任务管理器
 
-
+powershell
+get-command 	获取所有命令
+get-process		获取所有进程
+Get-content     读取文件内容  cat也能用
+Select-String "info" .\1.txt    行检测1.txt中的"info"行内容。
+使用运行窗口打开带管理员权限的PowerShell：Start-Process powershell -Verb runAs 
+win+x：打开具有管理员权限的cmd行
 
 ------------sourceinsight
-自动对齐：
+括号自动对齐：
 option->file option->auto indent：取消indent open brace/indent close brace
 
 ----------u-boot
