@@ -281,6 +281,19 @@ typedef union
 > 
 
 ### gpio
+引脚设置为pp输出，读的时候就要读
+GPIOB->ODR&GPIO_PIN_X  输出数据寄存器
+引脚设置为输入模式，读的时候就要读 
+GPIOB->IDR&GPIO_PIN_X  输入数据寄存器
+STM32怎么读取输出口电平？
+其实你自己在库函数源文件也能找到，以PC13为例：
+要是你设置为输入：
+GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_13);//读取输入口PC13值
+要是你设置为输出：
+GPIO_ReadOutputDataBit (GPIOC,GPIO_Pin_13); //读取输入口PC13值
+我看的原函数，两个读取函数操作区别在于读取的寄存器不一样，分别是：
+GPIOx->IDR
+GPIOx->ODR
 
 > 复用的时候Alternate选择AFx怎么确认，在datesheet里面搜alternate function mapping
 >
@@ -1204,6 +1217,15 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	{
 	}
 ```
+rtc
+LL_RTC_BKP_GetRegister  读bkp里面的值，bkp有32bit*8个
+LL_RTC_BKP_SetRegister
+
+tamper是后备寄存器，存到里面的数据是不会改变的，rtcinit的函数中只是用它来决定是不是需要初始化时间。因为复位后程序
+重新运行，用变量无法决定，需要用bkp里面的数据去决定是不是需要重新初始化时间。
+
+BCD格式，就是16进制入参。我们需要定时23：58：58  则需要传入参 0x23 0x58 0x58
+BIN格式，就是10进制入参。我们需要定时23：58：58  则需要传入参 23 58 58
 
 
 
@@ -2107,7 +2129,8 @@ ZI-data是（Zero Initialize）  没有初始化的可读写变量的大小。�
 ZI（zero init）-data不会被算做代码里因为不会被初始化;其实与rwdata性质一样，都可以更改，只不过它的初始化为0而已
 自己实验的时候确实是初始化过的也会算到ZI-data里面呀？？？why。必须是直接初始化时直接定义不为0，才会算到RW-data部分，在main里面再去初始化的不会算到编译的RW-DATA里面。
 
-简单的说就是在烧写的时候是FLASH中的被占用的空间为：Code + RO Data + RW Data
+简单的说就是在烧写的时候是FLASH中的被占用的空间为：Code + RO Data + RW Data（rwdata是非0数据，需要存起来）
+														zidata是0，不需要存
 程序运行的时候，芯片内部RAM使用的空间为： RW Data + ZI Data
 程序运行的时候，只读区域：code+rodata 
 
@@ -2138,9 +2161,78 @@ BCD格式，就是16进制入参。我们需要定时23：58：58  则需要传�
 BIN格式，就是10进制入参。我们需要定时23：58：58  则需要传入参 23 58 58
 
 fromelf --text -v xxx.o > 1.txt  将xxx.o里面的内容显示出来重定位到1.txt中。
-fromelf --text -v xxx.axf > 1.txt .o文件都没有指定地址，.axf文件中会将所有的地址与大小都分配好
+fromelf --text -v xxx.axf > 1.txt.o文件都没有指定地址，.axf文件中会将所有的地址与大小都分配好
 
+elf文件分为3中类型：
+1.可重定位文件：
+包含基础代码(code)与数据(数据段)，但是都没有指定绝对地址，这种文件只用来与其他可重定位文件link
+组成可执行文件。例如所有的.o文件。
+2.可执行文件，例如可执行的bin/hex，或者linux中总目标文件。
+3.共享文件--库文件，可以重定位，因为可以被新插入别的程序中。例如：mdk生成的lib文件，linux中的so文件
 
+shift+右键：打开powershell cmd窗口   win+x：直接打开管理员权限的powershell窗口
+
+fromelf --text -v .\usart.o 查看此.o文件中的
+** Section #359
+
+    Name        : .strtab
+    Type        : SHT_STRTAB (0x00000003)
+    Flags       : None (0x00000000)
+    Addr        : 0x00000000
+    File Offset : 539325 (0x83abd)
+    Size        : 15025 bytes (0x3ab1)
+    Link        : SHN_UNDEF
+    Info        : 0
+    Alignment   : 1
+    Entry Size  : 0
+
+MMU--将物理地址重新映射成另一个虚拟地址
+单片机 stm32中没有MMU单元，所以物理地址与虚拟地址是一样的。
+
+存在flash中的rodata与rwdata数据是多会copy到内存中的呢？
+可以在总的axf中看到：__scatterload分散加载的时候可以看到，通过ldm命令将flash中的数据加载到内存
+hex文件格式：
+:10 0000 00 C0080020D500000899250008C5190008 7F
+:ll aaaa tt [data]                           cc
+:  表示每条记录的开头
+ll/10 表示主体数据区域的长度-byte--这里刚好16byte--C0080020D500000899250008C5190008
+tt/00 表示数据类型：00是普通数据  04表示后面的地址按照这个地址递增。--ps:
+:02 0000 04 0800 F2  我们板子里面很多都是从0x0800 0000(前面还有4个0)地址开始的--内部flash地址
+cc/7f：校验
+这个hex文件表示我们要将这些数据存到0800 0000所在的地址上去。 真正存的数据只有hex文件每行中的data区域。
+
+bin文件大小就是code+ro大小，编译出来的时候就可以看到code+ro段的大小就是bin的大小。
+bin文件就是很纯粹的code+ro数据，将来直接往flahs写的数据
+
+其实bin文件就是hex文件中除了:，ll ，aaaa， tt，cc以外的其它的数据就是bin数据。 
+
+程序刚开始是vector中断向量表，包含：
+表里面最开始的是init_sp 初始化 
+然后是reset_handler  复位处理
+中断向量表中还包含几个错误处理中断，NMI_HANDLER HARDFAULT_handler busfault_handler 
+reset_handler:
+跳到main
+执行system_init函数，就是初始化时钟。
+
+map文件
+双击工程文件夹即可看到map文件
+勾选配置里面的：C/C++中的：one elf section per function选项就会大大减小代码体积。
+此文件中包含了每个.o文件对所有的其他文件中的函数的引用关系。
+虽然我们吧stm32的所有库都加入到了工程中，但是不用担心会增加总目标文件的体积，因为主main没调用。
+
+睡眠模式可以任意中断唤醒----直接__WFI()就可以进睡眠模式---唤醒后代码是连续的。
+
+需要配置LPMSbit的就是我们普通休眠的配置--stop1模式。enter_stopmod--唤醒后代码是连续的。
+但是时钟坏了，需要重新使能HSE时钟，使能PLL，选择PLL为系统时钟源
+RCC_HSECONFIG(ENABLE);	等待使能成功
+RCC_PLLCMD(ENABLE); 等待使能成功
+RCC_SYSCLKCONFIG(RCC_SYSCLKSOURCE_PLLCLK);选择时钟源
+默认被唤醒的时后系统时钟选择的是HSI时钟，我们需要自己重新配置外部高速时钟，因为原来正常运行的板子就是外部高速
+时钟源的。
+
+待机模式：进入待机模式前必须开启PWR时钟RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR,enable);停止模式与睡眠模式
+则不许要这个操作。
+enterstandbymode();唤醒之后程序会复位
 
 
 
