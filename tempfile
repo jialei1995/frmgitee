@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 rtc
 LL_RTC_BKP_GetRegister  读bkp里面的值，bkp有32bit*8个
 LL_RTC_BKP_SetRegister
@@ -64,3 +65,5 @@ GPIO_ReadOutputDataBit (GPIOC,GPIO_Pin_13); //读取输入口PC13值
 我看的原函数，两个读取函数操作区别在于读取的寄存器不一样，分别是：
 GPIOx->IDR
 GPIOx->ODR
+=======
+>>>>>>> 6438b43fb27a3e771c9e7655f17dcbe1ede1fd92
