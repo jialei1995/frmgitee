@@ -1,69 +1,16 @@
-<<<<<<< HEAD
-rtc
-LL_RTC_BKP_GetRegister  读bkp里面的值，bkp有32bit*8个
-LL_RTC_BKP_SetRegister
+del /s/f/q   filename   强制删除文件，不会再询问你是否删除了，不用按y按键。
 
-tamper是后备寄存器，存到里面的数据是不会改变的，rtcinit的函数中只是用它来决定是不是需要初始化时间。因为复位后程序
-重新运行，用变量无法决定，需要用bkp里面的数据去决定是不是需要重新初始化时间。
+800 0000 ---800 8000  32k的flash范围
+800 0000 ---801 0000  64k的flash范围
 
-BCD格式，就是16进制入参。我们需要定时23：58：58  则需要传入参 0x23 0x58 0x58
-BIN格式，就是10进制入参。我们需要定时23：58：58  则需要传入参 23 58 58
+我们的bootloader的范围与bin文件的范围：  32k的程序
+800 0000---800 1300  boot范围    5k
+800 18f8---800 7800	 bin文件范围  26k  左右
+800 7800---800 8000	 最后还有一页用来存flash数据，所以程序的大小不能超过7800
 
-elf文件分为3中类型：
-1.可重定位文件：
-包含基础代码(code)与数据(数据段)，但是都没有指定绝对地址，这种文件只用来与其他可重定位文件link
-组成可执行文件。例如所有的.o文件。
-2.可执行文件，例如可执行的bin/hex，或者linux中总目标文件。
-3.共享文件--库文件，可以重定位，因为可以被新插入别的程序中。例如：mdk生成的lib文件，linux中的so文件
+我们的bootloader的范围与bin文件的范围：  64k的程序
+800 0000---800 1300  boot范围    5k
+800 18f8---800 F800	 bin文件范围  58k  左右
+800 F800---801 0000	 最后还有一页用来存flash数据，所以程序的大小不能超过7800
 
-shift+右键：打开powershell cmd窗口   win+x：直接打开管理员权限的powershell窗口
 
-fromelf --text -v .\usart.o 查看此.o文件中的
-** Section #359
-
-    Name        : .strtab
-    Type        : SHT_STRTAB (0x00000003)
-    Flags       : None (0x00000000)
-    Addr        : 0x00000000
-    File Offset : 539325 (0x83abd)
-    Size        : 15025 bytes (0x3ab1)
-    Link        : SHN_UNDEF
-    Info        : 0
-    Alignment   : 1
-    Entry Size  : 0
-
-MMU--将物理地址重新映射成另一个虚拟地址
-单片机 stm32中没有MMU单元，所以物理地址与虚拟地址是一样的。
-
-存在flash中的rodata与rwdata数据是多会copy到内存中的呢？
-可以在总的axf中看到：__scatterload分散加载的时候可以看到，通过ldm命令将flash中的数据加载到内存
-hex文件格式：
-:10 0000 00 C0080020D500000899250008C5190008 7F
-:ll aaaa tt [data]                           cc
-:  表示每条记录的开头
-ll/10 表示主体数据区域的长度-byte--这里刚好16byte--C0080020D500000899250008C5190008
-tt/00 表示数据类型：00是普通数据  04表示后面的地址按照这个地址递增。--ps:
-:02 0000 04 0800 F2  我们板子里面很多都是从0x0800 0000(前面还有4个0)地址开始的--内部flash地址
-cc/7f：校验
-这个hex文件表示我们要将这些数据存到0800 0000所在的地址上去。 真正存的数据只有hex文件每行中的data区域。
-
-bin文件大小就是code+ro大小，编译出来的时候就可以看到code+ro段的大小就是bin的大小。
-bin文件就是很纯粹的code+ro数据，将来直接往flahs写的数据
-
-其实bin文件就是hex文件中除了:，ll ，aaaa， tt，cc以外的其它的数据就是bin数据。 
-
-引脚设置为pp输出，读的时候就要读
-GPIOB->ODR&GPIO_PIN_X  输出数据寄存器
-引脚设置为输入模式，读的时候就要读 
-GPIOB->IDR&GPIO_PIN_X  输入数据寄存器
-STM32怎么读取输出口电平？
-其实你自己在库函数源文件也能找到，以PC13为例：
-要是你设置为输入：
-GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_13);//读取输入口PC13值
-要是你设置为输出：
-GPIO_ReadOutputDataBit (GPIOC,GPIO_Pin_13); //读取输入口PC13值
-我看的原函数，两个读取函数操作区别在于读取的寄存器不一样，分别是：
-GPIOx->IDR
-GPIOx->ODR
-=======
->>>>>>> 6438b43fb27a3e771c9e7655f17dcbe1ede1fd92
