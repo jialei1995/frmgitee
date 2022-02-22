@@ -2315,43 +2315,83 @@ LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOD);
 800 F800---801 0000	 最后还有一页用来存flash数据，所以程序的大小不能超过800 发00
 
 
+vector向量表里面包含各种触发中断之后要跳过去的函数名字：
+__initial_sp          我们程序每次复位之前都会执行初始化SP指针，栈
+Reset_Handler         复位
+NMI_Handler       		    
+HardFault_Handler                         
+SVC_Handler                              
+PendSV_Handler        
+SysTick_Handler       
+WWDG_IRQHandler                          
+RTC_TAMP_IRQHandler   
+FLASH_IRQHandler      
+RCC_IRQHandler        
+EXTI0_1_IRQHandler    
+EXTI2_3_IRQHandler    
+EXTI4_15_IRQHandler   
+TIM16_IRQHandler  
+TIM17_IRQHandler  
+I2C1_IRQHandler   
+I2C2_IRQHandler   
+SPI1_IRQHandler   
+SPI2_IRQHandler   
+USART1_IRQHandler 
+USART2_IRQHandler 
+
+Reset_Handler    PROC
+                 EXPORT  Reset_Handler                 [WEAK]，我们下面其实是在重写之前别的文件定义的resethandler
+        IMPORT  __main  	IMPORT定义表示这是一个外部变量的标号，不是在本程序定义的
+        IMPORT  SystemInit		EXPORT ，表示本程序里面用到的变量提供给其他模块调用的。
+        LDR     R0, =__initial_sp    ;PC指针刚开始只初始化栈  
+        MSR     MSP, R0  	；；EXPORT  __initial_sp，这个初始化栈的底层也不是在这里初始化的，__initial_sp是别的文件里定义的
+
+;;Check if boot space corresponds to test memory    测试
+        LDR R0,=0x00000004
+        LDR R1, [R0]
+        LSRS R1, R1, #24
+        LDR R2,=0x1F
+        CMP R1, R2
+        BNE ApplicationStart  
+;; SYSCFG clock enable      RCC寄存器的
+        LDR R0,=0x40021018   4002 1000 RCC寄存器里面的LSIRDYIE: LSI ready interrupt enable  启用由LSI引起的中断
+        LDR R1,=0x00000001
+        STR R1, [R0]
+;; Set CFGR1 register with flash memory remap at address 0
+        LDR R0,=0x40010000   就是SYSCFG寄存器的SYSCFG_CFGR1，在APB总线上
+        LDR R1,=0x00000000   初始化成0
+        STR R1, [R0]
+		void HAL_SYSCFG_EnableRemap(uint32_t PinRemap)
+		{
+		  SET_BIT(SYSCFG->CFGR1, PinRemap);    在APB总线上设置CFGR1
+		}
+ApplicationStart        
+	 LDR     R0, =SystemInit  重定位中断向量表
+		void SystemInit(void)  在g00x.c中
+		{
+		  /* Configure the Vector Table location add offset address ------------------*/
+		#ifdef VECT_TAB_SRAM
+		  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+		#else
+		  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* 把中断向量表放到800 1900位置 */
+		#endif
+		}
+	 BLX     R0
+	 LDR     R0, =__main跳到c文件种的main
+	 BX      R0
+	 ENDP
 
 
+我们平时配置的reg地址范围是多少呢？
+查看：Memory organization章节
+外设都在AHP  APB 总线地址上挂着
+io都在IOPORT 总线上挂着
 
+系统时钟的设置一般在SystemInit（SetSysClock）或者SystemClock_Config中
+里面配置了此程序选择的哪个时钟源，分频，各个总线分频等参数。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int buf[x];
+buf[i] = 732/10;    则buf[i]实际等于73，会将小数点后面约掉。
 
 
 
