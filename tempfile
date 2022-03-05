@@ -1,0 +1,19 @@
+问题：
+1.boot中的eeprom中的前面结构体部分用的校验是极致的校验
+里面存的eeLogPara.numCRC只是EEProm_crc((uint8_t*)&eeLogPara,sizeof(EEParaSt)-2 校验内容
+boot中的结构体：
+ typedef struct 
+{
+	uint32_t APP_MASK;  //0  为没有数据    
+	uint16_t APP_SIZE;
+	uint16_t APP_CRC;-------------------在app中到底怎么校验的呢？用的code_crc校验的所有的bin
+	uint16_t FistUseData;
+	uint16_t numCRC;	
+}EEParaSt;	//byte sum=12
+程序后面校验读的eeprom数据，flash数据用的code_crc校验，与eeprom。APP_CRC 校验方式不一样的，也可以吗
+2.app程序中校验bin包数据用的code_crc函数，
+写eeprom时从40位置开始往后写
+写进eeprom之后又会读出来再校验一次是否写进去的数据时正常的，用crc获取数值
+如果收到的crc与写进去再读出来的crc一致，则帧id++，返回sendbuf=0状态正常
+收到A4指令之后帧id还需要++？？没用了吧。。。该不改都行因为每次收到A0之后帧id都会重新初始化为0
+

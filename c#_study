@@ -601,12 +601,12 @@ namespace YhTest1
             test1 = null;
             test1?.Invoke("lihua");//这句话不可以打印出来，括号里面是给test传的参数
             test1 = Chinse;
-            GreetPeople("梨花", test1);//这句话可以打印出来，因为此时test1不是null的
+			
             Console.WriteLine("Ending.........");
         }
     }
 }
-.Invoke是什么意思：
+?.Invoke是什么意思：
 判断一下这个委托是不是为null；如果是则不执行委托，如果不是则执行该委托---该委托可能同时是多个函数；
 如果test1 = fun1;
 test1+=fun2;
@@ -615,9 +615,26 @@ Hello!梨花
 你好!梨花
 Ending......
 invoke和begininvoke的区别
-invoke：在拥有此空间基础窗口句柄的线程上执行指定的委托
-begininvoke：在创建控件的基础句柄所在的线程上异步执行指定的委托
+invoke：在拥有此空间基础窗口句柄的线程上执行指定的委托---或者说是普通数据函数变量
+begininvoke：在创建控件的基础句柄所在的线程上异步执行指定的委托---控件变量
 
-
-
-
+可以通过这种方法去显示PC中标签的值，不会太卡
+public void LableValue(Label lb, string strValue)
+{
+	lb.BeginInvoke(new Action<string>(msg => lb.Text = msg),
+		new object[] { strValue });
+}
+如何通过循环的方法给label赋值呢？
+1.创建对应的label数组 Label[] test = {  Temp1,Temp2,Temp3,Temp4   };Tempx标签名字
+2.for (int y = 0; y < tempnum; y++)  循环给test[x]即标签赋值
+{
+	LableValue(test[y], ((sbyte)(((UInt16)Uart.ReDataBuf[++index]) - 40)).ToString()  ); //ID
+}
+别的控件一样去处理：BMS_faultx为控件名字，PictureBox为控件类型，test为数组名字
+PictureBox []test = { BMS_fault1, BMS_fault2, BMS_fault3 , BMS_fault4 , BMS_fault5 , BMS_fault6,
+BMS_fault7,BMS_fault8,BMS_fault9,BMS_fault10,BMS_fault11,BMS_fault12,BMS_fault13,BMS_fault14,BMS_fault15};
+for (int i = 0; i < 15; i++)
+{
+	if ((sbit >> i & 1) == 1) { test[i].BackgroundImage = global::GTDS_485.Properties.Resources.red; }
+	else { test[i].BackgroundImage = global::GTDS_485.Properties.Resources.gray1; }
+}
