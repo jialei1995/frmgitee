@@ -8,7 +8,7 @@ boot中的结构体：
 	uint16_t APP_SIZE;
 	uint16_t APP_CRC;-------------------在app中到底怎么校验的呢？用的code_crc校验的所有的bin
 	uint16_t FistUseData;
-	uint16_t numCRC;	
+	uint16_t numCRC;	---------- bin头的校验uart_crc。
 }EEParaSt;	//byte sum=12
 程序后面校验读的eeprom数据，flash数据用的code_crc校验，与eeprom。APP_CRC 校验方式不一样的，也可以吗
 2.app程序中校验bin包数据用的code_crc函数，
@@ -17,3 +17,8 @@ boot中的结构体：
 如果收到的crc与写进去再读出来的crc一致，则帧id++，返回sendbuf=0状态正常
 收到A4指令之后帧id还需要++？？没用了吧。。。该不改都行因为每次收到A0之后帧id都会重新初始化为0
 
+之前的boot里面直接写数据，也不说写进去之后再读出来校验一下是不是写的正确
+firstuserflag改了刷程序的时候就会擦除flash
+
+128-256k的都是每页64字节
+512k的都是每页128字节

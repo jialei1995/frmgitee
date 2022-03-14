@@ -1863,6 +1863,84 @@ void radom_bytes_read(uint8_t addr,uint8_t* data,uint8_t num_to_read)从哪个�
 rtc定时器是用来计时从1997年开始的时间到现在，这个是个低频的时钟，一般不在系统里面用，只用来显示年月日的。
 time定时器：
 systick：类似timer，都是有个reload值，向上计数达到此值触发中断然后处理中断。可以通过定义一个全局变量每次出发中断的时候加1，这个数值可以记下来开机到现在的时间长短。timer与systick还有个功能计算任务耗时时长，任务开始时记录全局变量的值，任务结束时记录全局变量的值，相减即可知任务耗时。
+
+
+RTC模块和时钟配置系统(RCC_BDCR寄存器)是在后备区域，即在系统复位或从待机模式唤醒后RTC的设置和时间维持不变。但是在系统复位后，会自动禁止访问后备寄存器和RTC，以防止对后备区域(BKP)的意外写操作。所以在要设置时间之前， 先要取消备份区域（BKP）写保护。
+
+RTCAlarm_IRQn  设置每个28日的14：50：10时刻就会被alarm唤醒，这样唤醒的时间就成定值了
+  sAlarm.AlarmTime.Hours = 14;
+  sAlarm.AlarmTime.Minutes = 50;
+  sAlarm.AlarmTime.Seconds = 10;	//设置 10s 后产生闹钟中断
+  sAlarm.AlarmTime.SubSeconds = 0;
+  sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
+  sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_NONE;
+  sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+  sAlarm.AlarmDateWeekDay = 28;
+  sAlarm.Alarm = RTC_ALARM_A;//用的闹钟A  一般stm32里面有多个闹钟的
+HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN)  开启alarm闹钟唤醒。
+
+
+/* 设置闹钟下次产生的时间，等会在钩子函数中被调用 */
+void setalarm(int hours, int minutes, int seconds)
+{
+    RTC_AlarmTypeDef sAlarm = {0};
+    RTC_DateTypeDef sdate = {0};    
+    RTC_TimeTypeDef stime = {0};
+
+    //读取当前时间 
+    HAL_RTC_GetTime(&hrtc, &stime, RTC_FORMAT_BIN); 
+    HAL_RTC_GetDate(&hrtc, &sdate, RTC_FORMAT_BIN);
+    //获取设置中断时的时间
+    sAlarm.Alarm = RTC_ALARM_A;
+    sAlarm.AlarmTime.Hours   = hours   + stime.Hours;//重新设置被唤醒的hours
+    sAlarm.AlarmTime.Minutes = minutes + stime.Minutes;//重新设置被唤醒的min
+    sAlarm.AlarmTime.Seconds = seconds + stime.Seconds;//重新设置被唤醒的seconds
+    if(sAlarm.AlarmTime.Seconds >= 60)//秒数>60则取余，并且min++。
+    {
+        sAlarm.AlarmTime.Seconds = sAlarm.AlarmTime.Seconds % 60;
+        sAlarm.AlarmTime.Minutes += 1;
+        if(sAlarm.AlarmTime.Minutes >= 60)//分钟>60则取余，并且hour++。
+        {
+            sAlarm.AlarmTime.Minutes = sAlarm.AlarmTime.Minutes % 60;
+            sAlarm.AlarmTime.Hours += 1;
+            if(sAlarm.AlarmTime.Hours >= 24)//hour>24则取余，并且date++
+            {
+                sAlarm.AlarmTime.Hours = sAlarm.AlarmTime.Hours % 24;
+                sdate.Date += 1;
+            }
+        }
+    }
+    sAlarm.AlarmTime.SubSeconds = 0;
+    sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+    sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
+    sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
+    sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_NONE;
+    sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+    sAlarm.AlarmDateWeekDay = sdate.Date;   //跨天数定时,需要注意
+
+
+    if(HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN) != HAL_OK)//重新初始化alarm的定时唤醒时间，
+	就在hours小时后， minutes分钟后 seconds秒后
+    {
+        Error_Handler();
+    }
+}
+
+/**
+  * @brief  Alarm callback 闹钟中断回调函数
+  * @param  hrtc : RTC handle
+  * @retval None
+  */
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
+{
+    static uint16_t sEnterCnt = 0;
+    
+    setalarm(0,0,5);	//设置当前时候的 5s 后再次产生闹钟中断
+    printf("Alarm A Interrupt Cnt:%d \r\n",sEnterCnt++);
+}
+
     
 ```
 
@@ -1903,19 +1981,6 @@ union长度怎么计算
 	1Ah=3600C 1mAh=3.6C
 ```
 
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 -------------FreeRTOS：
 keil的配置output文件夹下的晶振配置需不需要配置呢？
@@ -2043,19 +2108,12 @@ int main()
 	rtos_taskcreate(task2);
 	//启动rtos，开启调度任务，真正开始任务调度
 	rtos_start();
-	
 }
 
 void task1()
 {
 	while(1){}
 }
-
-void task2()
-{
-	while(1){}
-}
-
 ---------------方法2用的多：main函数初始化硬件与os，创建一个任务直接启动调度器，在启动任务中创建各种任务
 当所有任务创建成功后将自己删除。
 
@@ -2067,7 +2125,6 @@ int main()
 	rtos_init();
 	//创建主任务
 	rtos_taskcreate(apptack);
-	
 	//启动rtos，开启调度
 	rtos_start();
 	
@@ -2084,12 +2141,6 @@ void task1()
 {
 	while(1){}
 }
-
-void task2()
-{
-	while(1){}
-}
-
 
 --------------任务状态：
 就绪态：任务一旦被创建就会进入就绪态
@@ -2152,6 +2203,9 @@ tick中断根据优先级查找可以执行的高优先级任务；程序执行�
 任务移动到其他链表中后，下次再调度的时候就会变化的 
 
 xQueueCalcHandle = xQueueCreate(); 创建队列，用于任务间数据通信的，生产者消费者
+
+
+
 
 -----------------------------------MDK编译流程
 每个.o文件包含=代码段+数据段（变量）
