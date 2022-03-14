@@ -6126,3 +6126,61 @@ python中除以取取整数是：//
 将rcvflag置1，让程序将状态发出去，即使当前不连接485，可以写假数据，模拟收到0x51 cmd
 
 
+vscode include报错：
+c_cpp_properties.json    修改此文件，增加头文件路径
+"includePath": ["${workspaceFolder}/**"], **表示递归
+
+单个文件内全局替换：ctrl+f写出要替换的文字后：ctrl+alt+enter/直接点击replace all按钮
+alt+l：高亮显示搜索的数字
+
+
+整个工程内的全局替换：view--search也行///ctrl_shift+f也行
+ctrl+shift+h  写出要替换的文字后：ctrl+alt+enter/直接点击replace all按钮
+
+查找所有函數被調用的地方：
+shift+f12
+ctrl+shift+f 来进行全局文本搜索
+
+vscode字体设置：
+{
+    "editor.fontSize": 16,
+    "terminal.integrated.shell.windows": "C:\\windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "files.autoSave": "onFocusChange",
+    "workbench.iconTheme": "eq-material-theme-icons-darker",
+    "editor.tabSize": 2,
+    "workbench.startupEditor": "newUntitledFile",
+    "workbench.statusBar.feedback.visible": false,
+    "vsicons.dontShowNewVersionMessage": true,
+    "vetur.validation.template": false,
+    "window.menuBarVisibility": "default",
+    "workbench.sideBar.location": "left",
+    "files.trimTrailingWhitespace": true,
+    "telemetry.enableTelemetry": false,
+    "files.insertFinalNewline": true,
+    "files.associations": {
+        "*.vue": "vue"
+    },
+    "editor.minimap.showSlider": "always",
+    "window.zoomLevel": 1,
+    "extensions.ignoreRecommendations": true,
+    "editor.fontFamily": "Operator Mono, Dank Mono, Fira Code Light",
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorStyle": "line",
+    "editor.fontLigatures": true,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.openEditors.visible": 0,
+    "editor.minimap.enabled": false,
+    "workbench.colorTheme": "Winter is Coming (Dark)",
+    "emmet.includeLanguages": {
+        "vue-html": "html",
+        "javascript": "javascriptreact"
+    },
+    "emmet.triggerExpansionOnTab": true,
+    "files.exclude": {
+        "node_modules": true,
+        "**/.map": true,
+    },
+    "editor.renderControlCharacters": false,
+    "winopacity.opacity": 230,
+}
+
