@@ -305,7 +305,7 @@ GPIO_ReadOutputDataBit (GPIOC,GPIO_Pin_13); //读取输入口PC13值
 GPIOx->IDR
 GPIOx->ODR
 
-> 复用的时候Alternate选择AFx怎么确认，在datesheet里面搜alternate function mapping
+> 复用的时候Alternate选择AFx怎么确认，在datesheet里面搜alternate function mapping，user manual中没有
 >
 > ---
 >

@@ -6268,4 +6268,8 @@ Partial Diff
 再选中部分其他代码，右键 compare text with previous selection 
 就会实现对比代码部分。
 
+------直接打开文件夹不能实现跳转
+需要ctrl+shift+p：搜索c_c++调出includepath
 
+
+点击函数名字，alt+F12,只看一眼，不跳转过去。
