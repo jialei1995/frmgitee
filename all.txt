@@ -6125,10 +6125,12 @@ python中除以取取整数是：//
 如何在进深度之前把电池休眠状态发出去？
 将rcvflag置1，让程序将状态发出去，即使当前不连接485，可以写假数据，模拟收到0x51 cmd
 
-
+-------------------------------------------------vscode
 vscode include报错：
 c_cpp_properties.json    修改此文件，增加头文件路径
 "includePath": ["${workspaceFolder}/**"], **表示递归
+				"/输入斜杠后会自动补全路径"
+Path Intellisense：路径补全工具
 
 单个文件内全局替换：ctrl+f写出要替换的文字后：ctrl+alt+enter/直接点击replace all按钮
 alt+l：高亮显示搜索的数字
@@ -6183,4 +6185,87 @@ vscode字体设置：
     "editor.renderControlCharacters": false,
     "winopacity.opacity": 230,
 }
+-------书签---------
+todo-tree插件：为代办事件添加标签，方便寻找
+需要在settings json中增加：在需要增加标签的地方写入"//TODO", "//FIXME", "tag", "done", "note"注释即可方便查询
+// "todo-tree.tree.showScanModeButton": false
+  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^)\\s*($TAGS):|^\\s*- \\[ \\])",
+  "todo-tree.general.tags": ["TODO", "FIXME", "tag", "done", "note"],
+  "todo-tree.regex.regexCaseSensitive": false,
+  "todo-tree.highlights.defaultHighlight": {
+    "foreground": "white",
+    "background": "yellow",
+    "icon": "check",
+    "type": "tag",
+    "iconColour": "yellow"
+  },
+  "todo-tree.filtering.excludeGlobs":[
+    "**/node_modules",
+    "**/dist",
+    "**/*.txt",
+    "**/*.md"
+  ],
+  "todo-tree.highlights.customHighlight": {
+    "TODO": {
+      "background": "#f90",
+      "iconColour": "#f90"
+    },
+    "FIXME": {
+      "background": "red",
+      "icon": "beaker",
+      "iconColour": "red"
+    },
+    "tag": {
+      "background": "blue",
+      "icon": "tag",
+      "iconColour": "blue"
+    },
+    "done": {
+      "background": "green",
+      "icon": "issue-closed",
+      "iconColour": "green"
+    },
+    "note": {
+      "background": "#2196F3",
+      "icon": "note",
+      "iconColour ": "#2196F3"
+    }
+  },
+2.安装bookmarks：安装之后也可以快捷键  CTRL+ALT+K  默认就可以增加bookmarks的书签。
+如果没有增加成功是因为这个快捷键作为别的用途了，需要禁止掉其他用途。
+-----------------------------
+16进制文件预览编辑
+右键：showhexdump  即可预览二进制文件
+-------高亮显示单词
+highlight-words自己配置不重复的快捷键--ctrl+h高亮，再按ctrl+h取消高亮
+
+"highlightwords.colors": [
+    { "light": "#b3d9ff", "dark": "cyan" },
+    { "light": "#e6ffb3", "dark": "pink" },
+    { "light": "#b3b3ff", "dark": "lightgreen" },
+    { "light": "#ffd9b3", "dark": "magenta" },
+    { "light": "#ffb3ff", "dark": "cornflowerblue" },
+    { "light": "#b3ffb3", "dark": "orange" },
+    { "light": "#ffff80", "dark": "green" },
+    { "light": "#d1e0e0", "dark": "red" }
+    ...
+],
+"highlightwords.box": {
+    "light": false,
+    "dark": true
+},
+"highlightwords.defaultMode": {
+    "default": 0
+}
+
+"highlightwords.showSidebar": {
+    "default": true
+}
+
+------------对比工具
+Partial Diff
+选中部分代码，右键：select text for compare 
+再选中部分其他代码，右键 compare text with previous selection 
+就会实现对比代码部分。
+
 
