@@ -65,6 +65,7 @@ demonstrate  展示，证明
 explosive  爆炸式的
 
 dummy  空白
-
+geometry   [dʒiˈɒmətri]   几何
+devexpress  控件开发公司
 ```
 

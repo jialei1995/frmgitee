@@ -151,3 +151,258 @@ QLineSeries定义的变量series要add到QChart定义的变量chart中去，char
 可以参考QT左上角的欢迎->示例
 
 绘制各种图形举例：https://blog.csdn.net/lwbeyond/article/details/41479809?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-16.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-16.control
+
+
+qt：编译报错  Error while building/deploying project all-class-in-one (kit: Desktop Qt 5.10.1 …
+When executing step “qmake”
+改工程所在的路径不能有中文出现，改完后重新打开工程编译即可
+-------------------------------老贺发的资料----------------------------各种对话框
+QGridLayout* gridLayout = new QGridLayout;布局管理器
+可以通过gridLayout对象去布局当前界面中各个控件的位置：
+gridLayout->addWidget(colorPushBtn, 0, 0, 1, 1);
+setLayout(gridLayout);最后通过setlayout启用设置结果
+
+不同的按钮按下可以调用同一个槽函数：
+connect(colorPushBtn, SIGNAL(clicked()), this, SLOT(doPushBtn()));
+void CBuiltinDlg::doPushBtn()
+{
+#当QPushButton发出一个信号时就记录发出这个信号的对象，sender获取发出信号的对象；
+#当有多个OBject发出信号时可根据sender()函数判断是哪个对象发出的；然后qobject_cast类型转换为QPushButton类型
+    QPushButton* btn = qobject_cast<QPushButton*>(sender());
+    if(btn == colorPushBtn) {// 如果被按下的是颜色对话框.
+        QPalette palette = displayTextEdit->palette();//创建textedit对象的调色板
+        const QColor& color = QColorDialog::getColor(palette.color(QPalette::Base), this);//获取选择的颜色
+        if(color.isValid()) {
+            palette.setColor(QPalette::Base, color);//设置调色板颜色
+            displayTextEdit->setPalette(palette);//将调色板颜色设置到textedit
+        }
+    }
+    else if(btn == errorPushBtn) {//如果被按下的是错误信息框.
+        QErrorMessage box(this);//创建qerrormessage对象
+        box.setWindowTitle(tr("错误信息框"));//设置标题
+        box.showMessage(tr("错误信息框实例xx。"));//错误内容
+        box.exec();//对话框不退出
+    }
+    else if(btn == filePushBtn) {// 文件对话框.
+        QFileDialog *fileDialog = new QFileDialog(this);
+        fileDialog->setWindowTitle(tr("Open Image"));
+        fileDialog->setDirectory(".");//设置当前目录
+
+		QStringList filter;//文件过滤器
+		filter << "*.jpg" << "*.png" << "*.bmp" << "*.gif";//过滤的文件名后缀
+		fileDialog->setNameFilters(filter);//设置过滤器生效
+        if(fileDialog->exec() == QDialog::Accepted) {
+            QString path = fileDialog->selectedFiles()[0];//获取路径
+            displayTextEdit->setText(path);//显示路径
+        }
+    }
+    else if(btn == fontPushBtn) {// 字体对话框.
+        bool ok;
+        const QFont& font = QFontDialog::getFont(&ok,//给ok变量赋值
+                                    displayTextEdit->font(),//获取当前textedit字体
+                                    this,
+                                    tr("字体对话框"));
+        if(ok) {// 如果<确定>,设置字体.
+            displayTextEdit->setFont(font);//给textedit设置字体
+        }
+    }
+    else if(btn == inputPushBtn){// 输入对话框.
+        bool ok;
+        QString text = QInputDialog::getText(this,
+                                            tr("输入对话框"),
+                                            tr("输入文本："),
+                                            QLineEdit::Normal,
+                                            QDir::home().dirName(),
+                                            &ok);
+        if (ok && !text.isEmpty())
+           displayTextEdit->setText(text);
+    }
+    else if(btn == pagePushBtn) {// 页设置对话框.
+        QPrinter printer;
+        QPageSetupDialog dlg(&printer, this);
+        dlg.setWindowTitle(tr("页设置对话框"));
+        if (dlg.exec() == QDialog::Accepted) {
+            // 进行下一步的处理。
+        }
+    }
+    else if(btn == progressPushBtn) {// 进度对话框.
+        QProgressDialog progress(tr("正在复制文件..."), tr("取消"), 0, 1000, this);
+        QFont font("ZYSong18030",10);
+        progress.setFont(font);
+
+        progress.setWindowModality(Qt::WindowModal);
+        progress.setWindowTitle(tr("进度对话框"));
+        progress.show();
+        for (int i = 0; i < 1000; i++) {
+            progress.setValue(i);
+            qApp->processEvents();
+            if (progress.wasCanceled())
+                break;
+            QTest::qWait(1);
+            //... 复制文件处理。
+        }
+        progress.setValue(1000);
+    }
+    else if(btn == printPushBtn) {// 打印对话框.
+        QPrinter printer;
+        QPrintDialog dlg(&printer, this);
+        dlg.setWindowTitle(tr("打印对话框"));
+        if (dlg.exec() == QDialog::Accepted) {
+            // 进行下一步的处理。
+        }
+    }
+}
+
+同时打开多个文件的对话框：
+void CBuiltinDlg::MultiOpenFile()
+{
+    QStringList files = QFileDialog::getOpenFileNames(
+                                    this, tr("Select one or more files to open"),//弹框标题
+                                    "/",
+                                    tr("All Files (*);;Text Files (*.txt)"));//过滤设置
+    if (files.count()) {//如果选中的文件不是0个
+      displayTextEdit->setText(QString("[%1]").arg(files.join(", ")));//将所有选中文件的路径显示到edit
+    }
+}
+向导对话框：
+void CBuiltinDlg::slotWizard()
+{
+    QWizard wizard;//创建向导
+    wizard.addPage(createFirstPage());//对话框有2页
+    wizard.addPage(createSecondPage());
+
+    wizard.setWindowTitle(tr("向导对话框"));
+    wizard.exec();
+}
+QWizardPage* CBuiltinDlg::createFirstPage()
+{
+    QWizardPage *page = new QWizardPage;//向导对话框中的页内容
+    page->setTitle(tr("简介"));
+    QLabel *label = new QLabel(tr("第一页"));
+    label->setWordWrap(true);有没有好像没啥变化
+	
+    QVBoxLayout *layout = new QVBoxLayout;//布局器
+    layout->addWidget(label);
+    page->setLayout(layout);
+    return page;
+}
+QWizardPage* CBuiltinDlg::createSecondPage()
+{
+     QWizardPage *page = new QWizardPage;
+     page->setTitle(tr("正文"));
+     QLabel *label = new QLabel(tr("第二页"));
+     label->setWordWrap(true);
+	 
+     QVBoxLayout *layout = new QVBoxLayout;//布局器
+     layout->addWidget(label);
+     page->setLayout(layout);让布局器去布局
+     return page;
+}
+
+错误信息框：
+QMessageBox::critical(this, tr("错误"),tr("告诉用户一个严重的错误!"));
+
+告警信息对话框：
+void CBuiltinDlg::slotWarning()
+{
+    switch(QMessageBox::warning(this,tr("警告"),tr("是否要保存文档?"),
+            QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save))
+    {
+    case QMessageBox::Save:
+        displayTextEdit->setText(tr("警告对话框 / 保存"));
+        break;
+    case QMessageBox::Discard:
+        displayTextEdit->setText(tr("警告对话框 / 不保存"));
+        break;
+    case QMessageBox::Cancel:
+        displayTextEdit->setText(tr("警告对话框 / 取消"));
+        break;
+    default:
+        break;
+    }
+}
+询问消息框：
+void CBuiltinDlg::slotQuestion()
+{//tr("询问")是标题    tr("重新开始?")是内容   下面是多个按钮
+    switch(QMessageBox::question(this,tr("询问"),tr("重新开始?"),
+            QMessageBox::Ok|QMessageBox::Cancel,QMessageBox::Ok))
+    {
+    case QMessageBox::Ok:
+        displayTextEdit->setText(tr("询问按钮 / 确定"));
+        break;
+    case QMessageBox::Cancel:
+        displayTextEdit->setText(tr("询问按钮 / 取消"));
+        break;
+    default:
+        break;
+    }
+}
+
+函数 tr()全名是QObject::tr(),被它处理的 字符串可以 使用工具提 取出来翻译 成其他语言, 也就是做国际化使用。
+只要记住,Qt 的最佳实践:如果你想让你的程序国际化的话,那么,所有用户可见的字符串都要使用 QObject::tr()!
+但是,为什么我们没有写 QObject::tr(),而仅仅是 tr()呢?原来,tr()函数是定义在 Object里面的,所有使用了 Q_OBJECT 宏的类都自动具有 tr()函数。
+
+qcustomplot库
+QTimer mDataTimer;
+connect(&mDataTimer, SIGNAL(timeout()), this, SLOT(timerSlot()));  得先connect再start，每40ms执行timerslot函数。
+mDataTimer.start(40);
+
+我们可以根据qt代码目录编译后生成的buildxx目录看到之前编译此工程的qt是哪个版本。
+正则表达式控制textedit的输入值：
+QRegExp regExp("[A-Za-z][1-9][0-9]{0,2}");regExp可接收数据被确定
+ui->lineEdit->setValidator(new QRegExpValidator(regExp, this));只有有效的数据才能被写到lineedit
+//lineedit文本发生改变才进入slot函数
+connect(ui->lineEdit, SIGNAL(textChanged(const QString&)), this, SLOT(on_lineEdit_textChanged()));
+void GoToCellDialog::on_lineEdit_textChanged()//只有lineedit满足要求ok按钮才能被点击
+{
+	ui->okButton->setEnabled(ui->lineEdit->hasAcceptableInput());
+}
+-------------目录操作
+m_appFolder = QDir(QApplication::applicationDirPath());获取当前工程目录路径
+
+QDir imageFolder = m_appFolder;
+imageFolder.cdUp();//进入上层目录
+imageFolder.cdUp();
+imageFolder.cd("src");//进入src目录
+imageFolder.cd("charts");//再进入charts目录
+imageFolder.cd("doc");
+imageFolder.cd("images");
+
+
+QT工程pro文件模板变量（TEMPLATE）
+subdirs - 这是一个特殊的模板，它可以创建一个能够进入特定目录并且为一个项目文件生成makefile并且为它调用make的makefile。
+app -建立一个应用程序的makefile。这是默认值，所以如果模板没有被指定，这个将被使用。
+
+
+tabwidget用法-------------与table widget不一样，这个是容器
+setTabIcon(0,QIcon("E:\\Qt_Project\\QTabWidget\\1.ico"));//设置第1个选项卡的图标 
+setTabPosition(QTabWidget::South);//设置选项卡的方位东南西北，默认在上方
+//用stringlist给表格添加表头
+QStringList m_Header;
+m_Header<<QString("田径")<<QString("篮球")<<QString("足球")<<QString("乒乓球")<<QString("羽毛球")<<QString("游泳");
+ui->tableWidget->setHorizontalHeaderLabels(m_Header);//添加横向表头，表头这行不算在数据行之内
+可视化加了，显示没什么变化
+ui->tableWidgetSports->verticalHeader()->setVisible(true);//纵向表头可视化
+ui->tableWidgetSports->horizontalHeader()->setVisible(true);//横向表头可视化
+
+给表格填数据的方法：6列10行
+for(int rows=0;rows<10;rows++)//遍历行
+{
+	for(int columns=0;columns<6;columns++)//遍历列
+	{
+	ui->tableWidget->setItem(rows,columns,new QTableWidgetItem("刘翔"));给row行colums列增加数据new QTableWidgetItem("string变量")
+	}
+}
+
+for(int rows=0;rows<10;rows++)//循环设置每个表格中文字属性，类似excel中的设置--得一个一个设置吗？太麻烦了吧
+{
+	for(int columns=0;columns<6;columns++)
+	{
+		ui->tableWidget->setColumnWidth(columns,125);
+		ui->tableWidget->setRowHeight(rows,30);
+		ui->tableWidget->item(rows,columns)->setTextAlignment(Qt::AlignCenter);//居中显示
+		ui->tableWidget->item(rows,columns)->setBackgroundColor(QColor(85,170,255));//设置前景颜色
+		ui->tableWidget->item(rows,columns)->setTextColor(QColor(0,0,0));//设置文本颜色
+		ui->tableWidget->item(rows,columns)->setFont(QFont("Helvetica"));//设置字体为黑体
+	}
+}
