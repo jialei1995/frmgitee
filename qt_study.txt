@@ -406,3 +406,37 @@ for(int rows=0;rows<10;rows++)//循环设置每个表格中文字属性，类似
 		ui->tableWidget->item(rows,columns)->setFont(QFont("Helvetica"));//设置字体为黑体
 	}
 }
+
+qcustomplot库:
+新建widget控件，然后提升控件为qcustomplot类
+之后直接在文件中调用qcustomplot的方法去初始化控件即可
+
+ui->qCustomPlotMusic->plotLayout()->insertRow(0);给控件增加row0行
+ui->qCustomPlotMusic->plotLayout()->addElement(0, 0, new QCPTextElement(ui->qCustomPlotMusic, "网易云音乐播放和评论统计图", QFont("微软雅黑",12, QFont::Bold)));给row0行 colum0列 增加文本要素
+
+渐变色控制QLinearGradient控件
+QLinearGradient gradient(0, 0, 200, 400);    在x轴的0-200范围内实行渐变   在y轴的0-400实行渐变
+gradient.setColorAt(0, QColor(200, 150, 220));共3段渐变色调整
+gradient.setColorAt(0.56, QColor(15, 150, 200));
+gradient.setColorAt(1, QColor(40, 49, 200));
+ui->qCustomPlotMusic->setBackground(QBrush(gradient));  将渐变设置画到qCustomPlotMusic的bg中
+
+
+
+
+listWidget:每行一个选项卡，additem增加选项
+ui->listWidgetLanguage->addItem(tr("中文"));
+
+
+groupbox里面可以放各种同类型控件,一次性放多个
+radiobox checkbox  pushbutton  lineedit 
+
+
+treeWidget：树状的listWidget
+ui->treeWidgetDigital->setColumnCount(2); //设置列数
+ui->treeWidgetDigital->setHeaderLabels(QStringList(tr("数码产品")));//设置头的标题
+QTreeWidgetItem *items1 = new QTreeWidgetItem(ui->treeWidgetDigital,QStringList(QString("手机")));大项目分类
+items1->setIcon(0,QIcon("E:\\Qt_Project\\QTabWidget\\1.ico"));设置icon
+QTreeWidgetItem *items11 = new QTreeWidgetItem(items1,QStringList(QString("苹果")));//设置手机分类里面的子项目
+
+
