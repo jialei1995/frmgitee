@@ -421,8 +421,8 @@ gradient.setColorAt(0.56, QColor(15, 150, 200));
 gradient.setColorAt(1, QColor(40, 49, 200));
 ui->qCustomPlotMusic->setBackground(QBrush(gradient));  将渐变设置画到qCustomPlotMusic的bg中
 
-
-
+mGraph2->setPen(QPen(QColor(0, 180, 60)));设置线条颜色
+----------------------
 
 listWidget:每行一个选项卡，additem增加选项
 ui->listWidgetLanguage->addItem(tr("中文"));
@@ -438,5 +438,45 @@ ui->treeWidgetDigital->setHeaderLabels(QStringList(tr("数码产品")));//设置
 QTreeWidgetItem *items1 = new QTreeWidgetItem(ui->treeWidgetDigital,QStringList(QString("手机")));大项目分类
 items1->setIcon(0,QIcon("E:\\Qt_Project\\QTabWidget\\1.ico"));设置icon
 QTreeWidgetItem *items11 = new QTreeWidgetItem(items1,QStringList(QString("苹果")));//设置手机分类里面的子项目
+
+
+
+
+QString 转换为 char *
+1.QString 转换为 char *
+将 QString 转 char *，需要用到 QByteArray 类，因为 char * 最后都有一个'\0'作为结束符，而采用 QString::toLatin1() 时会在字符串后面加上'\0'。
+QString  str;
+char*  ch;
+QByteArray ba = str.toLatin1(); // must
+ch=ba.data();
+这样就完成了 QString 向 char * 的转化。经测试程序运行时不会出现 bug。注意第3行，一定要加上，不可以 str.toLatin1().data() 这样一步完成，否则可能会出错。
+补充：以上方法当 QString 里不含中文时，没有问题，但是 QString 内含有中文时，转换为 char * 就是乱码，采用如下方法解决：
+
+方法1：添加GBK支持
+#include <QTextCodec>
+QTextCodec::setCodecForTr(QTextCodec::codecForName("GBK"));
+QTextCodec::setCodecForLocale(QTextCodec::codecForName("GBK"));
+然后将上面的第3行修改为：
+
+QByteArray ba = str.toLocal8Bit();  // toLocal8Bit 支持中文
+方法2：先将 QString 转为标准库中的 string 类型，然后将 string 转为 char *。如下：
+QString  filename;
+std::string str = filename.toStdString();
+const char* ch = str.c_str();
+2.char * 转换为 QString
+将 char * 转换为 QString 比较容易操作，我们可以使用 QString 的构造函数进行转换：
+QLatin1String(const char *str);char*-->std::string
+因此用下面这个语句就可以将 char * ch 转换为 QString str 了，如下：
+str = QString(QLatin1String(ch));
+
+
+
+
+
+
+-----------------------------------多线程
+在主线程中结束之前调用
+mythread.join();   意思就是等其他线程结束后，由主线程来回收进程资源----就是等别的子线程都执行完再退出主线程
+std::thread  mythread(fun);mythread线程变量的初始化函数与执行函数就是fun
 
 

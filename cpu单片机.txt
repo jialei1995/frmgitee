@@ -375,6 +375,7 @@ GPIOx->ODR
 >
 > 窗口看门狗：
 > 7bit递减计数器，可以设置自由运行，由主时钟驱动
+>一般看门狗的时钟如果用内部的时钟源则是40k的时钟，如果用外部的时钟源，则选取32.768k的时钟，然后再分频算步进时间
 
 ### 中断
 
@@ -1131,6 +1132,13 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;  再分频
 	TIM_InitStruct.RepetitionCounter = 0;  
 	LL_TIM_Init(TIM16, &TIM_InitStruct);
+	
+	
+	stm32f103:内部8m内部高速时钟
+	TIM_TimeBaseStructure.TIM_Period=8-1;		 分频后1m									
+	TIM_TimeBaseStructure.TIM_Prescaler= freq*1000;		再分频100，则步进1s/100=10ms进一次中断		    
+	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1; 		
+	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up; 
 这里初始化里面没有开定时器的中断，可能在外面是开了的。
     定时器的作用：
     1.计算时间--不开中断，不连接pin脚
@@ -1235,7 +1243,10 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 ```
 rtc
 LL_RTC_BKP_GetRegister  读bkp里面的值，bkp有32bit*8个
-LL_RTC_BKP_SetRegister
+rtc有3种可屏蔽中断：
+闹钟中断：几点几分产生中断
+秒中断：1s一次
+溢出中断：计数器溢出并转化为0的中断
 
 tamper是后备寄存器，存到里面的数据是不会改变的，rtcinit的函数中只是用它来决定是不是需要初始化时间。因为复位后程序
 重新运行，用变量无法决定，需要用bkp里面的数据去决定是不是需要重新初始化时间。
@@ -2321,7 +2332,7 @@ LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);  设置apb1的预分频
 LL_Init1msTick(16000000);  初始化systick的时钟
 LL_SetSystemCoreClock(16000000);  设置主时钟源频率sets directly SystemCoreClock CMSIS variable.即使这里更改了，systick的频率仍然是1ms
 
-LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSI);  设置rtc时钟源
+LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSI);  	设置rtc时钟源，HSE/128,LSE,LSI三种时钟源
 LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_SYSCLK);	设置adc时钟源为sysclk，也可以设置成PLL，hsi
 
 可以在uart内部去设置uart的时钟  
@@ -2601,3 +2612,149 @@ cpu的供电管脚是vdd供电程序可运行，vbat是后备寄存器供电，�
 
 铁锂电芯:
 电量在3200集中的容量最多,然后是3400左右也集中的很多容量
+
+中颖里面也有对于电池当前状态的判断,中颖中的状态判断的电流门限可能比较高
+我们用的电池状态的判断策略更准确一些
+
+为什么开premos需要一个标志位呢?
+保利新16s的代码里面:进入休眠判断说明没有中颖的报警,但是有可能有静态2700的报警呀
+有静态2700报警则不能闭合预充mos,但是并不会影响进入休眠.
+
+#define NVIC_BASE           (SCS_BASE +  0x0100UL)                    /*!< NVIC Base Address                 */
+#define NVIC                ((NVIC_Type      *)     NVIC_BASE     )   /*!< NVIC configuration struct          */
+设置NVIC绝对地址后，再重新定义操作这个位置各个reg的结构体变量，则可以通过指针的方法去操作reg
+
+
+swd下载：可以用j-link  st-link ，SWD只需要两根线，分别为：SWCLK和SWDIO
+isp下载：uart烧录，用的是串口。需要选择BOOT的模式，现在通过CH340G芯片可以实现自动ISP的下载方式，即不需要手动设置BOOT模式
+
+1.为什么设置中断线17:rtc的alarm唤醒---
+STM32F10x有20条中断线，其中16条用于IO口中断使用，还有4条用于内部中断事件。EXTI17就是用于内部RTC闹钟唤醒中断事件时使用，所以初始化中除了打开RTC闹钟中断同时打开了EXTI17中断线。
+2.为什么RTC闹钟中断服务程序清除EXTI17中断标志位？
+因为中断线17接到了RTC闹钟上，RTC闹钟中断后会触发中断线17产生中断事件，所以在RTC中断内清除标志位，这同时是RTC闹钟唤醒停止模式的原因。具体看下图手册描述
+如果在EXTI控制器中设置的EXTI线17的中断模式，则会产生RTC闹钟中断。
+如果在EXTI控制器中设置的EXTI线17的时间模式，则会产生脉冲，不会产生RTC闹钟中断
+
+RTC_ITConfig(RTC_IT_ALRA|rtc_it_sec, enable);//开启rtc秒中断与闹钟中断
+
+
+
+
+
+rtc配置：
+RTC一次设定值后一秒递增一个单位，每过40秒就触发一个闹钟并进入中断，每经过一秒就将秒数输出到计算机上。下面就是RTC的初始化配置。（第一个程序从正点原子的程序上修改得来）
+u8 RTC_Init()
+{
+	u8 temp = 0;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_BKP|RCC_APB1Periph_PWR,ENABLE);//电源时钟和背部时钟
+	PWR_BackupAccessCmd(ENABLE);                    //允许背部区域写
+	
+	if (BKP_ReadBackupRegister(BKP_DR1) != 0xC0B4)		
+		{	 			
+ 
+		BKP_DeInit();	
+		RCC_LSEConfig(RCC_LSE_ON);	
+		while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)	
+			{
+			    temp++;
+			    delay_ms(10);
+			}
+		if(temp>=250)return 1;   
+		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);		   
+		RCC_RTCCLKCmd(ENABLE);	 
+		RTC_WaitForLastTask();	
+		RTC_WaitForSynchro();		
+		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR, ENABLE);	//打开RTC的秒中断和闹钟中断	
+		RTC_WaitForLastTask();	
+		RTC_EnterConfigMode();                        //进入配置RTC模式
+		RTC_SetPrescaler(32767); 
+		
+		RTC_SetCounter(0);                            //初始值设定为0s
+	    RTC_WaitForLastTask();
+		RTC_SetAlarm(40);	                           //闹钟值设定为40s
+		RTC_WaitForLastTask();                        //等待上述配置完成
+		RTC_ExitConfigMode();                          //退出配置模式
+		BKP_WriteBackupRegister(BKP_DR1, 0XC0B4);
+		PWR_BackupAccessCmd(DISABLE);                //不允许背部区域写操作
+		}
+	else
+	{
+		PWR_BackupAccessCmd(DISABLE);
+		RTC_WaitForSynchro();
+		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR,ENABLE); //打开RTC的秒中断和闹钟中断	
+		RTC_WaitForLastTask();
+	}
+  
+	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;		//RTC全局中断的中断配置
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;	
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;		
+	NVIC_Init(&NVIC_InitStructure);		
+ 
+	return 0;
+}
+//此初始化函数在主函数中的用法
+while(RTC_Init())
+{
+	printf("INIT Programing is ERROR!!\r\n");
+}
+	
+中断处理函数：
+void RTC_IRQHandler()
+{
+	if(RTC_GetITStatus(RTC_IT_ALR)!=RESET) //是否闹钟中断发生
+	{
+		printf("THE ALARM  READY =%d \r\n",RTC_GetCounter());//输出此时的秒数
+		RTC_ClearITPendingBit(RTC_IT_ALR);
+		PWR_BackupAccessCmd(ENABLE);
+		RTC_EnterConfigMode();	
+	    RTC_WaitForLastTask();
+		RTC_SetAlarm(40+RTC_GetCounter());	  //配置下次闹钟为40s后
+		RTC_WaitForLastTask();
+		RTC_ExitConfigMode();   
+		PWR_BackupAccessCmd(DISABLE);
+	}//要注意的一点就是在中断函数里面如果把判断秒中断的函数写在了判断闹钟中断的前面，就会得到THE ALARM READY=41。。。还有一点就是就算没有写反，下一次闹钟的时间是81秒，如图
+    if(RTC_GetITStatus(RTC_IT_SEC)!=RESET)  //是否秒中断发生
+	{
+		printf("Time is  =%d \r\n",RTC_GetCounter()); //输出此时的秒数
+	}
+	RTC_ClearITPendingBit(RTC_IT_SEC|RTC_IT_OW); //清除秒中断标志位和溢出位
+	RTC_WaitForLastTask();
+}
+
+待机模式是功耗最低的一种模式。外部复位(NRST 引脚)、 IWDG 复位、 WKUP 引脚上的上升沿或 RTC 闹钟事件
+发生时，STM32从待机模式退出。其中外部复位和WKUP的方法比较简单。主要讲一下RTC闹钟唤醒。
+这两个程序一个是让STM32的一个管脚接按键，按键按下的时候STM32进入待机状态，当40秒的闹钟到来时唤醒STM32.
+另一个是当按键按下时候进入待机状态，闹钟设置为5S秒后，闹钟来临时唤醒STM32.
+
+
+最好的处理rtc定时中断的方法：
+void RTC_ALARM_Time_COnfig(FunctionalState NewState)
+{
+	RTC_AlarmTypeDef RTC_AlarmStructure;
+	RTC_TimeTypeDef  RTC_TimeNow;
+	uint32_t TimeCount= 0;
+	RTC_GetTime(RTC_Format_BIN,&RTC_TimeNow);//获取当前时间时刻
+
+	RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
+	RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = RTC_TimeNow.RTC_Hours;
+
+	TimeCount= RTC_TimeNow.RTC_Minutes*60+RTC_TimeNow.RTC_Seconds+DEF_RTCALARM_sec-1;//定时5s后设置为唤醒时间
+	RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes =((TimeCount/60)%60);
+	RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds =(TimeCount%60);  
+	/* Alarm Date Settings : Date = 1st day of the month */
+	RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
+	RTC_AlarmStructure.RTC_AlarmDateWeekDay = 1;
+	/* Set the alarmA Masks 只要分与秒一样就可以进alarm中断，很好的功能*/*****
+	RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_All&(~(RTC_AlarmMask_Minutes|RTC_AlarmMask_Seconds));
+	
+	RTC_SetAlarm(RTC_Format_BIN, RTC_Alarm_A, &RTC_AlarmStructure);
+	/* Enable AlarmA interrupt */
+	RTC_AlarmCmd(RTC_Alarm_A,NewState);
+	RTC_ITConfig(RTC_IT_ALRA, NewState);
+}
+
+
+
+
