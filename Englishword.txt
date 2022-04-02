@@ -67,5 +67,11 @@ explosive  爆炸式的
 dummy  空白
 geometry   [dʒiˈɒmətri]   几何
 devexpress  控件开发公司
+palette		调色板
+graphs		图
+Plot		绘制
+thermistor  温度传感器，热敏电阻
+conclusion  结论，结尾
+
 ```
 

@@ -2756,5 +2756,9 @@ void RTC_ALARM_Time_COnfig(FunctionalState NewState)
 }
 
 
+---------------------加预充需要修改的地方
+进idle关dsg
+中颖set_default关dsg
+初始化io的时候开预充
 
 
