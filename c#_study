@@ -638,3 +638,14 @@ for (int i = 0; i < 15; i++)
 	if ((sbit >> i & 1) == 1) { test[i].BackgroundImage = global::GTDS_485.Properties.Resources.red; }
 	else { test[i].BackgroundImage = global::GTDS_485.Properties.Resources.gray1; }
 }
+
+
+
+string[,]  errItem = {		初始化的二维数组
+{},
+{},
+{}
+}
+
+string []  var = {}   初始化一维数组
+

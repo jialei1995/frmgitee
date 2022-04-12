@@ -72,6 +72,7 @@ graphs		图
 Plot		绘制
 thermistor  温度传感器，热敏电阻
 conclusion  结论，结尾
-
+optimal performance  最佳性能
+Duty Ratio，Duty Cycle	占空比
 ```
 
