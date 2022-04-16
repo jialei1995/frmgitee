@@ -8,8 +8,8 @@
 	内核启动时，通过pcibus之前的关系枚举pci_dev，为每个pci设备创建pcidev结构体，注册到pci树中。
 	通过虚拟总线之前的关系枚举cdev，为每个字符设备创建cdev结构体，注册到设备树内核中。
 	
-	useradd jl;增加用户
-	userdel jl；删除用户  之后还要rm /home/jl
+	useradd -m jl;增加用户,在ubuntu中如果没有-m，会出现用户虽然新增了，但是/home中没有新目录
+	userdel jl；删除用户  之后还要rm /home/jl	
 	userdel -r jl:彻底删除用户,/home/jl 也会被删除
 
 	chown root /home/test  把这个目录或文件的属主设为root，别人就不能访问(还看对other的访问权限0664.)
@@ -26,7 +26,7 @@ C++:
 	静态成员变量必须要在类外初始化，不然会报错。它不会占对象的空间。存储在静态区。
 	函数也不占用对象的内存空间。
 
-	&&&普通的成员函数也不属于类的对象上的，它只有1份。通过this指针判定是谁在调用它。
+	&&&普通的成员函数是不属于类的对象上的，它只有1份。通过this指针判定是谁在调用它。
 		this指针隐含在每一个普通的成员函数内部
 	    普通成员函数	return *this；就是返回对象本身
 
@@ -105,7 +105,7 @@ ctags用法：
 			set  tags=/usr/include/tags
 
 数字转字符串：c语言:atoi   itoa
-c++		string 不是char*传参的时候传string 并不会改变原来s的值，传string*才可以。。但是s[0]确实也是string的第一个字母
+c++		string 不是char*传参的时候传string 并不会改变原来s的值，传string*或者string&才可以。。但是s[0]确实也是string的第一个字母
 		string to_string(int value)
 		string to_string(long value)
 		string to_string(double value)
@@ -959,21 +959,20 @@ c阶段：
 		串口为啥1byte1byte的发，因为可以减小收发双方时间基准不一样长时间通信有可能数据差出1bit，后面的所有数据就会出错。
 		减小累计误差
 		arm-none-linux-gnueabi-ld  start.o -Tmap.lds -o led.elf
-		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 
+		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S/strip all 
 ··		【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
 		异步通信：数据传送是以字符为单位的，字符间的传送是完全异步的，字符中位于位之间同步（字符间异步 字符内部各位同步）
 				不知道数据多会发，多会收，让你发就发，别人发就收
 		同步通信：传输以数据块为单位，字符之间，字符的位于位之间都是同步的。
 
-		每个uart模块都有这几个寄存器，就地址不一样，功能一样的
-		**uart2：为什么又要设置串口gpio的时钟又要设置uart外设的时钟。明明最终的波特率就是按照串口分频下来的。两者都是使能
-					使能gpio引脚，引脚就能用了，使能uart，uart就能用了。但是要注意uart的时钟，与gpio时钟的频率要合适。不能说
-					uart的总线时钟是20M，你gpio的时钟设置的1M。这样数据还会有问题。
+		**uart2：为什么又要设置串口gpio的时钟又要设置uart外设的时钟。
+		固定用法，可以通过keil生成，pin想作为uart就要初始化pin为特定功能，然后再初始化uart控制器特性
+		两者都是使能  使能gpio引脚，引脚就能用了，使能uart，uart就能用了。
 
 				【1】配置第6章一对管脚pin的con为uart模式
 				【2】uart章节一共有好几个uart，配置对应的ulcon配置收发数据格式
 				【3】波特率   
-				【4】数据收发方式-中断或轮训
+				【4】数据收发方式-中断或轮训--一般都配置中断
 				【5】收发存储数据寄存器，UTxHn 0x13820020把要发送的数据放到这个寄存器,【就算发出去了，后面不用管了】
 										 URxHn 0x13820024  【把数据放到这里就算读出来了，后面不用管了】
 				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
@@ -983,9 +982,10 @@ c阶段：
 	linux开机时读取的时间就是rtc中的时间，关机时再将当前os的时间同步到rtc中。
 		为什么说看门狗与pwm都是定时器，因为他们配置的结果就是产生一个频率，实际就是产生一个固定的时间长度，
 		你配置输出频率的占空比还是基于这个时间，这个频率可以精准配置时间的。exynos配置的时候好几步都是弄频率的。
-		看门狗：WTCON = WTCON  |1 |0x7<<3 |249<<8;配置分频，产中断还是产复位信号。还是只当个定时器来用
+		看门狗：WTCON = WTCON  |1 |0x7<<3 |249<<8;
+				配置分频，产中断还是产复位信号。还是只当个定时器来用
 				WTCNT = 15625;   //不要老想着位操作	，赋值的时候直接赋值就好了。这个里面的数字会递减
-			****看门狗的设置跟管脚没有关系，是芯片内存本来就有的功能。喂狗是硬件来做的。而且软件设置的WTCNT一般也是硬件做的，
+			****看门狗的设置跟管脚没有关系，是芯片内存本来就有的功能。
 			现在只是为了学习看门狗才简单的配置这个寄存器。配置好寄存器，板子上电5s会自动reset或执行中断。
 			counter计数器是8-16bit的，总大小是是有限的
 
@@ -998,7 +998,8 @@ c阶段：
 
 		软中断：（swi）是用户命令，得先切换到用户状态才能使用这条命令
 				1板子上电汇先运行b reset：我们需要在reset函数中设置好栈（给sp赋值栈底），svc模式栈就初始化好了
-			-->2现在改变状态为user态，直接执行swi（也可以随便给r0-r12寄存器赋值，等会中断完看能不能复原）就跳转到了swi的处理函数
+			-->
+				2现在改变状态为user态，直接执行swi（也可以随便给r0-r12寄存器赋值，等会中断完看能不能复原）就跳转到了swi的处理函数
 			-->3刚进入这个模式，板子状态会恢复为svc模式，lr保存刚才的pc下条指针，spsr保存刚才cpsr的值，
 				在swihandler中先压栈将现在的r0-r12，lr压栈；分析是那号中断（swi有很多跳转号的），switch case对比一下往哪个子函数跳
 				，然后bleq fun（这里才真正步入了中断子函数，因为要回来所以bl）；
@@ -1032,8 +1033,6 @@ c阶段：
 C++:c++98||c++11 ||c++14
 	用途：
 		bool类型是c++新增的。if（！）不能==0，，只有c中的int可以这样
-		进制输出
-		oct hex dec 8 16 10
 		#include《iomanip》  setbase（16）16进制
 		位宽：setw（10）	123默认右对齐左边补7ge" "
 							%-10d.右边补“ ”
@@ -1109,7 +1108,8 @@ C++:c++98||c++11 ||c++14
 				using A::func;
 				func();
         }
-	3. 输入cin输出cout流   getline(cin,mystr);这样输入的mystr中间有空格也不会打断，可以输入姓名->jia lei
+	3. 输入cin输出cout流   
+		getline(cin,mystr);这样输入的mystr中间有空格也不会打断，可以输入姓名->jia lei
 		#include <iostream>
 		using namespace std;
 		int main()
@@ -1436,7 +1436,7 @@ C++:c++98||c++11 ||c++14
 								{								
 									if(p1.age == p2.age)
 									{
-										return p1.height > p2.height//如果年ling相同，按身高降序
+										return p1.height > p2.height 如果年ling相同，按身高降序
 									}else
 									{
 										return p1.age < p2.age//按年龄升序
@@ -1475,7 +1475,8 @@ C++:c++98||c++11 ||c++14
 	printf("%d,%d",54,(int8_t)(256-54));256其实就是0，因为他9bit溢出了
 	函数对象-->又名仿函数
 		自己可以自己被调用了多少次。	类内部int count;构造函数初始化为0；每次调用时count++;成员属性记录状态；函数对象可做别的函数的参数
-		谓词：返回值是bool才能叫谓词。 重载的是bool operator() ( int val);（）  bool com(int v1,int v2);
+		谓词：返回值是bool才能叫谓词。 重载的是bool operator() ( int val);（）  
+		bool com(int v1,int v2);
 															有1个参数1元谓词     2个参数2元谓词
 		参数：Pred 就是谓词
 		类名+（）； person（）；这就是匿名函数对象。匿名对象
@@ -1584,15 +1585,39 @@ linux内核移植：
 		系统：1.多任务，开发效率高
 			   2.不会损坏硬件，对硬件的操作都是基于linux的系统调用，linux会驳回你的非法操作
 			   3.方便，可以使用linux的库（直接printf）io库
-			   
+
+********
+	裸机：	
+		1.裸机程序需要我们自己写好代码编译好烧写进cpu，对于底层硬件的操作得一次一次实验，
+		2.是直接访问寄存器的程序--危险。
+		3.需要借助rtos实现多线程--是单进程，多线程，其他的rthread等系统并不会实现多进程
+		4.启动方式不同，程序烧写后直接跳转地址运行程序
+		5.开发环境：下载器，串口--keil
+	系统：	
+		1.带linux的系统，直接移植内核到cpu上，就可以直接在cpu运行的系统上进行开发了
+		2.对底层硬件的操控可以借助linxu系统，字符设备驱动，去实现底层，再去实现上层应用层代码。
+		3.可以直接调用linux库实现多线程，多进程开发，打印调试也方便，有glibc库。
+		4.有mmu内存管理单元--负责虚拟地址到物理地址的映射，多进程不会内存越界
+		5.在驱动层对硬件访问有权限检查，不会破坏硬件
+		6.uboot启动，内核启动，挂载驱动程序，执行app应用程序
+		7.开发环境：pc，串口线-打印数据，网线，sd卡，emmc--ubuntu，tftp，nfs
+		（利用nfs挂载虚拟系统在板子上，确认内核没问题，再烧写到emmc或sd卡）
+
 		嵌入式系统种类：（硬件资源有限，系统要裁剪，不用多好的系统，能满足要求就可以）
 			1.ucos2，ucos3，RTthread（小型路由器，机顶盒）
 			2.freeRTOS 小型
 			3.win c e（微软iPad以前就是wince）
 			4.Vxworks（收费的，大型路由器会用）一年40万
+
+
+
 		系统移植移什么：	exynos4412与原来的origen内部很像
-			环境：
-				pc：tftpd（d表示damen守护进程）：-->etc/ddefault/tftpd-hpa cat查看tftp目录位置（该目录文件可直接tftp下载）
+			环境：tftpd-hpa 安装包
+				pc：tftpd（d表示damen守护进程）：-->etc/default/tftpd-hpa 
+				下载安装包后查看默认的存放tftp文件路径，之后可以在客户端通过tftp命令链接server
+				通过get可以下载server中tftp文件路径中的文件至clinet
+
+				cat查看tftp目录位置（该目录文件可直接tftp下载）
 					nfs:   --->/etc/exports
 				demo：ip相关   		bootags:告诉内核使用哪里的文件系统 root = /dev/ram  哪里的nfs
 										init=/linuxrc--->应用程序的启动脚本。第一个用户进程
@@ -1613,7 +1638,7 @@ linux内核移植：
 				先用sd卡启动（不然连串口都没有），将uboot下载到内存，然后write到emmc，这样直接从emmc启动u-boot可以直接用了
 			2.linux内核+设备树（这两在linux3.0之前是一体的）每次编译移动，两者都要做
 					解压的源码包：make mrproper--->make exynos_defconfig(给自己板子弄合适的配置)
-								--->make menuconfig(选择要编译的模块)--->make uImage（vmlinux->zimage->uimage）
+								
 					1.配置内核乱七八糟的
 					2.配置网卡，否则nfs不能用，则rootfs不能用
 				内核启动： 2汇编
@@ -1666,19 +1691,23 @@ linux内核移植：
 		
 		nm xxx：符号标签	显示代码与地址的对应关系表
 		nm -D a.out:显示符号表
-		strip xxx：剔除xxx中 代码与地址的对应关系表，剔除了mn 命令就查不到了
+		strip xxx：剔除xxx中 代码与地址的对应关系表，剔除了nm 命令就查不到了
 		strings xxx：查看此二进制文件中 的字符串  就是printf对应的打印信息
 		objdump -d xxx：查看二进制文件的汇编代码与对应的地址之间的关系
 		readelf -s a.out 显示符号表，上层的printf在底层被转换成什么函数执行的
 		readelf -d 查看当前二进制所需的库，ldd也可以看
-		
-		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S 格式转换
+		readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
+
 		安全编译选项：
 			-D_FORTIFY_SOURCE:缓冲区保护，防止缓冲区溢出，对于很多函数，编译时都会变成xx_chk。可通过objdump -d看到
 	调试：
 		选择将linux的某个文件夹挂载到demo。这样就会同步demo与linux中的数据，可以通过操作linux来操作demo
 	
-		tftp客户端：tftp 20008000 a.txt	//将a.txt数据搬移到内存空间		md 20008000 显示这里的数据存的什么
+		tftp客户端：tftp 20008000 a.txt	//将a.txt数据搬移到内存空间		
+		md 20008000 显示这里的数据存的什么
+		md.b  30008000 40 看内存中的数据  只查看40字节
+		memory display
+
 		tftp服务端：32位：sudo tftpd-hpa tftpd表示是守护进程	netstst -ua 查看目前的网络服务
 			
 					
@@ -1693,9 +1722,13 @@ linux内核移植：
 		2，fs烧写：rfs用户与内核之间的中介
 			1>>nfs普遍用的  TCP/IP
 				先安装nfs-kernel-server								自己做/copy
-				配置/etc/exports  设置一个自己想挂载的任意目录（这个目录这会还是空的） *（rw，sync，no_subtree。check） 
+				配置/etc/exports  设置一个自己想挂载的任意目录（这个目录这会还是空的） 
+				/test *（rw，sync，no_subtree_check） 
 				sudo etc/init.d/nfs-kernel-server restart 
-				root=/dev/nfs 	nfsroot=ip地址（ubuntu）：/挂载目录 	ip=ip号不能与linux一样
+			      $ sudo mount -t nfs localhost:/source/rootfs    /mnt
+			 macos的mount： sudo mount -o resvport 192.168.1.104:/media  /mnt
+
+
 
 		/etc/rc.d/init.d/xxx  各种服务的启动脚本都在这里放着
 		/etc/rc.local    开机后自动执行的脚本，可以自己写个啥进去，每次开机自动就执行了(例如mount)
@@ -1944,22 +1977,21 @@ linux内核移植：
 	
 	内核内的模块添加：
 		1.写驱动程序
-	diff  filename filename.old  ：将文件与之前没改的时候做对比，看哪行被改动过了
 		2.Kconfig 就是配置内核选项的文件--  .config文件中是配置过能看到的文件怎么配置的
-		3.make menuconfig
+		3.make menuconfig    根据Kconfig文件配置要编译进内核或者要编译成mod的模块
 		4.记住要添加内核选项还要修改makefile（修改a.c所在目录的makefile）
-	如何编写字符设备驱动：5步     操作集刚上来就要写
-			0.注册设备号【2中方法】
+		如何编写字符设备驱动：5步     操作集刚上来就要写
+			0.注册设备号【2种方法】
 				[1]自动分配
 				[2]指定设备号注册						弄设备号
 			1.struct cdev * cdev_alloc();			就是创建字符设备。	cdev就是字符设备,申请一段空间存字符设备
 			2.void cdev_init(&cdev,&ops操作集);		初始化cdev结构体ops可以操作cdev【系统完成的】  申请失败cdev_del(pdev);
-****	3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理，某个设备
-号有哪些operations，就定下来了。此时用户怎么使用这个驱动呢？得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。
+			3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理，某个设备
+		号有哪些operations，就定下来了。此时用户怎么使用这个驱动呢？
+		得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。
 一个设备文件对应一个具体的设备，设备号与设备文件通
 过mknode的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
 			4.void cdev_del(&cdev);					注销cdev结构体
-
 
 			pcls = class_create(THIS_MODULE,"hello");//类 创建成功再创建设备文件--->对应/sys/class/classname
 					class_destroy(pcls);
@@ -1996,9 +2028,6 @@ linux内核移植：
 		运行：驱动，内核代码
 		
 		printK:打印优先级，可以设置打印出来那种信息：错误、调试、、、、
-		
-		make menuconfig:遍历显示所有目录下的kconfig。每个配置项都对应kconfig中的一个文件
-		menuconfig中的一行在kconfig中有5、6行对它的描述
 		
 		驱动的升级过程：
 		1.直接将硬件地址写到驱动中，将这些硬件地址ioremap为虚拟地址然后实行硬件操作---不便扩展但是很方便简单
@@ -2114,7 +2143,7 @@ stop信号之间，发送器可以一直发，接收器可以一直读。
 	linxu下的iic驱动：有几个结构体（）内核给我们准备了iic自己的发送与接受方法
 		iic_client：每个clie对应1个drivernt
 		iic_driver：
-		iic_adapter：总线适配器。就是控制器 （在设备数中把你的iic设备天加到对应的iic适配器下就好了）
+		iic_adapter：总线适配器。就是控制器 （在设备树中把你的iic设备天加到对应的iic适配器下就好了）
 						iic{
 							iic1{
 								地址
@@ -2171,6 +2200,7 @@ stop信号之间，发送器可以一直发，接收器可以一直读。
 			i2c_transfer(pclient->adapter, msg, ARRAY_SIZE(msg));
 			return 0;
 		}
+
 spi:时钟是主机产生的，每个spi周期传输1bit数据
 		主机主动拉低cs，表示我要与某个spi设备进行通信，然后sck就开始跳动了。（刚开始sck是0或1极性设置）
 
@@ -2222,8 +2252,6 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 		直接关闭的话2个程序都不能用了
 	}
 
-	查看linux中的函数跳转vi -t IO_W   ----ctrl+[
-
 	1.驱动编写完成insmod后要cat /proc/devices 看一下对应的dev号
 	2.然后mknod  /dev/dev中的驱动名  +   c  +刚才看的dev号（主设备号）+ 驱动文件中的从设备号     //创建设备文件
 	驱动中的设备号与应用程序中的要一致。
@@ -2236,7 +2264,7 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 		  flags 对应上面的mode
 	进程中open一个文件，实际内存中就会建立一个file，这个结构体与task_struct联系起来，把vfs中定义的接口结合起来供上层调用。
 		  
-	df-f  :查看inode使用情况
+	df -i:查看inode使用情况
 	df -haT:显示文件系统与类型
 		register_chrdev_region：  静态插入自己定义MKDEV的设备号
 		alloc_chrdev_region(&devno, mi,count,"hello"); 动态插入动态申请的设备号
@@ -2263,9 +2291,9 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 				dir-----命令的方向，读，写
 				nr------命令的序号
 				size----命令的参数类型（int char）
-	/proc 此目录存放的所有进程的详细信息,内核的运行信息。虚拟的，这个文件夹目的就是让你观察系统运行状态
+
 	/sys 也是虚拟的目录，不会随硬盘转移。设备、驱动信息
-*************************************	adc：*****************************************************************
+*************************************	adc：*******************************
 		一般soc内部用的逐次逼近型。猜数字量转换成模拟量与实际模拟量对比，多猜几次结果就对了
 		soc内有多个ad转换模块，每个模块多个通道，理论上都可以与pin脚连接起来，但是1般只会引出部分pin脚。
 		采样有单端采样，差分采样模式
@@ -2292,7 +2320,6 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 		adcmux：通道选择reg
 		End of conversion flag(Read only)  当它置1，值才可读
 挂载：
-      $ sudo mount -t nfs localhost:/source/rootfs    /mnt
       $ sudo umount /mnt/  
       umount卸载时显示：busy--
        fuser  -vm /mnt(挂载点)  看看那个进程占用了此目录，kill掉就可以umount了    
@@ -2318,7 +2345,7 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 			主要管理设备、驱动
       		sysfs在开机时候就会挂载到/sys
       sudo cat /proc/kmsg  enter另一窗口运行主程序，看内核打印信息
-      传感器一般都是iic通信（包括摄像头基本都是iic）
+
     真正控制led灯：
     	内核   ：操作硬件寄存器，通过内核空间的虚地址
     	arm裸机：操作硬件寄存器，使用的真正的寄存器物理地址*(int *)0x4444444
@@ -2371,7 +2398,7 @@ struct file_operations hello_ops = {
 	.unlocked_ioctl = hello_ioctl,
 	.mmap = hello_mmap, 
 };
-************************************linux 内核中内存的使用*********************************************
+************************************linux ****************************************
 按页申请内存：
 unsigned long  __get_free_pages(int gfp_mask, unsiged long order)
 mask  ----申请内存的属性 
@@ -2413,8 +2440,6 @@ p =kmalloc(30) ;    申请不到
 
 
 void vfree(const void *addr)
-
-
 
 
 内存对象池：
@@ -2461,8 +2486,6 @@ int munmap(void *addr, size_t length);
 7.一定要检查返回值(mmap成功返回void*指针，失败返回MAP_FAILED宏)
 
 用户空间的页面允许中断，内核空间的不允许中断。
-
-
 
 
 驱动里：
@@ -4042,9 +4065,6 @@ strings  xxx.so     在库中提取字符串并打印出来，对于if，else分
 
 dd iflag=xxx oflag=yyy if=uImage of=/dev/sdb    seek=1000扇区号，将内核存储到1000扇区
 
-md.b  30008000 40 看内存中的数据
-
-memory display   yi  byte
 
 gzip -d xxx.gzip   解压
 
@@ -4140,7 +4160,7 @@ addr2line -e 文件名 -f ：显示对应的fun对应的行数
 gdb vmlinux-debug： b 0x000000 ，在这里打断点就知道对应的地址的代码行了
 ar crs libxx.a x.o  y.o  打包静态库
 ar -x  libxx.a  解压静态库
-nm -D a.out  查看二进制中的符号表
+
 objcopy -j .text  a.out  onlytexta.out   只抽出来.text段放到后面的文件中
 
 ```
@@ -4520,7 +4540,7 @@ info  b:查看断点信息
 b 15 if i==15 按条件设置断点，不是一到15行就停止了，还得i=15，才会断住。
 b filename:15/function   跳到文件名为filename的文件的15行，或者函数名字处
 display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
-undisplay  变量i的编号。编号的获取info display//i d
+undisplay  变量i的编号。编号的获取info display i d
 finish：从函数中跳出来，回到上一层函数。并不是一下就跳回到main。跳到上一层继续调试
 ptype a：打印变量a的类型
 del  4：删除编号为4的断点
@@ -4974,7 +4994,6 @@ lsof查看的是sys中所有的文件(一切接文件哦--运行的二进制进�
 inode：icount--正在打开此文件的进程数量
 	   inlink：硬连接数，给dir目录下增加文件就会增加dir的硬连接数，删除文件就会删除dir的硬连接数
 	   		就是通过dir可以访问到多少文件，就是dir的硬连接数
-readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
 
 ip route:查看当前机器的路由是谁
 route -n U说明此路由是up的   G说明需要透过外部主机去传递数据包
@@ -5390,6 +5409,7 @@ ln -s 源文件 虚拟名
 ln 源文件 copy后的名字---相当于copy
 ls -l 中的数字表示连接数
 -----
+mac中切换root需要su - root 必须有这个-，不然无法切换至root权限
 在普通用户的时候su root切不过来：
 修改/etc/pam.d/su----屏蔽第6行的wheel，表示只有属于wheel组的成员才能su root成功
 
@@ -6232,9 +6252,6 @@ int min(int a,int b)   可以直接调用计算获取出来的返回值去打印
     return ((a)<(b))?(a):(b);
 }
 
-技巧：
-int x = (a>c)*3 + (a==c);  代码中的(a>c)是bool值0或1.（a==c）也是bool 0或1.
-
 二叉堆：
 最大堆：在完全二叉树的基础上满足a[parnet] >= a[anychild]
 最小堆：在完全二叉树的基础上满足a[parent] <= a[anychild]
@@ -6258,10 +6275,6 @@ python中除以取取整数是：//
 
 定义数组：int buf[100];
 声明的时候:extern int buf[];   直接这样声明即可
-
-如何在进深度之前把电池休眠状态发出去？
-将rcvflag置1，让程序将状态发出去，即使当前不连接485，可以写假数据，模拟收到0x51 cmd
-
 -------------------------------------------------vscode
 vscode include报错：
 c_cpp_properties.json    修改此文件，增加头文件路径
@@ -6426,10 +6439,11 @@ Partial Diff
 意识到这个表达式将使一个16位机的整型数溢出-因此要用到长整型符号L,告诉编译器这个常数是的长整型数。
 
 一个有10个指针的数组，该指针是指向一个整型数的  	int *a[10]; 
-一个指向有10个整型数数组的指针     					int (*a)[10]
+一个指向有10个整型数数组的指针     			int (*a)[10]
 
 static作用：
-1)在函数体，一个被声明为静态的变量在这一函数被调用过程中维持其值不变。 2)在模块内，一个被声明为静态的变量可以被模块内所有函数访问，但不能被模块外其它函数访问。它是一个本地的全局变量。 
+1)在函数体，一个被声明为静态的变量在这一函数被调用过程中维持其值不变。 
+2)在模块内，一个被声明为静态的变量可以被模块内所有函数访问，但不能被模块外其它函数访问。它是一个本地的全局变量。 
 3)在模块内，一个被声明为静态的函数只可被这一模块内的其它函数调用。
 
 
