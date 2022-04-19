@@ -2892,7 +2892,9 @@ bt = tk.Button(text="click me",command=myclick)		设置1个按钮，按下按钮
 import urllib.request
 import re
 url="https://movie.douban.com/top250"
-
+请求不一定是get，有的网页就是需要post请求
+查看F12（检查）中的network--headers---Request Method
+对于post请求，
 header = {
     "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 #    "AppleWebKit/537.36"
@@ -3861,6 +3863,8 @@ python 的print格式化：
 str(num) + str1 必须将前面的num转化成字符串才可以拼接
 print(num,'xxxxx',num);数字与字符串连起来打印
 print("%s %s %s"%(n1,n2,n3))
+下面的这种如果变量直接往字符串中加变量，需要在字符串前加f
+teststr = f'{var}ssssssss'
 print("{0} de {1} {2}".format(n1,n2,n3)) 
 
 
@@ -4394,6 +4398,35 @@ cells= sheet('A1:B6')  范围
 cells= sheet('1:5')
 cells= sheet('A:Z')
 提取单元格中部分数据：=MID(A1,左面空几个，从这里开始数几个字符)
+
+import csv  # 表格库
+file = open('data.csv', mode='a', encoding='gbk', newline='')  创建表格文件
+给表格的第一行设置表头
+csvwrute = csv.DictWriter(file, fieldnames=['代码', '名称', '当前价格', '变化', '涨跌', '成交量'])
+csvwrute.writeheader()填写表头
+
+循环写每行的数据，是json代码
+rowdata = {
+            '代码':symbol,
+            '名称':name,
+            '当前价格':current,
+            '变化':chg,
+            '涨跌':percent,
+            '成交量':volume
+        }
+        csvwrute.writerow(rowdata)  将每行的数据循环写入表格
+file.close()  保存数据并关闭文件句柄	
+需要在有变量的字符串前加f才可以将变量写到string中	
+url = f'http://xueqiu.com/service/v5/stock/screener/quote/list?page={page}'
+
+
+
+
+
+
+
+
+
 --------生成器
 1.
 def fab(max):
