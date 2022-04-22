@@ -229,6 +229,7 @@ io：
 		    缺点：若库要改变了，程序需要重新编译，可能很耗时间，很麻烦
 	动态库：1：gcc -fPIC -Wall -c hello.c  (会生成忽略位置的hello.o）
 			2: gcc -shared -o libtest.so hello.o bye.o  生成库
+			LD_LIBRARY_PATH:动态库的环境变量
 			优点：客户的程序不用改变，只需要改变动态库里面的实现即可，客户的程序不用重新编译，直接调用新编译的库就行了
 	
 	动态库运行时会调用库，如果库不在了，程序不能正常运行
@@ -6497,3 +6498,36 @@ void clear_bit3(void) { a &= ~BIT3;} 	只将bit3置0，其他不变
 #define Heat_open()  GPIO_WritePin(HEAT_GPIO_Port, HEAT_Pin,(GPIO_PinState) 0)
 #define Heat_close()  GPIO_WritePin(HEAT_GPIO_Port, HEAT_Pin,(GPIO_PinState)1)
 #endif
+
+嵌入式复习：
+gcc编译
+1.cc1阶段--编译.c--->.s文件，中间涉及预处理过程（查找头文件，解开宏）
+2.as命令---汇编.s--->.o文件
+3.collect2---将所有的.o，*.so(动态库),*.a(静态库)链接到一起组成最终的二进制文件
+
+LIBRARY_PATH  库路径 
+gcc常用编译选项：
+-I 指定头文件路径，将搜索头文件的路径范围扩大，增加现在-I指定的路径 
+-l 库名字
+-L 库位置 
+
+gcc hello.c -v  :-v 显示编译日志
+头文件如果用<>包围，则编译器会去系统头文件目录中去查找
+头文件如果用“”包围，则编译器会去当前目录中去查找，如果我们把当前目录的头文件故意用<>包围，则编译的时候会提示
+找不到对应的头文件
+----打包生成静态库
+ar crs libxx.a x.o  y.o  打包静态库
+ar -x  libxx.a  解压静态库
+gcc -o target a.o libtest.a  这样也可以生成正确的目标文件
+gcc -o target a.o -ltest -L . :-L表示库位置所在的路径，寻找库的时候去这里寻找
+----打包生成动态库
+gcc -shared -o libtest.so x.o y.o
+gcc -o target hello.o -ltest -L. :-L表示动态库所在的路径，寻找库的时候去这里寻找 
+
+
+ssh远程链接会断开，修改/etc/ssh/sshd_config文件
+ClientAliveInterval 60----检测一次花60s
+ClientAliveCountMax 3600---这个值改大一些,系统检测当前有人操作就不断开了
+如果还会断开
+在/etc/profile文件中最后export TMOUT 9999
+
