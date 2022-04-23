@@ -1698,6 +1698,7 @@ linux内核移植：
 		readelf -s a.out 显示符号表，上层的printf在底层被转换成什么函数执行的
 		readelf -d 查看当前二进制所需的库，ldd也可以看
 		readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
+		file   a.out 也可以查看二进制架构
 
 		安全编译选项：
 			-D_FORTIFY_SOURCE:缓冲区保护，防止缓冲区溢出，对于很多函数，编译时都会变成xx_chk。可通过objdump -d看到
@@ -1728,6 +1729,8 @@ linux内核移植：
 				sudo etc/init.d/nfs-kernel-server restart 
 			      $ sudo mount -t nfs localhost:/source/rootfs    /mnt
 			 macos的mount： sudo mount -o resvport 192.168.1.104:/media  /mnt
+			 有时候挂载的时候会卡死，需要 
+			 mount -t nfs -o nolock,vers=3  不锁定
 
 
 
@@ -2465,7 +2468,7 @@ void *mmap(void *addr, size_t length, int prot, int flags,
 把内核的一段内存， 映射到用户空间(对应到打开的某个文件中，所以有个fd) 
 addr ------------ 映射到用户空间的地址， NULL---- 映射到用户空间的地址由内核决定， 可以返回映射到用户空间的地址，这里填NULL就好
 length ------------ 把内核空间的一段内存， 映射到用户空间，  映射多大？(文件有多大就映射多大)
-prot ------------  内核空间的一段内存，映射到用户空间，  映射属性？PROT_READ | PROT_WRITE
+prot ------------  内核空间的一段内存，映射到用户空间，  映射属性，映射之后是可读，可写？PROT_READ | PROT_WRITE
 flags ------------- 内核空间的内存的映射方式，  共享的映射， 私有的映射？MAP_SHARED（对用户空间修改的时候内核
 					空间的对应地址也同步修改，MAP_PRIVATE，对用户空间的地址的修改不会影响内核空间的地址的数据）
 fd ---------------- 从哪里进行映射？（只要mmap返回了，fd就没用了，可以直接close就好）
@@ -6310,6 +6313,15 @@ python中除以取取整数是：//
 定义数组：int buf[100];
 声明的时候:extern int buf[];   直接这样声明即可
 -------------------------------------------------vscode
+插件vim：
+命令行执行：
+defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
+w:跳到下一个单词开头
+b:跳到上一个单词开头
+0：跳到行首
+$:跳到行尾 
+
+
 vscode include报错：
 c_cpp_properties.json    修改此文件，增加头文件路径
 "includePath": ["${workspaceFolder}/**"], **表示递归
@@ -6523,6 +6535,14 @@ gcc -o target a.o -ltest -L . :-L表示库位置所在的路径，寻找库的�
 ----打包生成动态库
 gcc -shared -o libtest.so x.o y.o
 gcc -o target hello.o -ltest -L. :-L表示动态库所在的路径，寻找库的时候去这里寻找 
+--
+编译时：-L都可以指定库位置，-l指定库名称---编译时用到
+		或者export  LIBRARY_PATH=$LIBRARY_PATH:/root/test  增加静态库或静态库位置到环境变量
+运行时：对于静态库编译的二进制可以直接运行，-----运行时用到
+		对于动态库编译的二进制运行时需要用到动态库文件
+			需要将.so文件放到/usr/lib /lib /usr/local/lib等等目录中，才可以自动链接
+			或需要export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/test 将当前.so所在位置放到环境变量中去
+			或在.bashrc中写export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/test
 
 
 ssh远程链接会断开，修改/etc/ssh/sshd_config文件
@@ -6531,3 +6551,18 @@ ClientAliveCountMax 3600---这个值改大一些,系统检测当前有人操作�
 如果还会断开
 在/etc/profile文件中最后export TMOUT 9999
 
+./a.out		 he 		am		 i 
+argv[0]		argv[1]		argv[2]  argv[3]   入参默认以空格分割
+./a.out 	“he am i ”
+argv[0]		argv[1]			双引号括起来的都属于同一个参数
+
+echo 'main(){}' | gcc -E -v -  :列出当前编译的时候查找的默认头文件路径与库路径
+
+linuxc:实现copy的2种方法
+1.打开old文件，循环读old中的内容写道新的文件中
+2.mmap将old文件中的内容映射到某个指针位置，然后将指针位置的数据写道新文件
+
+mobaxterm 也可以链接串口
+serial speed --注意:flow control要选择（None）才可
+
+用户空间---内核控件（文件系统/驱动层）---硬件 
