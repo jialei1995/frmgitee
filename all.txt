@@ -495,7 +495,8 @@ system（“ls”）；可以在程序中执行命令。
 			pthread_rwlock_wrlock pthread_rwlock_wrtrylock
 			pthread_rwlock_unlock
 
-	条件变量：pthread_cond_xx  本身不是锁，但是可以造成线程阻塞，通常与互斥锁配合使用
+	条件变量：与互斥锁配合使用
+			pthread_cond_xx  本身不是锁，但是可以造成线程阻塞，通常与互斥锁配合使用
 			 pthread_cond_wait();难
 			 pthread_cond_init
 			 pthread_cond_destroy
@@ -508,6 +509,26 @@ system（“ls”）；可以在程序中执行命令。
 			 pthread_cond_broadcast
 			 		1.唤醒所有阻塞在cond上的线程
 			 静态初始化cond方法：不需要init函数，只要：pthread_cond_t mycond=PTHREAD_COND_INITIALIZER
+	exp：
+			while(1)   子线程
+			{
+				//pthread_mutex_lock(&g_mutex);
+				pthread_cond_wait(&g_cond,&g_mutex);//等待条件成熟，即g_cond,g_mutex都获得，程序向下运行，否则
+													//释放互斥量，继续阻塞(不消耗资源)等待
+				printf("rcv: %s\n",buf);
+				//pthread_mutex_unlock(&g_mutex);
+				注意第一行与第四行可以屏蔽的，因为pthread_cond_wait本来就有获取不到就阻塞的功能，不需要在
+				线程中再去用mutex_lock抢占锁了
+			}
+			主线程只负责给条件与资源，子线程能占到就往后执行，占不到就阻塞等待
+			while(1)  主线程
+			{
+				fgets(mybuf,100,stdin);
+				//pthread_mutex_lock(&g_mutex);//也可以屏蔽
+				memcpy(buf,mybuf,strlen(mybuf));
+				pthread_cond_signal(&g_cond);//唤醒g_cond的等待
+				pthread_mutex_unlock(&g_mutex);
+			}
 
 	信号量：互斥锁的升级版(可用于进程线程间)
 			互斥锁只能供1个线程使用，信号量初始化为N，就可以供N个线程使用，因为每次抢占只会-1，
@@ -6566,3 +6587,9 @@ mobaxterm 也可以链接串口
 serial speed --注意:flow control要选择（None）才可
 
 用户空间---内核控件（文件系统/驱动层）---硬件 
+
+命令只能在函数内执行，例如赋值，函数的执行等等
+不能在函数之外执行一行赋值或者函数代码
+
+
+string.h中有个bzero函数，可以将bzero(void *s, int n)清空前n个（注意不是所有）位置的字符，除非指定sizeof(s)
