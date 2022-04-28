@@ -4081,6 +4081,10 @@ wget -b http://ssssss  在后台下载  让你可以在当前终端继续操作�
 
  cut -d '%' -f1  以%分割打印第一列
  awk -F: '{print $1}'  不带-F时默认以空格分隔
+ print和printf两者的区别：
+	用print打印，会在打印结束后加上换行符
+	用printf打印，后面不会添加任何符号
+	cat 2.txt |awk -F' ' '{for(i=58;i<110;i=i+2){printf $i $(i+1)" "}print""}'  后面的print是为了换行
 
 ctrl z 停止运行，是让进程睡眠。不会杀死，得自己kill
 ls & ：把进程放后台运行 运行结束ls就结束了
@@ -6792,3 +6796,15 @@ serial speed --注意:flow control要选择（None）才可
 
 
 string.h中有个bzero函数，可以将bzero(void *s, int n)清空前n个（注意不是所有）位置的字符，除非指定sizeof(s)
+
+
+watch -d free：高亮动态显示有变化的地方
+
+
+怎么确保数据不够4的倍数的修改成4的倍数：
+(len+3)/4)*4		--先加上一个小于n的最大的数，然后除一下n，最后再×n。
+(len+n-1)/n*n	
+	
+本来x=y;y是小数，x是整数
+四舍五入：x= (10y+5)/10;	若10y的个位数>5 则最终取值+1，若<5则最终取值-1.
+x=y+0.5;  就是加个0.5看是否满足进一

@@ -878,7 +878,7 @@ VPRO在gpioinit的时候没有置1.需要初始化的时候置1，不然sh367309
 ------------程序里面四舍五入的方法
 本来x=y;
 四舍五入：x= (10y+5)/10;	若10y的个位数>5 则最终取值+1，若<5则最终取值-1.
-
+本质：x=y+0.5;  就是加个0.5看是否满足进一
 
 ---------------------
 如果一个数定义成uint类型，则这个数必然不可能成为负数，不可能比0小。
@@ -2762,3 +2762,49 @@ void RTC_ALARM_Time_COnfig(FunctionalState NewState)
 初始化io的时候开预充
 
 
+uart发送方式，接收方式：
+正常在初始化uart的时候可以开启idle与rxen中断；rxne表示，收到1字节数据就会进，idle中断表示收完一整帧数据，就会进入。
+我们也可以只开rxen中断，然后开个定时器检测idle中断，判断超过3ms再收不到数据就判定一帧数据收完了，再去解析收到的数据，这样比较快。
+
+正常的sendbyte函数是会卡死的，如果数据量很大，我们发送的时候主程序就无法做其他事情。
+void USART2_SendByte(uint8_t *txdBuf, uint16_t len)
+{
+  uint32_t TimeoutCount = 0xffff;
+  RS485_RxDen();
+  LL_mDelay(2);
+  while (len--)
+  {
+    USART2->TDR = *txdBuf++;
+    TimeoutCount = 0xffff;
+    while ((LL_USART_IsActiveFlag_TC(USART2) == RESET) && (TimeoutCount--));卡住一直等数据发送
+  }
+  RS485_RxEn();
+}
+还可以通过开启uart的发送中断去发送数据，每次发送完1字节数据后就会自己跳进发送中断中去发送下一字节数据，在发送这一字节数据期间，我们可以去做其他事情，不会被send卡住程序不运行。
+void USART2_SendByte( uint16_t len)
+{
+	RS485_RxDen();
+	LL_mDelay(1);
+	RS485sendLen= len;
+	RS485sendnum= 0;
+	RS485sendFlag = 1;
+	//LL_USART_EnableIT_TXE_TXFNF(USART2);
+	USART2->TDR = SendBuff[RS485sendnum++];
+	LL_USART_EnableIT_TC(USART2);//开启发送中断
+}
+void UART2SendIRQ(void )  发完一字节就会进来继续发下一字节
+{
+	if(RS485sendLen>RS485sendnum)		//发送数据缓冲区是否还有数据，如果有发送，没有则关闭发送中断
+	{
+		USART2->TDR = SendBuff[RS485sendnum++];
+	}
+	else//该发的数据都发完了
+	{
+		RS485_RxEn();
+		LL_USART_DisableIT_TC(USART2);//关闭发送中断
+		RS485sendnum= 0;
+		RS485sendLen= 0;
+		RS485sendFlag = 0;
+	}
+		
+}
