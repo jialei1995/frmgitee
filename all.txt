@@ -247,14 +247,45 @@ io：
 ***********************进程**线程*********************************
 进程间通信：在用户空间是不可能的。进程在用户空间是相互独立的,得通过内核中的对象。因为进程都可以访问同一内核的。
 		内核对象都不在用户空间：
-			无名管道：无文件名	pipe
+			管道特点：
+				管道中数据不可反复读取。一旦读走，管道中不再存在。
+				采用半双工通信方式（对讲机），数据只能在单方向上流动
+			无名管道：无文件名	pipe  管道的数据读一下就会消失
 					所以必须用标准io才能进行通信，因为操作的是文件描述符，不是流指针。
 					得是父子进程或有亲缘关系的进程，因为要得到fd[]才能通信。此时用的同一个管道。
+					if(childid==0)
+					{
+					    while(1)
+					    {
+					        close(pipdef[0]);//close read子进程只获取交互界面数据写到管道的写端
+					    fgets(buf,100,stdin);
+					    write(pipdef[1],buf,strlen(buf));
+					    printf("in child pro,id=%d,buf=%s\n",getpid(),buf);
+					    }
+					
+					}else if(childid > 0)
+					{
+					    while(1)
+					    {
+					        close(pipdef[1]);//close write父进程只读写端传来的数据并显示
+					        read(pipdef[0],buf,100);
+					    printf("in parent pri,id=%d,buf=%s\n",getpid(),buf);
+					    }
+					}
+
 			有名管道：有文件名存在于文件系统中
 					管道文件：p类型------   mkfifo  创建的文件不占磁盘大小，系统会分配inode号
 					mkfifo函数并没有在内核创建出来管道，只有open myfifo文件的时候才会在内核空间创建管道
 					要打开myfifo得两个进程都open-myfifo才能打开，只有1个进程不能成功打开myfifo
-					两个进程要通讯，都必须打开同一个mkfifo才可以。
+					两个进程要通讯，都必须打开同一个mkfifo才可以。管道的数据读一下就会消失
+			写进程，不写就阻塞了							读进程，读不到阻塞		
+		     pipdef = open("./myfifo",O_WRONLY);     |     pipdef = open("./myfifo",O_RDONLY);
+		     while(1)                                |     while(1)
+		     {                                       |     {
+		         fgets(buf,100,stdin);               |         read(pipdef,buf,100);
+		         write(pipdef,buf,strlen(buf));      |         printf("rcv:%s\n",buf);
+		     }                                       |     }
+   
 			信号： 通过执行1个进程调用（kill函数 ）给另1个进程发信号
 			       信号是用户空间的概念，无法为内核空间的线程传递信号----重要知识点
 					发送：kill（信号类型，进程号）   -9终止进程的时候不会刷新缓冲区的
@@ -284,6 +315,12 @@ io：
 							IPC_SET
 							IPC_RMID
 						buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
+=======
+										cmd:IPC_STAT
+											IPC_SET
+											IPC_RMID
+										buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
+				
 
 字符串定义的时候可以直接赋值。char a[] = 'sadas';
 				或者struct node mynode={
@@ -469,8 +506,6 @@ system（“ls”）；可以在程序中执行命令。
 时要按照一定的原则进行，目的是撤消那些代价最小的进程，比如按进程的优先级确定进程的代价；考虑进程运行时的代价和与此进
 程相关的外部作业的代价等因素。 
 		
-		
-
 		有两种方法创建互斥锁，静态方式和动态方式。POSIX定义了一个宏PTHREAD_MUTEX_INITIALIZER来静态初始化互斥锁，方法如下：
 
 		pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
@@ -568,7 +603,7 @@ signal函数:
 		一个进程有且只有一个定时器，无论进程处于哪种状态，alarm都在计时****
 	SIGINIT：在终端执行Ctrl+c会触发此信号，发出信号如果有注册过这个信号的处理函数，就会跳过去执行	
 	ctrl+z：sigstop信号
-	ctrl+\：退出信号
+	ctrl+\：退出信号    3号信号
 	SIGCHILD：有子进程退出会发这个信号，可以提醒父进程去回收啦。
 	SIGSEGV 段错误
 	 进程收到信号的三种处理方式：
@@ -584,7 +619,7 @@ SYSTEM-V IPC 通讯机制：
 	命令：ipcs 查看当前ipc对象
 		  ipcrm 删除ipc对象
 	共享内存：读取数据后内容仍在其中。内存创建后一直存在内核，直到删除。所以我们用完要释放。
-			key_ t key;		0-127					./a.c  'a'
+			key_t key;		0-127					./a.c  'a'
 			key = ftok(".",100);//生成key。路径+文件名+工程名‘m’也可以
 
 			创建共享内存  只用ipc_private创建出来的key默认为000
@@ -598,8 +633,131 @@ SYSTEM-V IPC 通讯机制：
 								IPC_STAT IPC_SET IPC_RMID			这时工享内存没人用就会自动删除了候只是添加删除标记，等
 								获取属性存到buf 设置将buf设置到属性 删除共享内存ID用不着buf，传null
 	得到地址后可以调用含有地址的读写函数。往当前内核的地址空间写东西。
-		多个进程也可以映射到同一块实际物理地址空间，实现数据共享，只不过需要加保护措施，否则A进程写数据，B进程也写，就乱了。信号量保护--
-		多个进程使用共享内存通信时，创建者只需要1个，谁先运行谁创建，其他进程直接获取共享使用，实现通信
+多个进程也可以映射到同一块实际物理地址空间，实现数据共享，只不过需要加保护措施，否则A进程写数据，B进程也写，就乱了。可以利用信号量保护。
+		多个进程使用共享内存通信时，创建者只需要1个，谁先运行谁创建，其他进程直接获取共享使用，实现通信。
+		读进程，会一直读，因为没有信号灯集去控制
+		     while(1)
+		     {
+		         printf("rcv:%s\n",addr);
+		         memset(addr,0,strlen(addr));
+		         sleep(1);
+		     }
+		写进程，等待stdin输入：每次有了输入则写到共享内存addr，读进程就能读出来数据了
+		     while(1)
+		     {
+		         fgets(buf,100,stdin);
+		         memcpy(addr,buf,strlen(buf));
+		     }
+	信号灯集：---保护共享资源
+		使用信号灯集访问临界资源（共享内存）处理上面的一直循环打印的问题
+		https://blog.csdn.net/qq_22207951/article/details/105793096 参考此博客
+		semctl(semid,num,IPC_RMID);//删除信号灯num，如果semid灯集中有x个信号灯，需要删除x次，因为每次只能删除一个灯
+		semid = semget(SEM_KEY, 2, IPC_CREAT | 0600);//创建2个信号灯，中间入参就是要创建的信号灯个数
+		semctl(semid, 1, SETALL, sem_args);//SETALL代表设置信号集中所有的信号量的值。
+		有了SETALL则The argument semnum  is  ignored.
+		
+		semctl(semid,1,SETVAL,mynum); 设置第2个信号灯的值
+		
+		semid = semget(key,3,IPC_CREAT|0600);//给id为semid的信号灯集中创建3个信号灯，其实创建一个灯就可以了
+		arg.val = 1;
+        /***对灯集合中的0号信号灯设置初始值***/
+        ret =semctl(semid,0,SETVAL,arg);返回<0设置失败
+		ret =semctl(semid,0,GETVAL,arg);获取semid信号集中的灯0的值
+
+	shm_read.c信号灯集与共享内存实现
+		union semun {
+		   int   val;写进信号灯中的数值，0或1就行--2值
+		   struct   semid_ds  *buf;
+		   unsigned short   *arrary;
+		}mynum; 不知道为什么不能直接union semun mynum去定义变量
+		/***对信号量数组semnum编号的信号量做P操作***/
+		int P(int semid, int semnum)semnum表示对哪一个信号灯去P
+		{
+			struct sembuf sops={semnum,-1, SEM_UNDO};
+			return (semop(semid,&sops,1));
+		}
+		/***对信号量数组semnum编号的信号量做V操作***/
+		int V(int semid, int semnum)semnum表示对哪一个信号灯去V
+		{
+			struct sembuf sops={semnum,+1, SEM_UNDO};
+			return (semop(semid,&sops,1));
+		}
+
+		int main()
+		{
+			char buf[100];
+			int pipdef;
+			key_t key;			  //		0-127					./a.c  'a'
+			key = ftok(".", 100); //鐢熸垚key銆傝矾寰?+鏂囦欢鍚?+宸ョ▼鍚嶁€榤鈥欎篃鍙?浠?
+			char *addr;
+			int shmid = shmget(key, 128, IPC_CREAT | 0664); 
+			addr = shmat(shmid, NULL, 0);
+			semid = semget(key, 1, 0666); //试图直接获取信号灯集ID
+			if(semid == -1)//获取信号灯集id失败
+			{
+				if(errno == 2)
+				{
+					if((semid=semget(key, 1, 0666|IPC_CREAT))==-1)//创建信号灯集（只有1个灯），会返回新的ID
+					{
+						perror("init create sig fail\n");
+						return -1;
+					}
+					mynum.val = 1;
+					if(semctl(semid,1,SETVAL,mynum) < 0)//为信号灯集中的灯0赋值1
+					{
+						perror("init arg fail\n");
+						return -1;
+					}
+				}
+				else
+				{
+					perror("init 2 sig false\n");
+				}
+			}
+			while (1)
+			{
+				P(semid, 0);//-灯集中的0号灯的值
+				printf("rcv:%s\n", addr);
+				memset(addr, 0, strlen(addr));
+				V(semid, 0);
+			}
+			return 0;
+		}
+	shm_write.c
+		int main()
+		{
+			semid = semget(key, 1, 0666); //试图直接获取信号灯集ID
+			if(semid == -1)
+			{
+				if(errno == 2)
+				{
+					printf("get sig fail\n");
+					//signal not exist ,so create it
+					if((semid=semget(key, 1, 0666|IPC_CREAT))==-1)
+					{
+						perror("init create sig fail\n");
+						return -1;
+					}
+					mynum.val = 1;
+					if(semctl(semid,0,SETVAL,mynum) < 0)
+					{
+						perror("init arg fail\n");
+						return -1;
+					}
+				}
+				else
+				{
+					perror("init 2 sig false\n");
+				}
+			}
+			while (1)
+			{
+				P(semid, 0); //消耗信号灯集中的0号灯的数值
+				fgets(buf, 100, stdin);
+				memcpy(addr, buf, strlen(buf));//将键盘内容赋值给共享内存映射的地址
+				V(semid, 0); //v 0号灯的数值
+			}
+		}
 
 	消息队列几种ipc通信的第一步都是创建ftok--->key关键字 2。根据关键字创建本类型（内存、队列）id
 			创建消息队列：操作消息队列就靠这个id
@@ -609,7 +767,6 @@ SYSTEM-V IPC 通讯机制：
 			向消息队列发送消息：				消息的传送靠的是一个结构体（发送接收都通过这个MSG）
 			成功0失败-1 msgsnd（msgid，const void*msgp，size，flag）0或IPC_NOWAIT 堵塞不堵塞
 									 消息缓冲区地址		消息正文长度 
-			
 			通信前先设置消息格式：一个结构体struct {
 				long mtype,//消息类型
 				char mtest[64]//消息正文
@@ -619,11 +776,60 @@ SYSTEM-V IPC 通讯机制：
 			从队列接受消息：					如果是0按照消息顺序接收  要收的mtype
 			msgrcv（msgid，const void*msgp，size，long mtype，flag）标志位：0或IPC_NOWAIT
 											size要稍微大，不然会丢失信息
-
 			控制消息队列：
 			0或-1 --msgctl（msgid,int cmd,jiegouti * buf）
 			IPC_STAT IPC_SET IPC_RMID
-	信号灯集
+	uinx域socket
+		管道与太老了，现在一般进程间通信用的都是socket与共享内存、消息队列。
+		共享内存效率最高，但是没有枷锁机制，所以一般与信号灯集一起使用。
+		client.c
+			#define UNIX_DOMAIN "/home/zhangmiaoling/test/socket/UNIX.domain"
+			int main(){
+				int connect_fd;
+				static struct sockaddr_un srv_addr;//服务端的地址是sockaddr_un结构体
+				// creat unix socket--创建通信句柄
+				connect_fd=socket(PF_UNIX,SOCK_STREAM,0);
+				srv_addr.sun_family=AF_UNIX;
+				strcpy(srv_addr.sun_path,UNIX_DOMAIN);//字符串赋值需要strcpy
+				//connect server 客户端要链接服务端的结构体地址
+				ret=connect(connect_fd,(struct sockaddr*)&srv_addr,sizeof(srv_addr));
+				while(1)
+				{
+					strcpy(send_buff,"message from client");
+					//send info server将sendbuf中的内容发送过去
+					write(connect_fd,send_buff,sizeof(send_buff));
+				}
+			}
+		server.c
+			#define UNIX_DOMAIN "/home/zhangmiaoling/test/socket/UNIX.domain"
+			int main(){
+				static char rcv_buff[1024];
+				struct sockaddr_un clt_addr;
+				struct sockaddr_un srv_addr;
+				listen_fd=socket(AF_UNIX,SOCK_STREAM,0);
+				// set srv_addr param
+				srv_addr.sun_family=AF_UNIX;
+				strncpy(srv_addr.sun_path,UNIX_DOMAIN,sizeof(srv_addr.sun_path)-1);
+				unlink(UNIX_DOMAIN);
+				//bind sockfd&addr  将socketfd与srv_addr绑定
+				ret=bind(listen_fd,(struct sockaddr*)&srv_addr,sizeof(srv_addr));
+				//listen sockfd
+				ret=listen(listen_fd,1);//服务端建立监听
+				//have connect requst use accept
+				len=sizeof(clt_addr);
+				//accept的时候会从clt_addr中获取客户端信息
+				com_fd=accept(listen_fd,(struct sockaddr*)&clt_addr,&len);//阻塞等待与客户端链接成功，否则阻塞
+				//read and printf client send info
+				while(1)
+				{
+					read(com_fd,rcv_buff,sizeof(rcv_buff));
+					printf("message from client %d : %s\n",num,rcv_buff);
+				}
+				close(com_fd);关闭与客户端链接的fd
+				close(listen_fd);关闭服务端的fd
+				unlink(UNIX_DOMAIN);删除通信的socket文件
+				return 0;
+			}
 
 守护进程：
 		1.创建子进程，父进程退出
@@ -2135,6 +2341,7 @@ stop信号之间，发送器可以一直发，接收器可以一直读。
 		设置单片机允许其他器件产生开始信号-开启iic的接收（其他器件就可以向iic发送数据了）
 		将接收buffer的数据返回
 	读写eeprom例子：
+		根据扇区进行操作
 		针对板子的驱动
 		步骤：初始化iic相关的gpio（给1个结构体赋值，然后调用iic_init）gpio作为输入时速度没啥用，只有做输出时才有用
 			工作模式：iic相关的cr寄存器结构体 赋值，然后调函数初始化
@@ -3878,6 +4085,10 @@ wget -b http://ssssss  在后台下载  让你可以在当前终端继续操作�
 
  cut -d '%' -f1  以%分割打印第一列
  awk -F: '{print $1}'  不带-F时默认以空格分隔
+ print和printf两者的区别：
+	用print打印，会在打印结束后加上换行符
+	用printf打印，后面不会添加任何符号
+	cat 2.txt |awk -F' ' '{for(i=58;i<110;i=i+2){printf $i $(i+1)" "}print""}'  后面的print是为了换行
 
 ctrl z 停止运行，是让进程睡眠。不会杀死，得自己kill
 ls & ：把进程放后台运行 运行结束ls就结束了
@@ -5309,7 +5520,6 @@ tcp也不是一定会4次挥手，有时候就是三次挥手。
 /etc/hosts  本地域名解析
 /etc/resolve.conf  域名解析/DNS服务器---还可以在网卡文件中配置，重启网卡，这里就会更新
 
-
 --sysmonitor关了UVPHostd才能关闭，uvphostd关了无法获取带内信息
 但是sysmonitor关着的时候UVPhostd可以开启
 
@@ -5372,8 +5582,6 @@ glibc 提供的各种syscall比较通用。
 
 每次函数调用前要压栈，存储程序执行完的返回地址，reg不够用时会将数据压栈到mem
 
-
-
 syscall怎么执行的？
 read/write/open----》通过swi/svc指令软中断跳到对应的sys_read/sys_write/sys_open
 如何分别打开的是哪种文件呢？
@@ -5402,7 +5610,7 @@ iostat -d -m -x 看util值高说明io卡，原因：文件句柄死锁，驱动�
 iostat -d -m -x 看util值高说明io卡，原因：文件句柄死锁，驱动问题，cache写之前判断有，写的时候cache被释放了。
 ----KVM
 1.就是个kvm.ko，安装后呈现/dev/kvm
-2。用户访问ioctl /dev/kvm
+2.用户访问ioctl /dev/kvm
 3. guest为进程，vcpu为线程
 4. 
 
@@ -6592,3 +6800,15 @@ serial speed --注意:flow control要选择（None）才可
 
 
 string.h中有个bzero函数，可以将bzero(void *s, int n)清空前n个（注意不是所有）位置的字符，除非指定sizeof(s)
+
+
+watch -d free：高亮动态显示有变化的地方
+
+
+怎么确保数据不够4的倍数的修改成4的倍数：
+(len+3)/4)*4		--先加上一个小于n的最大的数，然后除一下n，最后再×n。
+(len+n-1)/n*n	
+	
+本来x=y;y是小数，x是整数
+四舍五入：x= (10y+5)/10;	若10y的个位数>5 则最终取值+1，若<5则最终取值-1.
+x=y+0.5;  就是加个0.5看是否满足进一
