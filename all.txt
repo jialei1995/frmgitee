@@ -354,6 +354,62 @@ io：
 		****线程可以被同一进程中的其他线程取消	
 			调用pthread_exit(void*val)与return x；这2种类似
 线程信号：pthread_kill
+线程清理函数：
+void *clean(void * arg)  
+{
+        printf("cleanup:%s \n",(char *)arg);
+        return (void*)0;
+}
+
+void *thr_fun1(void * arg)
+{
+        printf("thread 1 start\n");
+        pthread_cleanup_push((void*)clean,"thread1 first handle");
+        pthread_cleanup_push((void*)clean,"thread1 second handle");
+        printf("thread 1 push complete\n");
+        if(arg)//为1，则直接退出，pop不会执行，则push进去的clean不执行
+        {
+                return (void*)1;
+        }
+        pthread_cleanup_pop(1);
+        pthread_cleanup_pop(1);
+        return (void*)2;
+}
+void *thr_fun2(void * arg)
+{
+        printf("thread 2 start\n");
+        pthread_cleanup_push((void*)clean,"thread2 first handle");
+        pthread_cleanup_push((void*)clean,"thread2 second handle");
+        printf("thread 2 push complete\n");
+        if(arg)
+        {
+                return (void*)3;
+        }
+        pthread_cleanup_pop(1);//先弹出的是后push的函数，所以本函数执行只能打印出cleanup:thread2 second handle
+        pthread_cleanup_pop(0);//第一次push的clean没有被执行，因为只有pop的时候才会被执行到
+        return (void*)4;
+}
+int main()
+{
+        void * tret;
+        res = pthread_create(&tid1,NULL,thr_fun1,(void*)1); //线程1的pthread_cleanup_pop不会执行则push进去的函数就不会执行
+        res = pthread_create(&tid2,NULL,thr_fun2,(void*)0);
+        res = pthread_join(tid1,&tret);
+        printf("thread exit code:%d \n",(int)tret);
+        res = pthread_join(tid2,&tret);
+        printf("thread exit code:%d \n",(int)tret);//tret本身是void*类型的数据，我们返回的数值就是void*类型的2，直接打印即可
+        return 0;			//如果写成*（int*）tret去打印就会报错，因为我们没权限访问地址为2 的地址的数据
+}
+
+打印结果：
+thread 2 start
+thread 2 push complete
+cleanup:thread2 second handle
+thread 1 start
+thread 1 push complete
+thread exit code:1
+thread exit code:4
+
 
 stdlib.h中的
 system（“ls”）；可以在程序中执行命令。
@@ -1202,10 +1258,11 @@ c阶段：
 				【4】数据收发方式-中断或轮训--一般都配置中断
 				【5】收发存储数据寄存器，UTxHn 0x13820020把要发送的数据放到这个寄存器,【就算发出去了，后面不用管了】
 										 URxHn 0x13820024  【把数据放到这里就算读出来了，后面不用管了】
-				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器，看	
-		
+				【6】状态：何时收何时发 UTRSTATn（0x13820010）：read这个寄存器
 	*******************************timer**********************************	
-	硬件时钟源：RTC->独立于CPU与其他硬件，由纽扣电池供电，会一直运行
+	硬件时钟源：RTC->独立于CPU与其他硬件 时钟源可以来自内部低速时钟或外部低速时钟
+				只要单片机有电或后备寄存器有电，则rtc可以一直运行不间断。
+				
 	linux开机时读取的时间就是rtc中的时间，关机时再将当前os的时间同步到rtc中。
 		为什么说看门狗与pwm都是定时器，因为他们配置的结果就是产生一个频率，实际就是产生一个固定的时间长度，
 		你配置输出频率的占空比还是基于这个时间，这个频率可以精准配置时间的。exynos配置的时候好几步都是弄频率的。
@@ -1361,6 +1418,7 @@ C++:c++98||c++11 ||c++14
 			cout << setprecision(8) << setiosflags(ios::fixed) <<setw(10) << d << endl;
 				//setprecision(7)设置小数位的有效位是7位
 				//setiosflags(ios::fixed)小数位不足的用0补齐
+				
 	4. 函数重载 function overload
 		函数同名不同参，叫函数重载。
 		int add(int a, int b)
@@ -1443,7 +1501,6 @@ C++:c++98||c++11 ||c++14
 		只有简短的函数，才会被编译成内联函数。
 		内联函数函数体比较简短，不建议有if/switch...case/for/while/do...while/递归
 		类内定义的函数优先编译成内联函数。
-		
 				void MyClock::run()
 				{
 					while (1)
@@ -1451,7 +1508,8 @@ C++:c++98||c++11 ||c++14
 						tick();这里调用时不用加：：
 						show();
 					}
-				}	
+				}
+				
 	拷贝构造函数Person(const Person &another);固定写法，不能更改
 	深拷贝，浅拷贝：Person p2 = p1；
 		浅拷贝：Person p2(p1);b是person类刚才创建的，现在拿b当参数又给a传参
@@ -1546,7 +1604,7 @@ C++:c++98||c++11 ||c++14
 			引用的本质就是指针常量：int * const a=&b;a的指向不能变，但是指向的内容可以变
 			扩展：常量指针：const int *p = &a;p指向一个常量，常量的值不能改，但是p可以指向别的位置。
 	
-*********************容器string************************
+************************容器string************************
 	string容器：它是个类。
 		int find(const string &str,int pos=0)  查找str在本字符串中第一次出现的位置
 		int find(const char c,int pos=0)		找谁，默认从头开始找
@@ -1775,8 +1833,7 @@ C++:c++98||c++11 ||c++14
 		
 linux内核移植：
 	arch目录：
-		5大子系统：进程管理、内存管理、文件系统、网络协议、设备管理【重点掌握】
-
+	5大子系统：进程管理、内存管理、文件系统、网络协议、设备管理【重点掌握】
 	● crypto：常用加密和散列算法（如AES、SHA 等），还有一些压缩和CRC 校验算法。
 	● documentation：内核各部分的通用解释和注释。
 	● fs：所支持的各种文件系统，如EXT、FAT、NTFS、JFFS2 等。
@@ -1837,8 +1894,6 @@ linux内核移植：
 			3.win c e（微软iPad以前就是wince）
 			4.Vxworks（收费的，大型路由器会用）一年40万
 
-
-
 		系统移植移什么：	exynos4412与原来的origen内部很像
 			环境：tftpd-hpa 安装包
 				pc：tftpd（d表示damen守护进程）：-->etc/default/tftpd-hpa 
@@ -1885,7 +1940,6 @@ linux内核移植：
 			配置nfs服务：实现象windows与linux的文件挂载功能的挂载，（板子挂载到linux，在linux运行程序就是在板子运行）
 *************************************内核编译*******内核调试****************************************8
 		•解压内核
-		
 		•修改内核顶层目录下的Makefile
 		ARCH		?= $(SUBARCH)
 		CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
@@ -1895,7 +1949,8 @@ linux内核移植：
 		•	导入 默认 配置
 		$ make   exynos_defconfig 只是配置不是编译
 		•	编译内核make uImage
-		arch/arm/boot目录下生成一个uImage文件（如果编译过程中提示缺少mkimage工具，uboot源码中的tools/mkimage拷贝到ubuntu的/usr/bin目录下）******************************
+		arch/arm/boot目录下生成一个uImage文件（如果编译过程中提示缺少mkimage工具，uboot源码中的tools/mkimage拷贝
+		到ubuntu的/usr/bin目录下）******************************
 		弄设备树
 
 
@@ -3236,7 +3291,7 @@ Python读写文件
 
 file_object = open(‘thefile.txt’)
 try:
-all_the_text = file_object.read( )
+all_the_text = file_object.read()
 finally:
 file_object.close( )
 注：不能把open语句放在try块里，因为当打开文件出现异常时，文件对象file_object无法执行close()方法。

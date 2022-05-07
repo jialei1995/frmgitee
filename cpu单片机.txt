@@ -2827,3 +2827,96 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 一旦：HAL_TIM_Base_Start_IT(&htim16);开启中断后则SIF_TIM_IRQPro就开始执行了
 HAL_TIM_Base_Stop_IT(&htim16);停止之后则中断处理函数中的代码就不执行了
+
+
+modbus协议的解法：
+定义接收数据的缓冲区 ，head指向头，tail指向尾位置
+typedef struct
+{
+	uint8_t  dummy;  若没有有效数据则置1，若有有效数据则置0
+	uint16_t tailPosition;
+	uint16_t headPosition;
+	uint8_t  RecData[SIMUARTDATAMAX];
+} ringBuffer_t;
+处理数据：
+while(rs485buf.dummy == 0)有数据待处理
+{
+	if（读取缓冲区中的第一个数据是否为有效modbus头）
+	{
+		if（读取缓冲区中数据头后面的数据是否为正确的cmd）
+		{
+			根据cmd判断要读内部reg的数据还是要写
+			{
+				
+			}
+		}else
+		{
+			RS485Buf.headPosition++;将头位置向后偏移进入下次循环
+			RS485Buf.headPosition%=SIMUARTDATAMAX;
+		}	
+	}else
+	{
+		RS485Buf.headPosition++;将头位置向后偏移
+		RS485Buf.headPosition%=SIMUARTDATAMAX;
+	}
+}
+
+处理modbus问下位机要的数据
+ModBusReprocess(uint8_t cmd,uint16_t Addr, uint8_t len)
+{
+	if(Addr<=14)  只需要创建一个100大小的数组就够了，虽然内部addr偏移很大，我们可以根据偏移给tongyongReg对应位置赋值
+	{
+		basicAddr= 0;
+		MaxRegAddOffset=15;
+		tongyongReg[0]= (RWSERVIN);
+		tongyongReg[1]= HARDCODE_M;
+		tongyongReg[x]= 5;	
+		tongyongReg[14]= 5;	
+	}
+	else if((Addr>=50)&&(Addr<=54) )
+	{
+		basicAddr= 50;
+		MaxRegAddOffset=5;
+		tongyongReg[0]= ID_ASC2HEX(flashpara.bytes.BAT_ID[0]);
+		tongyongReg[1]= ID_ASC2HEX(flashpara.bytes.BAT_ID[4]);
+		tongyongReg[2]= ID_ASC2HEX(flashpara.bytes.BAT_ID[8]);
+		tongyongReg[3]= ID_ASC2HEX(flashpara.bytes.BAT_ID[12]);
+	}
+	if(!err)//数据正常，只返回某个case中的部分数据，不需要全部返回
+	{
+		SendBuff[0] = 6;
+		ReadAddr= Addr-basicAddr;
+		for(i=0;i<len;i++)//返回的数据根据ReadAddr= Addr-basicAddr去偏移，不用从头返回整个tongyongReg中的数据
+		{
+			SendBuff[3+i*2] = tongyongReg[ReadAddr+i]>>8;
+			SendBuff[4+i*2] = tongyongReg[ReadAddr+i]&0xff;
+		}
+		CRCValue = user_uart_crc(SendBuff,3+i*2);
+		SendBuff[3+i*2] = CRCValue;//先发低字节再发高字节
+		SendBuff[4+i*2] = CRCValue>>8;
+		USART2_SendByte(5+i*2);
+	}
+}
+
+modbus的写操作处理
+ModBusWrprocess(uint8_t cmd,uint16_t Addr, uint8_t len)
+{
+	if((Addr>=5)&&(Addr<=14) )
+	{
+		将要写的数据写入对应的reg
+	}
+	else if((Addr>=380)&&(Addr<=383))
+	{
+		将要写的数据写入对应的reg
+	}
+	if(!ret)//没有异常，返回ack结果
+	{
+		SendBuff[0] = 6;
+		SendBuff[1] = cmd;
+		CRCValue = user_uart_crc(SendBuff,6);
+		SendBuff[6] = CRCValue;
+		SendBuff[7] = CRCValue>>8;
+	
+		USART2_SendByte(8);
+	}
+}
