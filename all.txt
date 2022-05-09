@@ -3621,15 +3621,12 @@ int hammingDistance(int x, int y) {
 正数右移左边补的0
 
 老鼠试毒药1000瓶，给瓶编号1100 1101 1110 ....
-
 微软飞机油箱
-
 int main(){
 get(arr);			输入字符数量太多的话
 printf("%s",arr);
 return 0;        程序结束的时候会回收资源，发现越界
 }
-
 
 int main()
 {
@@ -3795,8 +3792,6 @@ io：
 	标准io：方便移植，只要#include<stdio.h>就好了
 	文件io：是内核里面的函数，移植困难
 
-	
-
 		1.把库拷贝到/lib  或/usr/lib就不用加-L 库位置了
 		系统会在这里自己找库
 
@@ -3822,8 +3817,6 @@ io：
  	getpgid(pid) ：获取指定进程的进程组id  成功0，失败-1置errno
  	setpgid(pid,pgid);改变进程默认所属的进程组，   成功0，失败-1置errno
  			普通用户不能改变root用户的进程的进程组
-
-
 
 	 task_struct 描述进程的状态的结构体
 
@@ -3908,42 +3901,27 @@ c++：
 
 	struct与class
 	static成员变量的使用，必须是public，不然外面调用不到了
-
 	c++的空类，默认会产生，默认构造、拷贝、析构、取址、赋值运算符函数
-
 	构造有参数可以重载，析构不能重载，没参数
-
 	构造函数public外面才可以调用
-
 	深浅拷贝：
-
 	自己写个string类。自己写个vector数组类：实现构造析构赋值
-
 	什么是多态。
-
 	虚函数怎么实现的？虚函数表---重新放个函数地址
 
-	
 const：
 1.局部变量：未初始化，值是随机的。全局变量与静态变量未初始化，编译器自动将它初始化为0.
   1）内存中的位置：静态存储区
-
   2）初始化：未经初始化的全局静态变量会被程序自动初始化为0（自动对象的值是任意的，除非他被显示初始化）
-
   3）作用域：作用域仍为局部作用域，当定义它的函数或者语句块结束的时候，作用域随之结束。
-
  注：当static用来修饰局部变量的时候，它就改变了局部变量的存储位置（从原来的栈中存放改为静态存储区）及其
  生命周期（局部静态变量在离开作用域之后，并没有被销毁，而是仍然驻留在内存当中，直到程序结束，只不过我们
  不能再对他进行访问），但未改变其作用域。
 
 2.全局变量
-
 在全局变量之前加上关键字static，全局变量就被定义成为一个全局静态变量。
-
  1）内存中的位置：静态存储区（静态存储区在整个程序运行期间都存在）
-
  2）初始化：未经初始化的全局静态变量会被程序自动初始化为0（自动对象的值是任意的，除非他被显示初始化）
-
  3）作用域：全局静态变量在声明他的文件之外是不可见的。准确地讲从定义之处开始到文件结尾。
 
 注：static修饰全局变量，并未改变其存储位置及生命周期，而是改变了其作用域，使当前文件外的源文件无法访问该变量，
@@ -3960,15 +3938,13 @@ c++：
 
          1.不要试图在头文件中定义(初始化)静态数据成员。在大多数的情况下，这样做会引起重复定义这样的错误。即使加上#ifndef #define
 		 #endif或者#pragma once也不行。 
-
          2.静态数据成员可以成为成员函数的可选参数，而普通数据成员则不可以。
-
          3.静态数据成员的类型可以是所属类的类型，而普通数据成员则不可以。普通数据成员的只能声明为 所属类类型的指针或引用。
 
     2.成员函数
-
     用static修饰成员函数，使这个类只存在这一份函数，所有对象共享该函数，不含this指针。
-    静态成员是可以独立访问的，也就是说，无须创建任何对象实例就可以访问。base::func(5,3);当static成员函数在类外定义时不需要加static修饰符。
+	静态成员是可以独立访问的，也就是说，无须创建任何对象实例就可以访问。base::func(5,3);
+	当static成员函数在类外定义时不需要加static修饰符。
     在静态成员函数的实现中不能直接引用类中说明的非静态成员，可以引用类中说明的静态成员。因为静态成员函数不含this指针。 
 
 不可以同时用const和static修饰成员函数。
@@ -4026,7 +4002,7 @@ command |tr 'A-Z' 'a-z'
 tr 'A-Z' 'a-z' < filename   字母大小写转化
 tr -d 'a-zA-Z :/'  < filename :删除文件中的字母、空格、冒号、/
 tr -s 'a-z' < file 压缩相同的挨着的小写字母，压成一个 
----paste小公举
+---paste小工具
 paste -d： file1 file2  并排合并打印，以:分割
 paste file1 file2 并排合并打印，以tab分割
 patse -s file1 file2 串着合并打印，一个文件中合并成一行
@@ -4049,7 +4025,8 @@ shell脚本如果./test.sh不给你说哪一行有问题。
 	从文件读入赋值：&&**
 	read -p 'inptu ip' IP < ip.txt 把ip.txt中的内容赋值给IP变量。
 
-变量分类：本地变量->只对当前进程有效  定义在当前终端（是个进程），只能在当前终端使用
+变量分类：
+		本地变量->只对当前进程有效  定义在当前终端（是个进程），只能在当前终端使用
 		环境变量—>当前终端能用，子进程也能使用
 				env：查看当前用户的环境变量（只是当前用户的）
 				set：查看当前用户的本地变量与环境变量 
@@ -4471,7 +4448,7 @@ docker load --input   xx.tar.gz   将这个镜像压缩包安装到os中
 - vim 1.c +18直接打开就是第18行
 - diff -Nur在那个目录执行   打patch时就在那个补录打可以时-p0  在目录里面就开始-p1  -p2  
 diff -q dir1 dir2  只对比文件名，不对比内容
-patch -p0 < 1.patch --fuzz=0
+patch -p0 < 1.patch --fuzz=0	不需要指定要将patch往那个目录里面打
 patch -RE < 1.patch 退回来打进去的patch
 vim中左括号跳右括号：%
 vim 查看二进制文件：：%!xxd + enter
@@ -6258,18 +6235,16 @@ s+addr+r/w+ack+stop  不需要发送data，r/w就是1/0就可以控制dcdc的开
 IIC的read/write与smbus的read/write不同，我们平时接触的大多IIC器件其实都用的是smbus协议
 ps:
 iic的block write 
-s+addr w+ack+interl reg+ack+datax+ack+stop
+s+addr w+ack+interegl+ack+datax+ack+stop---直接写数据直到主机不想写才停
 smbus的block write 
-s+addr w+ack+interl reg+byte_count+ack+datax+ack+stop
+s+addr w+ack+interegl+byte_count+ack+datax+ack+stop----先给从机说一下要写多少数据然后再去写
 
 iic的block read 
-s+addr w+ack+interl reg+ack+restart+addr r+datax+nack+stop
+s+addr w+ack+interl reg+ack+restart+addr r+datax+nack+stop---直接收数据直到主机nack不想收才停
 smbus的block read
-s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
+s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop----从机本身就知道自己要发byte_count个数据，发完就不发了
 
 尽量优先使用smbus，大多器件都支持smbus。
-
-
 	
 iic的重要结构体：
 i2c_adapter{
@@ -6286,10 +6261,9 @@ i2c_msg{   i2c传输的数据结构
 	i2c_client；//msg本身就含有了目的地址
 }
 很重要的函数：
-i2c_transfer(struct i2c_adapter* adapter,struct i2c_msg*msg,int num);//num表示msg数组数量，一般第一次发器件地址，再发内部reg地址，再发数据
-	传输函数，最终会调用更底层的transfer函数
-	
-	
+i2c_transfer(struct i2c_adapter* adapter,struct i2c_msg*msg,int num);//num表示msg数组数量，
+一般第一次发器件地址，再发内部reg地址，再发数据传输函数，最终会调用更底层的transfer函数
+
 linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调用内核提供的iic的drv函数。
 
 还可以使用i2c_tools工具去访问iic设备：
@@ -6300,7 +6274,7 @@ linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调�
 		UU：表示此设备存在并且内核已经集成对应的设备的驱动程序
 		其他：表示有此设备，但是内核没驱动程序
 		
-	使用smubs协议：
+	使用smubs协议：  0x1e表示从机地址
 	i2cset -f -y 0 0x1e 0(写) 0x4(data)
 		-f：对于UU的设备，内核不允许通过其他方式操作从机，需要-f强制执行
 		0表示0号总线
