@@ -2193,6 +2193,36 @@ tick中断根据优先级查找可以执行的高优先级任务；程序执行�
 xQueueCalcHandle = xQueueCreate(); 创建队列，用于任务间数据通信的，生产者消费者
 
 
+cubemx创建rtos程序：
+简单的选择cmsis_v1就可以了，默认只有7个等级的优先级任务
+一般需要开启software timer definition
+系统时钟来自主systick--在FreeRTOSConfig.h可以看到cpu频率
+默认系统定时器周期都是1ms
+myTimer01Handle = osTimerCreate(osTimer(myTimer01), osTimerPeriodic, NULL);创建时钟任务后需要开启此任务
+osTimerStart(myTimer01Handle,500);---500表示500ms执行一次，myTimer01Handle为句柄
+
+信号量：信号量在使用过程中会出现优先级反转的Bug，使用时需要注意
+osSemaphoreAcquire(myBinarySem01Handle,10);获取信号量，句柄+超时时间
+osSemaphoreRelease(myBinarySem01Handle);释放信号量
+osMutexAcquire(myMutex01Handle,10);获取互斥锁，超时时间  获取等待时间（等待期间任务挂起在内核对象的挂起队列）
+osMutexRelease(myMutex01Handle);释放互斥锁
+
+常用api：
+osKernelInitialize	初始化RTOS的内核
+osKernelGetInfo	获取RTOS的信息
+osKernelGetState	获取当前内核的运行状态
+osKernelStart	启动内核调度
+osKernelLock	锁内核调度器
+osKernelUnlock	解锁内核调度器
+osKernelRestoreLock	恢复RTOS内核调度器锁状态
+osKernelSuspend	挂起任务
+osKernelResume	恢复任务
+osKernelGetTickCount	用于获取系统当前运行的时钟节拍数
+osKernelGetTickFreq		用于获取系统当前运行的时钟节拍的分频频率
+osKernelGetSysTimerCount	获取系统时钟（SysTick）的计数值
+osKernelGetSysTimerFreq		获取系统时钟（SysTick）的频率
+
+
 
 
 -----------------------------------MDK编译流程

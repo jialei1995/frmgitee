@@ -5,20 +5,21 @@ institution  学会，集体
 electronic   电子
 electrical   电气
 Termination 结束，截止
-Suspend 暂停
+Suspend 暂停，挂起
 Inhibit 阻止，禁止
 guage   测量
 sealed 密封的
-exploit  开发
+exploit  开发，利用
 dual：双倍的
 derive：得到、获得
 resolution：分辨率
 Calibration ：标定
 Sequencer：顺序，序列
+squence：顺序
 Regular：常规的
 regulator ：调节器
 fragment  分段，分开
-squence：顺序
+
 fusion computer:融合计算
 nfv：网络虚拟化
 pendding：待处理
@@ -46,7 +47,6 @@ equite .. with sth
 on the contrary  与之相反
 from the cradle to the grave从摇篮到坟墓，一生
 lag behind  落后
-lack of doingsth  缺乏。。
 inevitable  不可避免的
 evitable  可以避免的
 
@@ -71,8 +71,11 @@ palette		调色板
 graphs		图
 Plot		绘制
 thermistor  温度传感器，热敏电阻
+resistance	电阻
+
 conclusion  结论，结尾
 optimal performance  最佳性能
 Duty Ratio，Duty Cycle	占空比
+alert		报警
 ```
 
