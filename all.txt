@@ -6863,7 +6863,7 @@ watch -d free：高亮动态显示有变化的地方
 x=y+0.5;  就是加个0.5看是否满足进一
 
 
-算法：
+算法：-------------------------------------------------BEGIN
 1.
 常数操作---ep：赋值  得到数组i位置的值  加减乘除  位运算(最快的)  比较
 非常数操作：得到链表i位置的值-----O（n）时间复杂度 
@@ -6910,11 +6910,44 @@ main()
 		}
 	}
 }
+滑动窗口，求数组固定长度求和最大值：
+双指针：left right N数组长度
+while(left<N){		//left固定的情况下，right贪心向右移动获取L长度的数组的累计最大值
+    while(right<N &&(arr[right]-arr[left] <=L)){
+        right++;
+    }
+    max=MAX(max,right-left);//left左窗口++
+    left++;
+}
 
 
+void printf_bin(int num)
+{
+	int i, j, k;
+	unsigned char *p = (unsigned char*)&num + 3;//p先指向num后面第3个字节的地址，即num的最高位字节地址
+
+	for (i = 0; i < 4; i++) //依次处理4个字节(32位）
+	{
+		j = *(p - i); //取每个字节的首地址，从高位字节到低位字节，即p p-1 p-2 p-3地址处
+		for (int k = 7; k >= 0; k--) //处理每个字节的8个位，注意字节内部的二进制数是按照人的习惯存储！
+		{
+			if (j & (1 << k))//1左移k位，与单前的字节内容j进行或运算，如k=7时，00000000&10000000=0 ->该字节的最高位为0
+				printf("1");
+			else
+				printf("0");
+		}
+		printf(" ");//每8位加个空格，方便查看
+	}
+	printf("\r\n");
+}
+https://github.com/algorithmzuo/class-notes/blob/main/%E8%AF%BE%E5%A0%82%E5%86%85%E5%AE%B9%E6%B1%87%E6%80%BB/%E6%AF%8F%E5%91%A8%E6%9C%89%E8%90%A5%E5%85%BB%E7%9A%84%E5%A4%A7%E5%8E%82%E7%AE%97%E6%B3%95%E9%9D%A2%E8%AF%95%E9%A2%98(%E6%AD%A3%E5%9C%A8%E7%9B%B4%E6%92%AD)
+算法-------------------------------------------------END
 sizeof细节：
 int arr[100];
 sizeof(arr) = 400;  编译器可以自己区分当前变量是指针还是数组名，如果是数组名就可以计算数组大小
 int * arr;
 sizeof(arr) = 4;//对于32位计算机，指针大小都是4
 F0属于Cortex-M0，F1属于Cortex-M3，F4属于Cortex-M4
+
+为什么要有动态内存分配，全用数组不行吗？
+在函数内部如果长度很长，用栈会导致程序栈内存不够使用，大的数组尽量用堆内存。
