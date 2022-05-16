@@ -5717,6 +5717,7 @@ os中的systemctl status network状态是fail不是说内部网络不正常，10
 dpkg -S file：查看文件对应的deb软件包
 dpkg -l ：列出所以已安装的deb包
 dpkg -r/-P:删除包remove,purge
+dpkg -L i2c-tools:查看安装包安装的文件
 
 apt-cache search all：查看当前apt源支持安装的deb包
 
@@ -6941,6 +6942,71 @@ void printf_bin(int num)
 	printf("\r\n");
 }
 https://github.com/algorithmzuo/class-notes/blob/main/%E8%AF%BE%E5%A0%82%E5%86%85%E5%AE%B9%E6%B1%87%E6%80%BB/%E6%AF%8F%E5%91%A8%E6%9C%89%E8%90%A5%E5%85%BB%E7%9A%84%E5%A4%A7%E5%8E%82%E7%AE%97%E6%B3%95%E9%9D%A2%E8%AF%95%E9%A2%98(%E6%AD%A3%E5%9C%A8%E7%9B%B4%E6%92%AD)
+1.返回一个数组中，选择的数字不能相邻的情况下，最大子序列累加和
+// 定义dp[i] : 表示arr[0...i]范围上，在不能取相邻数的情况下，返回所有组合中的最大累加和
+// 在arr[0...i]范围上，在不能取相邻数的情况下，得到的最大累加和，可能性分类：
+// 可能性 1) 选出的组合，不包含arr[i]。那么dp[i] = dp[i-1]
+// 比如，arr[0...i] = {3,4,-4}，最大累加和是不包含i位置数的时候
+//
+// 可能性 2) 选出的组合，只包含arr[i]。那么dp[i] = arr[i]
+// 比如，arr[0...i] = {-3,-4,4}，最大累加和是只包含i位置数的时候
+//
+// 可能性 3) 选出的组合，包含arr[i], 且包含arr[0...i-2]范围上的累加和。那么dp[i] = arr[i] + dp[i-2]
+// 比如，arr[0...i] = {3,1,4}，最大累加和是3和4组成的7，因为相邻不能选，所以i-1位置的数要跳过
+//
+// 综上所述：dp[i] = Max { dp[i-1], arr[i] , arr[i] + dp[i-2] }
+
+int fun(int *arr,int len)
+{
+    int i;
+    int dp[10];
+    if (len == 2) {
+        return getMax(arr[0], arr[1]);
+    }
+    dp[0] = arr[0];
+    dp[1] = getMax(arr[0], arr[1]);
+    for (i = 2; i < len; i++) {
+        dp[i] = getMax(getMax(dp[i-1], arr[i]), arr[i]+dp[i-2]);
+        printf("%d---%d\n",i,dp[i]);
+    }
+    return dp[len-1];
+}
+2.交错字符串
+https://leetcode-cn.com/problems/interleaving-string/solution/lei-si-lu-jing-wen-ti-zhao-zhun-zhuang-tai-fang-ch/
+bool isInterleave(char* s1, char* s2, char* s3) {
+    int m = strlen(s1), n = strlen(s2);
+    if (strlen(s3) != (m + n)) return false;
+    // 动态规划，dp[i,j]表示s1前i字符能与s2前j字符组成s3前i+j个字符；
+    bool dp[m+1][n+1];//创建横纵都为len+1的二维数组
+    dp[0][0] = true;//0位置是true
+    for (int i = 1; i <= m && s1[i-1] == s3[i-1]; i++) dp[i][0] = true; //填第一列
+    for (int j = 1; j <= n && s2[j-1] == s3[j-1]; j++) dp[0][j] = true; //填第一行
+    for (int i = 1; i <= m; i++) {
+        for (int j = 1; j <= n; j++) {
+			//dp[i][j]=当前位置上方为真&&dp[当前位置]==s1[当前位置]  ||当前位置左侧为真&&当前位置==s2[当前位置]
+            dp[i][j] = (dp[i-1][j] && (s3[i+j-1] == s1[i-1]))|| (dp[i][j-1] && (s3[i+j-1] == s2[j-1]));
+			if(dp[i][j]==flase) break;
+        }
+    }
+    return dp[m][n];
+}
+递归汉诺塔：
+//从begin借助help移动到target，移动n个盘子
+void recurse(char begin,char help,char target,int n)
+{
+    if(n==1)
+    {
+        printf("from %c-move %d slot-->%c\n",begin,n,target);
+    }
+    else
+    {
+        recurse(begin,target,help,n-1);//从begin借助target把n-1个盘子移动到help
+        printf("from %c-move %d slot-->%c\n",begin,n,target);//移动begin最后一个盘子到target上
+        //recurse(begin,help,target,1);//这样也可以，就是打印不对
+        recurse(help,begin,target,n-1);//移动help上的n-1个盘子借助begin盘子到target上
+    }
+}
+
 算法-------------------------------------------------END
 sizeof细节：
 int arr[100];
