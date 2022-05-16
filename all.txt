@@ -4856,6 +4856,8 @@ make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
 ### gdb
 
 ```c
+l -n:从第n行开始查看代码  l func：查看具体函数
+bt：查看调用栈与层级关系
 c : 继续运行程序，直到遇到下一个断点，若没有断点，程序就会运行完。
 set var 变量名=‘xxx’  或者数字  set var i=10
 ./a.out arg1 arg2  程序如果运行时这样传参
