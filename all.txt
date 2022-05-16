@@ -6275,7 +6275,7 @@ linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调�
 	我们可以使用i2c_tools的命令检测iic从设备：
 	i2cdetect:
 	i2cdetect -l:查看板子有几个iic控制器
-	i2cdetect 0:查看0号iic控制器接了几个从设备，接的从设备有没有驱动。
+	i2cdetect 0:查看0号iic控制器接了几个从设备，接的从设备有没有驱动。对应的地址就是从机地址
 		UU：表示此设备存在并且内核已经集成对应的设备的驱动程序
 		其他：表示有此设备，但是内核没驱动程序
 		
@@ -6292,6 +6292,12 @@ linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调�
 	i2ctransfer -f -y 0 w1@0x1e 0xc r2
 	读0xc内部reg数据，w1@0x1e 0xc r2先写内部reg地址，1字节，再去读2字节。
 	
+应用程序访问iic--eeprom的程序：不需要实现驱动程序，可以借用i2c-tools中的.c i2cbussec.c .h去直接访问eeprom
+open_i2c_dev(i2c总线号，&filename,xxx);i2cbusses.c中有实现 filename是传入传出参数
+set_slave_addr(filename,从机地址，force)；强制设置i2c地址
+i2c_smbus_write_byte_data(句柄，eeprom内部地址，字符串);实现来自smbus.c
+i2c_smbus_read_block_data(句柄，eeprom内部地址，读多少，读到buf)；实现来自smbus.c
+
 --------------sigio信号怎么触发--这就是异步通知
 可以通过外部kill -SIGIO 进程id 则可以触发此进程中对于SIGIO的处理函数
 如果事先没有提供对SIGIO的处理函数，则默认此信号会杀死该进程。
