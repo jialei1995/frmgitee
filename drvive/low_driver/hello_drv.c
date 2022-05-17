@@ -15,7 +15,7 @@
 #include <linux/kmod.h>
 #include <linux/gfp.h>
 
-//²Î¿¼ÄÚºËÖĞdriver/char/misc.cÎÄ¼ş--¾­µäµÄ×Ö·ûÉè±¸Çı¶¯
+//¿¼ÄÚºËÖĞdriver/char/misc.cÎÄ¼ş--¾­µäµÄ×Ö·ûÉè±¸Çı¶¯
 /*Á÷³Ì£º
     1.È·¶¨Ö÷Éè±¸ºÅ
     2.¶¨Òå×Ô¼ºµÄfile_operations½á¹¹Ìå
@@ -25,6 +25,7 @@
     6.³ö¿Úº¯Êı
     7.Ìá¹©Éè±¸ĞÅÏ¢£¬×Ô¶¯´´½¨Éè±¸½Úµã
 */
+static struct class *hello_class;
 //1.È·¶¨Ö÷Éè±¸ºÅ
 static int major;
 
@@ -33,24 +34,27 @@ static char kernel_buf[1024];//´´½¨ÄÚºËÊı×é£¬Ö»ÊôÓÚÄÚºË£¬×÷ÎªÓÃ»§¿Õ¼äÓëÄÚºË¿Õ¼äµ
 #define MIN(a,b)    (a<b?a:b)
 ssize_t hello_drv_read (struct file *file, char __user *buf, size_t size, loff_t *offset)
 {
-    printk("%s %s line:%s\n",__FILE__,__FUNCTION__,__LINE__);
-    copy_to_user(buf,kernel_buf, MIN(1024,size));
+    unsigned long ret;
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
+    //·µ»ØÖµÒª½ÓÒ»ÏÂ£¬·ñÔò±àÒë±¨´í£¬ÄÚºË¶Ôº¯Êıµ÷ÓÃÒªÇóÑÏ¸ñ
+    ret=copy_to_user(buf,kernel_buf, MIN(1024,size));
     return MIN(1024,size);//·µ»Ø¶ÁÁË¶àÉÙÊı¾İ
 }
 ssize_t hello_drv_write (struct file *file, const char __user *buf, size_t size, loff_t *offset)
 {
-    printk("%s %s line:%s\n",__FILE__,__FUNCTION__,__LINE__);
-    copy_from_user(kernel_buf, buf,MIN(1024,size));
+    unsigned long ret;
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
+    ret=copy_from_user(kernel_buf, buf,MIN(1024,size));
     return MIN(1024,size);//·µ»ØĞ´ÁË¶àÉÙÊı¾İ
 }
 int hello_drv_open (struct inode *node, struct file *file)
 {
-    printk("%s %s line:%s\n",__FILE__,__FUNCTION__,__LINE__);
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
     return 0;
 }
 int hello_drv_close (struct inode *node, struct file *file)
 {
-    printk("%s %s line:%s\n",__FILE__,__FUNCTION__,__LINE__);
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
     return 0;
 }
 
@@ -58,25 +62,43 @@ int hello_drv_close (struct inode *node, struct file *file)
 static struct file_operations hello_drv={
     .owner  = THIS_MODULE,
     .open   =  hello_drv_open,
-    .close   =  hello_drv_close,
+    .release   =  hello_drv_close,
     .read   =  hello_drv_read,
     .write   =  hello_drv_write,
 };
 // 3.ÊµÏÖ¶ÔÓ¦µÄÏµÍ³µ÷ÓÃº¯Êı£¬ÌîÈëfile_operations
 // 4.°ÑÍê³ÉµÄfile_operations×¢²á½øÄÚºË£º×¢²áÇı¶¯³ÌĞò
-// 5.Ë­À´×¢²á£ºÈë¿Úº¯Êı
+// 5.Ë­À´×¢²á£ºÈë¿Úº¯ÊıÀ´
 static int __init hello_init(void)
 {
+    int err;
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
+    //×¢²áµÄÊ±ºòÄÚºË»á·ÖÅä´ËÉè±¸µÄÖ÷Éè±¸ºÅ
 	major = register_chrdev(0, "hello", &hello_drv);
+    hello_class=class_create(THIS_MODULE,"hello_class");
+    err = PTR_ERR(hello_class);
+    if(IS_ERR(hello_class))
+    {
+        unregister_chrdev(major, "hello");
+        return -1;
+    }
+    //Èë²ÎÊÇÉè±¸ºÅ£¬ÓÉÖ÷Éè±¸ºÅÓë´ÎÉè±¸ºÅ×é³É
+    device_create(hello_class,NULL,MKDEV(major,0),NULL,"hello");
+        
 	return 0;
 }
 // 6.³ö¿Úº¯Êı
-static int __exit hello_exit(void)
+static void __exit hello_exit(void)
 {
+    printk("%s %s line:%d\n",__FILE__,__FUNCTION__,__LINE__);
+    //ÍË³öµÄÊ±ºòdestroyÓë´´½¨Ê±µÄË³ĞòÏà·´
+    device_destroy(hello_class,MKDEV(major,0));
+    class_destroy(hello_class);
 	unregister_chrdev(major, "hello");
-	return 0;
+	return ;
 }
 
 module_init(hello_init);
 module_exit(hello_exit);
-// 7.Ìá¹©Éè±¸ĞÅÏ¢£¬×Ô¶¯´´½¨Éè±¸½Úµã
+MODULE_LICENSE("GPL");
+// 7.Ìá¹©Éè±¸ĞÅÏ¢£¬×Ô¶¯´´½¨Éè±¸½Úµã---ÔÚÈë¿Úº¯ÊıÖĞ(´´½¨Àà+Éè±¸)
