@@ -4857,6 +4857,7 @@ make xxx_config   执行xxx类型板子的config   在arch/arm/configs中
 
 ```c
 l -n:从第n行开始查看代码  l func：查看具体函数
+l:默认显示当前运行位置上下5行的代码
 bt：查看调用栈与层级关系
 c : 继续运行程序，直到遇到下一个断点，若没有断点，程序就会运行完。
 set var 变量名=‘xxx’  或者数字  set var i=10
@@ -4868,11 +4869,14 @@ info  b:查看断点信息
 b 15 if i==15 按条件设置断点，不是一到15行就停止了，还得i=15，才会断住。
 b filename:15/function   跳到文件名为filename的文件的15行，或者函数名字处
 display num1:每次next都会主动将num1变量的值打印出来，看他是否变化
-undisplay  变量i的编号。编号的获取info display i d
+undisplay  变量i的编号。编号的获取：i d
 finish：从函数中跳出来，回到上一层函数。并不是一下就跳回到main。跳到上一层继续调试
 ptype a：打印变量a的类型
 del  4：删除编号为4的断点
-watch:
+watch:被设置观察变量发生改变时才打印显示
+i watch：显示观察变量
+enable breakpoints  启用断点
+disable breakpoints 禁用断点
 ---进程：
 set follow-fork-mode parent  默认就是父进程，这个不用set
 set follow-fork-mode child
@@ -6998,7 +7002,7 @@ bool isInterleave(char* s1, char* s2, char* s3) {
     }
     return dp[m][n];
 }
-递归汉诺塔：
+3.递归汉诺塔：
 //从begin借助help移动到target，移动n个盘子
 void recurse(char begin,char help,char target,int n)
 {
@@ -7015,6 +7019,7 @@ void recurse(char begin,char help,char target,int n)
     }
 }
 
+4.
 算法-------------------------------------------------END
 sizeof细节：
 int arr[100];
@@ -7022,6 +7027,8 @@ sizeof(arr) = 400;  编译器可以自己区分当前变量是指针还是数组
 int * arr;
 sizeof(arr) = 4;//对于32位计算机，指针大小都是4
 F0属于Cortex-M0，F1属于Cortex-M3，F4属于Cortex-M4
+
+数组长度必须是常量 可以#define ARRARY_SIZE 1024，int arr[ARRARY_SIZE];  不能int arr[n]
 
 为什么要有动态内存分配，全用数组不行吗？
 在函数内部如果长度很长，用栈会导致程序栈内存不够使用，大的数组尽量用堆内存。
