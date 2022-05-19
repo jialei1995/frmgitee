@@ -1,0 +1,9 @@
+ledtest  测试程序
+leddrv.c  驱动程序
+led_resource.h	资源是怎么封装的，资源的特点
+
+board_a_led.c	板子a的资源的定义
+board_b_led.c	板子b的资源的定义
+board_c_led.c	板子c的资源的定义
+
+chip_demo_gpio.c	获取板子的资源，实现对不同板子的操作函数传到drv文件中
