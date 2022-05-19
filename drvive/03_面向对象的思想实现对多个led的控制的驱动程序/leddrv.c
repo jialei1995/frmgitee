@@ -22,7 +22,7 @@
 /* 1. 确定主设备号                                                                 */
 static int major = 0;
 static struct class *led_class;
-struct led_operations *p_led_opr;
+struct led_operations *p_led_opr;//空指针
 
 
 #define MIN(a, b) (a < b ? a : b)
@@ -46,8 +46,8 @@ static ssize_t led_drv_write (struct file *file, const char __user *buf, size_t 
 	printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
 	err = copy_from_user(&status, buf, 1);
 
-	/* 根据次设备号和用户空间传的status控制LED */
-	p_led_opr->ctl(minor, status);
+	/* 根据次设备号和用户空间传的status控制LED,此设备号的获取如上 */
+	p_led_opr->ctl(minor, status);//已经有remap后的虚拟地址则可以直接操作寄存器了
 	
 	return 1;
 }
@@ -58,7 +58,7 @@ static int led_drv_open (struct inode *node, struct file *file)
 	
 	printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
 	/* 根据次设备号初始化想控制的LED */
-	p_led_opr->init(minor);
+	p_led_opr->init(minor);//在init中ioremap物理地址并初始化硬件
 	
 	return 0;
 }
@@ -88,7 +88,7 @@ static int __init led_init(void)
 	printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
 	major = register_chrdev(0, "100ask_led", &led_drv);  /* /dev/led */
 
-
+	//led类只需要创建1个
 	led_class = class_create(THIS_MODULE, "100ask_led_class");
 	err = PTR_ERR(led_class);
 	if (IS_ERR(led_class)) {
@@ -96,11 +96,11 @@ static int __init led_init(void)
 		unregister_chrdev(major, "100ask_led");
 		return -1;
 	}
-
-	for (i = 0; i < LED_NUM; i++)
+	//根据同一个类可以创建多个设备
+	for (i = 0; i < LED_NUM; i++)//这里次设备号分别为0..2..n
 		device_create(led_class, NULL, MKDEV(major, i), NULL, "100ask_led%d", i); /* /dev/100ask_led0,1,... */
 
-	p_led_opr = get_board_led_opr();
+	p_led_opr = get_board_led_opr();//指向对应的操作方法
 	
 	return 0;
 }

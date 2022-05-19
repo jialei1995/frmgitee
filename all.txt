@@ -7019,7 +7019,44 @@ void recurse(char begin,char help,char target,int n)
     }
 }
 
-4.
+4.结构体面向对象的妙用
+struct led_operations {//构造结构体
+    int (*init) (int which); /* 初始化LED, which-哪个LED */
+    int (*ctl) (int which, char status); /* 控制LED, which-哪个LED, status:1-亮,0-灭 */
+};//内部函数都没实现，根据定义的不同变量实现不同的方法
+
+static int board_demo_led_init (int which) /* 初始化LED, which-哪个LED */
+{
+    printf("%s %s line %d, led %d\n", __FILE__, __FUNCTION__, __LINE__, which);
+    return 0;
+}
+
+static int board_demo_led_ctl (int which, char status) /* 控制LED, which-哪个LED, status:1-亮,0-灭 */
+{
+    printf("%s %s line %d, led %d, %s\n", __FILE__, __FUNCTION__, __LINE__, which, status ? "on" : "off");
+    return 0;
+}
+//定义变量的时候才确定成员函数的具体实现
+static struct led_operations board_demo_led_opr = {//定义变量board_demo_led_opr的实现方法
+    .init = board_demo_led_init,
+    .ctl  = board_demo_led_ctl,
+};
+static struct led_operations var2 = {//定义变量board_demo_led_opr的实现方法
+    .init = fun1,//则变量var2里面的实现与变量board_demo_led_opr的实现不一样
+    .ctl  = fun2,
+};
+int main()
+{
+    board_demo_led_opr.init(1);//直接通过句柄传不同的参数可以控制不用的灯
+    board_demo_led_opr.ctl(1,1);
+    board_demo_led_opr.ctl(1,0);
+
+    board_demo_led_opr.init(2);
+    board_demo_led_opr.ctl(2,1);
+    board_demo_led_opr.ctl(2,0);
+    return 0;
+}
+
 算法-------------------------------------------------END
 sizeof细节：
 int arr[100];

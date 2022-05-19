@@ -113,7 +113,7 @@ static int __init led_init(void)
     //入参是设备号，由主设备号与次设备号组成
     device_create(led_class,NULL,MKDEV(major,0),NULL,"led");
 
-    //开始ioremap映射物理地址,映射4字节，因为每个reg存的都是32bit的数据
+    //开始ioremap映射物理地址,映射4字节，因为每个reg存的都是32bit的数据----映射放到open的时候更合理，只有open的时候才占内核态内存
     REG1=ioremap(0x50000001,4);//实际地址是0x50000001
     REG2=ioremap(0x50000002,4);//实际地址是0x50000002
     REG3=ioremap(0x50000003,4);//实际地址是0x50000003
