@@ -3021,3 +3021,42 @@ ModBusWrprocess(uint8_t cmd,uint16_t Addr, uint8_t len)
 		USART2_SendByte(8);
 	}
 }
+包含time.h----------注意同工程中不能有2个time.h否则程序会异常，两个.h中都能跳过去，但是定义的函数无法执行，显示未定义
+struct tm {
+    int tm_sec;   /* seconds after the minute, 0 to 60
+                     (0 - 60 allows for the occasional leap second) */
+    int tm_min;   /* minutes after the hour, 0 to 59 */
+    int tm_hour;  /* hours since midnight, 0 to 23 */
+    int tm_mday;  /* day of the month, 1 to 31 */
+    int tm_mon;   /* months since January, 0 to 11 */
+    int tm_year;  /* years since 1900 */
+    int tm_wday;  /* days since Sunday, 0 to 6 */
+    int tm_yday;  /* days since January 1, 0 to 365 */
+    int tm_isdst; /* Daylight Savings Time flag */
+};
+
+uint32_t reset_datetime(uint16_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t min,uint8_t sec) 
+{
+    date_time_Now->tm_year = year-1900;//设置的时候month要减1900
+    date_time_Now->tm_mon = month-1;//设置的时候month要减1
+    date_time_Now->tm_mday = day;//其他数值不用减
+    date_time_Now->tm_hour = hour;
+    date_time_Now->tm_min = min;
+    date_time_Now->tm_sec = sec;
+    return   (uint32_t)(mktime(date_time_Now));//用当前结构体转unix时间戳再设置到板子中去
+}
+
+uint32_t GT_GET_RTC(void)
+{
+	NowTime = rtc_counter_get();//获取当前unix时间戳
+	date_time_Now = localtime(&NowTime);//用当前时间戳转化成当前struct时间格式
+	date_time_Now->tm_year+=1900;//获取的year要加1900，但是月不用加1
+#if 0
+	printf("uinx %d time is:%d.%d.%d ", NowTime,(date_time_Now->tm_year), (1+date_time_Now->tm_mon), date_time_Now->tm_mday);
+	printf("%d:%d:%d\n", date_time_Now->tm_hour, date_time_Now->tm_min, date_time_Now->tm_sec);
+#endif
+  return NowTime;
+}
+
+定义数据类型溢出后，程序运行出bug-----打印出理论数据，查看是否有数据打印异常，推到数据类型是否溢出。
+mcu每页2k地址空间，VEC_TAB_OFFSET只要是0x100的倍数就行。但是擦除页的时候必须从本页开头开始擦，不能在页中间开始擦。

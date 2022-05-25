@@ -2174,7 +2174,7 @@ linux内核移植：
 		最后一行的versionmod:就是编译mod时的内核版本。
 		mod安装不上时可能是当前内核是A，而编译此mod的内核是B，所以不能insmod。
 		
-		模块传参：  在源码中写好可以传参，然后模块安装的时候就可以传参进去
+		模块传参：在源码中写好可以传参，然后模块安装的时候就可以传参进去
 				代码.c中也要有配置才行
 				int x；
 				module_param(x,int,0664); 变量名、类型、权限不能是0666
@@ -2208,7 +2208,7 @@ linux内核移植：
 			int （*open）（struct inode*，...）其中open是变量int （*）（struct inode*，...）是个类型，可以typedef一下
 			}
 
-			 写设备驱动程序， 首先申请设备号：
+			写设备驱动程序， 首先申请设备号：
 			cat /proc/devices   查看可用的设备号（主设备）  
 		
 		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
@@ -2234,7 +2234,7 @@ linux内核移植：
 			在demo板中的makefile：KERNELDIR ?= /source/rootfs/lib/modules/3.14.0/build arm中的makefile
 
 		$ dmesg			查看内核的日志信息 ，一般查看之前先清一下历史记录 sudo dmesg -c----清除历史日志信息
-		
+		 
 	内核模块与设备驱动之间的关系：
 		模块：linux内核组件管理的方式		驱动：都是基于模块进行注册和注销的
 		驱动的种类：
