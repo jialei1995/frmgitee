@@ -50,7 +50,7 @@ static struct platform_device board_A_led_dev = {
 static int __init led_dev_init(void)
 {
     int err;
-    //入口函数，初始化中将platform_device弄进虚拟bus中
+    //入口函数，初始化中将platform_device弄进虚拟bus中，纯粹的硬件资源insmod
     err = platform_device_register(&board_A_led_dev);   
     
     return 0;

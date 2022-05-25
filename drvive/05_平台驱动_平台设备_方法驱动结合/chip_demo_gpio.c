@@ -104,16 +104,15 @@ static int chip_demo_gpio_probe(struct platform_device *pdev)
 
     while (1)
     {
-        res = platform_get_resource(pdev, IORESOURCE_IRQ, i++);
+        res = platform_get_resource(pdev, IORESOURCE_IRQ, i++);//获取到硬件资源，i就是res的序号，从0开始
         if (!res)
             break;
         
         g_ledpins[g_ledcnt] = res->start;
-        led_class_create_device(g_ledcnt);
+        led_class_create_device(g_ledcnt);//这里的g_ledcnt刚好也是次设备号，根据次设备号创建device设备文件
         g_ledcnt++;
     }
     return 0;
-    
 }
 
 static int chip_demo_gpio_remove(struct platform_device *pdev)
@@ -127,7 +126,7 @@ static int chip_demo_gpio_remove(struct platform_device *pdev)
         if (!res)
             break;
         
-        led_class_destroy_device(i);
+        led_class_destroy_device(i);//根据次设备号destroy device
         i++;
         g_ledcnt--;
     }
@@ -136,8 +135,8 @@ static int chip_demo_gpio_remove(struct platform_device *pdev)
 
 
 static struct platform_driver chip_demo_gpio_driver = {
-    .probe      = chip_demo_gpio_probe,
-    .remove     = chip_demo_gpio_remove,
+    .probe      = chip_demo_gpio_probe,//实现探测函数，在探测函数中根据获取的资源创建device，多个device
+    .remove     = chip_demo_gpio_remove,//
     .driver     = {
         .name   = "100ask_led",
     },
@@ -148,7 +147,7 @@ static int __init chip_demo_gpio_drv_init(void)
     int err;
     
     err = platform_driver_register(&chip_demo_gpio_driver); 
-    register_led_operations(&board_demo_led_opr);
+    register_led_operations(&board_demo_led_opr);//将具体的资源传给drv.c驱动中，drv.c中实现具体的操作
     
     return 0;
 }

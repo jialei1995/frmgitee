@@ -88,6 +88,7 @@ static int board_demo_led_ctl (int which, char status) /* 控制LED, which-哪�
     return 0;
 }
 
+//封装对具体的led的init与ctrl
 static struct led_operations board_demo_led_opr = {
     .init = board_demo_led_init,
     .ctl  = board_demo_led_ctl,
@@ -104,11 +105,11 @@ static int chip_demo_gpio_probe(struct platform_device *pdev)
     int err = 0;
     int led_pin;
 
-    np = pdev->dev.of_node;
+    np = pdev->dev.of_node;//通过pdev可以获取到硬件资源
     if (!np)
         return -1;
 
-    err = of_property_read_u32(np, "pin", &led_pin);
+    err = of_property_read_u32(np, "pin", &led_pin);//探测函数检测到设备树中的资源就会一次次的被调用去获取资源
     
     g_ledpins[g_ledcnt] = led_pin;
     led_class_create_device(g_ledcnt);
@@ -153,7 +154,7 @@ static int chip_demo_gpio_remove(struct platform_device *pdev)
     return 0;
 }
 
-static const struct of_device_id ask100_leds[] = {
+static const struct of_device_id ask100_leds[] = { //of_match_table就是of_device_id类型的数据
     { .compatible = "100as,leddrv" },
     { },
 };
@@ -162,8 +163,8 @@ static struct platform_driver chip_demo_gpio_driver = {
     .probe      = chip_demo_gpio_probe,
     .remove     = chip_demo_gpio_remove,
     .driver     = {
-        .name   = "100ask_led",
-        .of_match_table = ask100_leds,
+        .name   = "100ask_led",//通过这个可以直接匹配硬件资源
+        .of_match_table = ask100_leds,//通过这个可以直接匹配硬件资源
     },
 };
 

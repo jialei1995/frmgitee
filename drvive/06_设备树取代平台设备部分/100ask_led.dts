@@ -1,5 +1,5 @@
 #define GROUP_PIN(g,p) ((g<<16) | (p))
-
+设备书中传入资源 drv就可以直接探测到
 / {
 	100ask_led@0 {
 		compatible = "100as,leddrv";

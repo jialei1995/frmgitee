@@ -98,7 +98,7 @@ static struct file_operations led_drv = {
 
 /* 4. 把file_operations结构体告诉内核：注册驱动程序                                */
 /* 5. 谁来注册驱动程序啊？得有一个入口函数：安装驱动程序时，就会去调用这个入口函数 */
-static int __init led_init(void)
+static int __init led_init(void)//只实现类的创建，具体的device的创建在
 {
 	int err;
 	

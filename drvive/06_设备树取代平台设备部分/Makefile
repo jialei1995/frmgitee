@@ -25,5 +25,5 @@ clean:
 
 
 
-obj-m += leddrv.o chip_demo_gpio.o
+obj-m += leddrv.o chip_demo_gpio.o  # 有了设备树文件则不在需要平台设备文件的安装
 

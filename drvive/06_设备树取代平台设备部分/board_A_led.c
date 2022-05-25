@@ -18,7 +18,7 @@
 #include <linux/platform_device.h>
 
 #include "led_resource.h"
-
+//设备树文件可以完全替代此文件
 
 static void led_dev_release(struct device *dev)
 {
