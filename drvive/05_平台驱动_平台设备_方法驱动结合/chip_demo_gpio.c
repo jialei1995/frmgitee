@@ -104,11 +104,12 @@ static int chip_demo_gpio_probe(struct platform_device *pdev)
 
     while (1)
     {
+        //第二个参数是：资源类型
         res = platform_get_resource(pdev, IORESOURCE_IRQ, i++);//获取到硬件资源，i就是res的序号，从0开始
         if (!res)
             break;
         
-        g_ledpins[g_ledcnt] = res->start;
+        g_ledpins[g_ledcnt] = res->start;//获取到一个硬件资源实现一次设备文件的创建
         led_class_create_device(g_ledcnt);//这里的g_ledcnt刚好也是次设备号，根据次设备号创建device设备文件
         g_ledcnt++;
     }
@@ -136,7 +137,7 @@ static int chip_demo_gpio_remove(struct platform_device *pdev)
 
 static struct platform_driver chip_demo_gpio_driver = {
     .probe      = chip_demo_gpio_probe,//实现探测函数，在探测函数中根据获取的资源创建device，多个device
-    .remove     = chip_demo_gpio_remove,//
+    .remove     = chip_demo_gpio_remove,//将具体的led的opera函数传递给drv.c中去调用
     .driver     = {
         .name   = "100ask_led",
     },
@@ -147,7 +148,7 @@ static int __init chip_demo_gpio_drv_init(void)
     int err;
     
     err = platform_driver_register(&chip_demo_gpio_driver); 
-    register_led_operations(&board_demo_led_opr);//将具体的资源传给drv.c驱动中，drv.c中实现具体的操作
+    register_led_operations(&board_demo_led_opr);//
     
     return 0;
 }

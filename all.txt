@@ -1927,6 +1927,7 @@ linux内核移植：
 				内核启动： 2汇编
 						  3打印内核启动信息->初始化各模块->挂载根文件系统->启动第一个用户进程init
 					内核调试：printk()-->打印高于默认打印级别的信息
+					echo "7 4 1 7" > /proc/sys/kernel/printk  开启内核打印到屏幕
 					arm-none-linux-gnueabi-addr2line：很多2表示to的意思。寻找addr所在的文件行数
 					oops:pc:[<0xxxxxxxxx>].报错的时候回显示行号---写入NULL地址数据，访问NULL指针
 			3.rootfs：自己制作或者选用别人的改改。

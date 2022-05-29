@@ -24,6 +24,6 @@ clean:
 # obj-m += ab.o
 
 
-
+# 生成3个ko文件
 obj-m += leddrv.o chip_demo_gpio.o board_A_led.o
 

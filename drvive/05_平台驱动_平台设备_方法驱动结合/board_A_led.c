@@ -1,4 +1,4 @@
-
+//将platform_device弄进虚拟bus中，纯粹的硬件资源insmod
 #include <linux/module.h>
 
 #include <linux/fs.h>
@@ -34,13 +34,13 @@ static struct resource resources[] = {
                 .start = GROUP_PIN(5,8),
                 .flags = IORESOURCE_IRQ,
                 .name = "100ask_led_pin",
-        },
+        },//若要增加硬件资源，在这里增加
 };
 
 //此结构体整合了所有dev那边的数据
 static struct platform_device board_A_led_dev = {
         .name = "100ask_led",//name
-        .num_resources = ARRAY_SIZE(resources),//resource的数量
+        .num_resources = ARRAY_SIZE(resources),//resource的数量，(sizeof(x)/sizeof((x)[0]))
         .resource = resources,//具体的资源数据
         .dev = {
                 .release = led_dev_release,

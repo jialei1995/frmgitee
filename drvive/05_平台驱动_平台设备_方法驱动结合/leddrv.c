@@ -26,15 +26,18 @@ struct led_operations *p_led_opr;
 
 #define MIN(a, b) (a < b ? a : b)
 
-
+//负责创建设备文件
 void led_class_create_device(int minor)
 {
 	device_create(led_class, NULL, MKDEV(major, minor), NULL, "100ask_led%d", minor); /* /dev/100ask_led0,1,... */
 }
+//负责销毁设备文件
 void led_class_destroy_device(int minor)
 {
 	device_destroy(led_class, MKDEV(major, minor));
 }
+//给led的操作函数赋值，当前文件中的p_led_opr调用的操作基于其他的驱动赋予内容，需要在其他驱动中
+//调用此函数给p_led_opr赋值，当前文件中的init，ctrl才能执行
 void register_led_operations(struct led_operations *opr)
 {
 	p_led_opr = opr;
@@ -64,7 +67,7 @@ static ssize_t led_drv_write (struct file *file, const char __user *buf, size_t 
 	printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
 	err = copy_from_user(&status, buf, 1);
 
-	/* 根据次设备号和status控制LED */
+	/* 根据次设备号和status控制LED，p_led_opr的ctrl基于其他驱动给他赋值 */
 	p_led_opr->ctl(minor, status);
 	
 	return 1;
@@ -87,7 +90,7 @@ static int led_drv_close (struct inode *node, struct file *file)
 	return 0;
 }
 
-/* 2. 定义自己的file_operations结构体                                              */
+/* 2. 定义自己的file_operations结构体，生成类(register_chrdev)需要，生成主设备号  */
 static struct file_operations led_drv = {
 	.owner	 = THIS_MODULE,
 	.open    = led_drv_open,
@@ -103,9 +106,10 @@ static int __init led_init(void)
 	int err;
 	
 	printk("%s %s line %d\n", __FILE__, __FUNCTION__, __LINE__);
+	//-创建/dev/led目录--对应类文件，设备文件对应此类目录中具体的设备
 	major = register_chrdev(0, "100ask_led", &led_drv);  /* /dev/led */
 
-
+	//只创建类，不创建具体文件设备
 	led_class = class_create(THIS_MODULE, "100ask_led_class");
 	err = PTR_ERR(led_class);
 	if (IS_ERR(led_class)) {
