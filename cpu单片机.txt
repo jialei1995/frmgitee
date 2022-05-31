@@ -3060,3 +3060,35 @@ uint32_t GT_GET_RTC(void)
 
 定义数据类型溢出后，程序运行出bug-----打印出理论数据，查看是否有数据打印异常，推到数据类型是否溢出。
 mcu每页2k地址空间，VEC_TAB_OFFSET只要是0x100的倍数就行。但是擦除页的时候必须从本页开头开始擦，不能在页中间开始擦。
+
+
+GD32F3  bootloader注意事项：
+虽然在boot里面跳转之前已经关闭总中断了，但是跳转到app的时候不需要专门去开启中断，
+void JumpToAppStartFun(uint32_t appAddr)
+{
+	__disable_irq();//关闭总中断
+//	if(((*(__IO uint32_t*)appAddr) & 0x2FFE0000 ) == 0x20000000)	---------									
+//	{		
+		JumpAddress = *(__IO uint32_t*) (appAddr + 4);
+		JumpToApplication = (pFunction) JumpAddress;//这个只是给地址赋值
+		/* Initialize user application's Stack Pointer */
+		__set_MSP(*(__IO uint32_t*) appAddr);//加个括号就可以直接运行啦
+		SCB->VTOR = ADDR_RUN;
+		JumpToApplication();                             					
+//	}	
+	__enable_irq();//这句执行不到，所以app程序里面开始就要enable中断
+}
+
+需要在app：
+#define VECT_TAB_OFFSET 0x2200  /* This value must be a multiple of 0x200. */
+void SystemInit (void)
+{
+    /* configure the system clock source, PLL Multiplier, AHB/APBx prescalers and Flash settings */
+    system_clock_config();
+
+#ifdef VECT_TAB_SRAM  增加这几行代码，修改VECT_TAB_OFFSET
+  nvic_vector_table_set(NVIC_VECTTAB_RAM,VECT_TAB_OFFSET);
+#else
+  nvic_vector_table_set(NVIC_VECTTAB_FLASH,VECT_TAB_OFFSET);
+#endif
+}

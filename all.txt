@@ -2848,17 +2848,121 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	dts语法：
 		#address-cells 表示address要用几个32bit的数值去表示（32-64bit的CPU此值不同）
 		#size-cells  要用几个32bit的数值去表示大小
-		node的lable若存在，需要更改此node的属性，可以直接：
-		&lable{
+		label:uart@0x1234{};    node的lable若存在，需要更改此node的属性，可以直接：
+			
+		可以在根节点之外修改此节点属性
+1.		&lable{----可以新增节点属性，也可以修改之前的节点属性
 			var='value';
 			status='enable'/'disable';可以使能或禁掉某个节点
 			compatible='A','B','C';此设备兼容A,B,C3种驱动，优先级A,B,C
-		}
-		若lable不存在，需要更改此node的属性，可以直接：
-		&[/uart@0x1234]{
+		};
+2.		若lable不存在，需要更改此node的属性，可以直接：
+		&[/uart@0x1234]{-----------/uart表示根节点下的uart节点，
 			var='value';
-		}
+		};
+		/ {
+				100ask_led@0 {
+					name=val;  val有3种取值
+								1."string"  双引号内随便写
+								2.<u32 u32 u32> 有几个写几个u32的数据
+								3.[hex hex hex]  有几个写几个hex的数据
+								4.组合起来:<0x12345678>,"mystring",[12 34]
+					compatible = "100as,leddrv";
+					pin = <GROUP_PIN(3, 1)>;
+				};
+
+				100ask_led@1 {
+					compatible = "100as,leddrv";
+					pin = <GROUP_PIN(5, 8)>;
+					status = "disabled";  定义为disabled后初始化的时候就不初始化此节点了
+				};
+
+			};
+	dts文件格式：
+		/det-v1/;  dts的版本
+		/{
+			[资源定义]
+			[子节点]
+		};
+	node的格式：label有没有都行，可以方便的引用某个节点--[]中有没有都可以
+		[label:]node-names[@unit-address]{
+			[资源定义]
+			[子节点]
+		};
+		
+	dts必须有根节点：根节点必须有如下属性
+	/{
+		#address-cells=<1>;   在子节点的reg属性中，用几个u32来描述地址
+		#size-cells=<1>;	  在子节点的reg属性中，用几个u32来描述大小
+		compatible="samsung,smdk2440";  此板子兼容哪些平台，值是字符串列表
+		model="smdk2440";		如果两款板子compatible配置一致则通过model区分，表示这个板子时什么
+		cpus{			cpu节点
+			#address-cells=<1>;   在子节点的reg属性中，用几个u32来描述地址
+			#size-cells=<1>;	  在子节点的reg属性中，用几个u32来描述大小
+			cpu0:cpu@0{
+				......
+			}
+		};
+		memory{
+			reg=<0x8000000 0x2000000>  前者表示内存起始地址，后者表示内存大小
+		};
+		chosen{//通过设备树给内核传入参数，例如bootargs,这个节点是虚拟的
+			bootagrs="initrd root=/dev/nfs nfsroot=192.168.1.101:/source/rootfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.1.250"
+		};
+	};
+	dtsi:被别的dts包含的头文件，里面放的是公有的内容
+	--------------------------------------------------
+	怎么加载dtb中的数据呢？
 	
+	将dtb文件放到/boot目录中，将之前开机用的dtb文件重命名为bak，重启单板即可
+	查看启动板子的设备树文件：/sys/firmware/devicetree/base  里面放的就是dtb文件中的每个节点以及节点中的每个属性
+	/sys/devices/platform 内核根据设备树解析出来的部分device_node结构体转化而来的platform_dev结构体
+	
+	内核对设备树文件的处理过程：
+	DTS--(编译)-->DTB--(uboot将dtb文件按传给内核，内核解析)-->device_node--(某部分会被转换成platform_dev)-->platform_device
+	我们可以每次从根节点遍历所有的子孙节点。
+	
+	具体哪些device_node会被转换成platform_dev结构体呢？
+	A. 根节点下含有compatile属性的子节点
+	B. 含有特定compatile属性的节点的子节点
+	如果一个节点的compatile属性，它的值是这4者之一："simple-bus","simple-mfd","isa","arm,amba-bus", 
+		那么它的子结点(需含compatile属性)也可以转换为platform_device。
+	C. 总线I2C、SPI节点下的子节点：不转换为platform_device
+	某个总线下到子节点，应该交给对应的总线驱动程序来处理, 它们不应该被转换为platform_device。
+	比如以下的节点中：
+	/mytest会被转换为platform_device, 因为它兼容"simple-bus";
+	它的子节点/mytest/mytest@0 也会被转换为platform_device
+	/i2c节点一般表示i2c控制器, 它会被转换为platform_device, 在内核中有对应的platform_driver;
+	/i2c/at24c02节点不会被转换为platform_device, 它被如何处理完全由父节点的platform_driver决定, 一般是被创建为一个i2c_client。
+	类似的也有/spi节点, 它一般也是用来表示SPI控制器, 它会被转换为platform_device, 在内核中有对应的platform_driver;
+	/spi/flash@0节点不会被转换为platform_device, 它被如何处理完全由父节点的platform_driver决定, 一般是被创建为一个spi_device。  
+	exp:
+	/ {
+	  mytest {  --------------ok
+		  compatile = "mytest", "simple-bus";
+		  mytest@0 { --------------ok
+				compatile = "mytest_0";
+		  };
+	  };
+	  
+	  i2c { --------------ok
+		  compatile = "samsung,i2c";
+		  at24c02 { --------------not ok
+				compatile = "at24c02";                      
+		  };
+	  };
+
+	  spi { --------------ok
+		  compatile = "samsung,spi";              
+		  flash@0 { --------------not ok
+				compatible = "winbond,w25q32dw";
+				spi-max-frequency = <25000000>;
+				reg = <0>;
+			  };
+	  };
+	};      
+	怎么跟drv匹配呢？
+		参考图片platdev+platdrv.png
 	int HelloDriverProbe(struct platform_device *pDevice)
 	{
 		hello_init(pDevice);平台驱动的探测函数里面会把平台设备的结构体带过来struct platform_device *pdevic
