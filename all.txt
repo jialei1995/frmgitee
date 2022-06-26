@@ -1131,12 +1131,29 @@ epoll的提升：
 		之前发的时候设置的ip是目标ip，现在设置的目标ip是255的广播地址
 
 	
-sqlite数据库:																	
+sqlite数据库:	
+SQLite Expert：图形化查看工具
+	.table：查看当前数据库中的所有表	
+	.schema staff_test：查看创建staff_test的表的语句
+	.databases # 显示数据库名称及对应文件
+	DROP TABLE tab_name;//删除表
+	ALTER TABLE old_tab RENAME TO new_tab；  重命名表
+
+	ALTER TABLE tab_name RENAME COLUMN old_col TO new_co 	-- 重命名列名
+
 	创建数据表：																
 		create table stu(id Integer,name char,score Integer);
 	插入记录：
 		insert into stu values(100,"zhangsan",80);
 		insert into stu (name,score)values("sss",89);
+		-- 指定列名新增数据
+		INSERT INTO tab_name (col1, col3) VALUES (xx, xx)
+		-- 多条
+		INSERT INTO tab_name (col1, col2, col3) VALUES
+			(xx, xx, xx),
+			...
+			(xx, xx, xx);
+		
 	查询记录：
 		select name，score from stu；
 		select * from stu where score=80 and name=“dsadsa”；
@@ -1711,7 +1728,7 @@ C++:c++98||c++11 ||c++14
 **************************queue***************
 	1.也不允许遍历
 		push(elem);pop();back()队尾元素；front()队头元素；empty()size()
-*************************8stack********************	
+*************************stack********************	
 	stack：
 		1.不允许遍历行为	2.可以判空、元素个数、
 			push(elem);pop();top();empty()是否为空;size()
