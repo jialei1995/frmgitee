@@ -236,7 +236,11 @@ private void DoWork() //线程函数中不直接操作控件，而是通过委�
 MyInvoke mi=new MyInvoke(UpdateTextBox); //定义此委托变量mi的时候需要传进去一个函数（此函数就是入参string，返回值void）
 this.BeginInvoke(mi,new object[]{"我是一个文本框"}); //需要传入委托变量与入参，入参是new出来的string。
 }  
-
+Thread thread=new Thread(
+	()=>{			//=>   goseto   ()内是入参
+		dosth();
+	}
+); 
 
 
 
@@ -944,3 +948,52 @@ https://blog.csdn.net/x12901/article/details/105529110?spm=1001.2101.3001.6650.4
 先在扩展中点击详情信息在网页上下载vsix文件直接双击安装即可。
 
 
+-----------------委托-----------------------------------------
+
+委托的用法：实现多个子窗口给主窗口发送msg
+主窗口class中
+1.类外声明delagate
+public delegate void mydelegate(string s);
+public partial class main : Form
+{
+	public main()
+	{
+		InitializeComponent();
+	}
+	//2.定义委托的实现--在主窗体中
+	private void showmsg(string s)
+	{
+		this.textBox1.Text += s + "\r\n";
+	}
+
+	private void button1_Click(object sender, EventArgs e)
+	{
+
+		for (int i = 1; i < 4; i++)
+		{ 
+			code.child child = new code.child(i);
+			child.Show();//创建子窗体并显示
+			//3.关联委托方法--怎么调用呢--利用子窗体对象调用子窗体内的方法
+			//n个子窗体都绑定的主窗体的showmsg方法，所以在3个子窗体点击按钮都可以影响主窗体的textbox
+			//给委托变量赋值---在调用类中写
+			child.mydel += showmsg;
+		}
+	}
+}
+子窗口类中：子窗口不能直接控制主窗口里面的控件，则可以通过委托的方法去控制主窗体中的控件
+public partial class child : Form
+{
+	public child(int num)
+	{
+		InitializeComponent();
+		this.Text += "." + num;
+	}
+	//定义委托变量--------------------------可以在类外通过定义子窗体变量去访问到子窗体中的委托变量来
+	//-------谁使用谁创建委托变量----------
+	public mydelegate mydel { get; set; } //或者可以写成public mydelegate mydel =null;
+	private void button1_Click(object sender, EventArgs e)
+	{
+		//用委托变量-调用委托方法
+		mydel(textBox1.Text.Trim());//子窗体中委托变量的调用会直接调用到主窗体中的showmsg函数 
+	}
+}
