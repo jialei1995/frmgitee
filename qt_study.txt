@@ -139,11 +139,11 @@ protected:
 };
 void　EventLabel::mouseMoveEvent(QMouseEvent　*event)
 {
-this->setText(QString("Move:　(%1,　%2)").arg(QString::number(event->x()),　QString::number(event->y())));
+this->setText(QString("Move:　(%1,　%2)").arg(QString::number(event->x()).arg(QString::number(event->y())));
 }
 void　EventLabel::mousePressEvent(QMouseEvent　*event)
 {
-　this->setText(QString("Press:　(%1,　%2)").arg(QString::number(event->x()),　QString::number(event->y())));
+　this->setText(QString("Press:　(%1,　%2)").arg(QString::number(event->x()).arg(QString::number(event->y())));
 }
 void　EventLabel::mouseReleaseEvent(QMouseEvent　*event)
 {

@@ -950,6 +950,7 @@ https://blog.csdn.net/x12901/article/details/105529110?spm=1001.2101.3001.6650.4
 
 -----------------委托-----------------------------------------
 
+=======
 委托的用法：实现多个子窗口给主窗口发送msg
 主窗口class中
 1.类外声明delagate
@@ -996,4 +997,48 @@ public partial class child : Form
 		//用委托变量-调用委托方法
 		mydel(textBox1.Text.Trim());//子窗体中委托变量的调用会直接调用到主窗体中的showmsg函数 
 	}
+=======
+}
+
+//winform  链接sqlite  需要在管理NuGet程序包里面下载data.sqlite包
+private void Form1_Load(object sender, EventArgs e)
+{
+	SQLiteConnectionStringBuilder connectionString = new SQLiteConnectionStringBuilder();//构造连接数据库的字符串
+	SQLiteConnection SqlConnection;//连接数据库
+	MessageBox.Show(Application.StartupPath);
+	connectionString.DataSource = Application.StartupPath + @"\test.db";
+	SqlConnection = new SQLiteConnection(connectionString.ToString());
+	SqlConnection.Open();
+
+	var sql = "select * from staff_test";
+
+	SQLiteDataAdapter da = new SQLiteDataAdapter(sql, SqlConnection);
+
+	DataSet ds = new DataSet();
+	da.Fill(ds);
+	DataTable re = ds.Tables[0];//re返回表中所有数据
+	//restr string数组将数据库每行数据都存起来
+	List<string> restr = new List<string>();
+	foreach (DataRow v in re.Rows)//遍历表中得数据存到restr
+	{
+		string key = v["name"].ToString();
+		string age = v["age"].ToString();
+		string addr = v["age"].ToString();
+		restr.Add(key + "-" + age+"-"+addr);
+	}
+
+	//显示到文本框
+	foreach (var v in restr)
+	{
+		richTextBox1.Text += v;
+		richTextBox1.Text += "\n";
+	}
+}
+//执行sql语句
+var sql = "INSERT INTO staff_test ( name, age, addr) VALUES ( 'insetagsin', 10, 'Beijing');";
+SQLiteCommand SqlCmd = new SQLiteCommand(sql, SqlConnection);
+int changedRows = SqlCmd.ExecuteNonQuery();
+if (changedRows > 0)
+{
+	MessageBox.Show("ok");
 }
