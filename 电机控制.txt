@@ -1,0 +1,79 @@
+读取配置文件：
+1.需要在引用中添加System.Configuration引用，添加之后debug目录会出现-项目名称.exe.config文件
+2.using System.Configuration;
+3.写读方法读取配置文件中对应的keyname的value
+string readvalue(string keyname)//如果配置文件中没有对应的key硬读取会报错
+{ 
+	string ret="";
+	Configuration cfg = ConfigurationManager.OpenExeConfiguration(path);
+	try//用try包含起来即使出错也不会将程序卡死不会运行
+	{
+		ret = cfg.AppSettings.Settings[keyname].Value;
+	}catch (Exception ex)
+	{
+		MessageBox.Show(ex.Message);//打印程序出错的原因，并不会导致程序退出
+	}
+	return ret;
+}
+4.写写方法往配置文件中写入key+value--都是string
+void writevalue(string keyname, string value)
+{
+	//获取配置文件句柄，只需要传入它所在的路径即可，内部知道具体的文件名字是什么
+	Configuration cfg = ConfigurationManager.OpenExeConfiguration(path);
+	foreach (string key in cfg.AppSettings.Settings.AllKeys)
+	{
+		if (key == keyname)
+		{
+			cfg.AppSettings.Settings.Remove(key);//如果有现存的key先删除原来的key
+		}
+	}
+	cfg.AppSettings.Settings.Add(keyname, value);//如果没有对应的key，直接增加key+value
+	cfg.Save(ConfigurationSaveMode.Modified);
+	ConfigurationManager.RefreshSection("AppSettings");
+}
+private void Form1_Load(object sender, EventArgs e)
+{
+	path = Application.ExecutablePath;//这个是配置文件所在的路径
+}
+
+
+
+IO操作：
+FileStream fs = new FileStream("test.txt",FileMode.Append);文件句柄，FileMode可以添加,创建,只读打开
+StreamWriter sw = new StreamWriter(fs);//写要通过streamwriter
+sw.WriteLine("test write\r\n");//WriteLine默认会换行  \r\n也是换行，这样写会中间空一行
+sw.WriteLine("test write2\r\n");
+sw.Close();//最后要关闭写数据sw
+fs.Close();//关闭文件句柄
+
+FileStream fs = new FileStream("test.txt", FileMode.Open);//读用FileMode.Open
+StreamReader sr = new StreamReader(fs);
+MessageBox.Show(sr.ReadToEnd());
+
+File.WriteAllText("filewiite", "nihai");		另一种写数据的方法
+MessageBox.Show(File.ReadAllText("filewiite"));读数据的方法
+File.WriteAllText("filewiite", "dasdasdas\r\ndasdasdas\r\n",Encoding.UTF8);以固定编码格式写入
+MessageBox.Show(File.ReadAllText("filewiite",Encoding.UTF8));以同样编码格式去读
+
+try {
+	Directory.Delete(@"GC");//文件夹不为空不可以直接删除，最好用try包含,若空直接删除
+}catch{//若不为空，进入catch
+	if (MessageBox.Show("这个文件夹不是空的是否要删除", "提示", MessageBoxButtons.YesNo) == DialogResult.Yes)
+	{
+		Directory.Delete(@"GC",true);
+	}
+}
+
+FileInfo fi = new FileInfo("test.txt");必须创建对象才可以调用方法，不是静态方法不能直接用类调用
+MessageBox.Show(fi.Length.ToString());字节流
+
+openFileDialog1
+saveFileDialog1
+folderBrowserDialog1
+
+
+EXCEL技巧：
+ctrl+g定位空值，下方单元格上移---删除空行
+VLOOKUP--(当前要查找的数据-单个方框，在哪个范围内查找，返回第几列，false-精确匹配)
+相对引用-下拉行号递增--右拉列号递增
+绝对引用-=$D$12+E12 将前面的数字固定住怎么拉都不会变
