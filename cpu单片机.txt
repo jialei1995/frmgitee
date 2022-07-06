@@ -58,6 +58,8 @@ void MX_SPI1_Init(void)
       Error_Handler();
     break;
   }
+SPI做从机：
+
 ---
 
 ## 电池相关知识
@@ -3146,3 +3148,5 @@ void SystemInit (void)
   nvic_vector_table_set(NVIC_VECTTAB_FLASH,VECT_TAB_OFFSET);
 #endif
 }
+
+栈回溯：
