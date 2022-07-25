@@ -77,5 +77,60 @@ conclusion  结论，结尾
 optimal performance  最佳性能
 Duty Ratio，Duty Cycle	占空比
 alert		报警
+
+
+
+consectively 	连续的
+accessory		附件
+redundant		多余的
+commutative		交换的，替代的
+substitution	替代，替换
+alter			改变，更改
+optimize		使优化，完善
+grant		同意承认
+ambiguous		不明确的
+explicit		明确的
+literal			字面的，原意的
+inheritance		继承，遗传
+derivative		派生
+concurrent		并发
+intersect		相交
+contiguous		连续的 
+predate 		早于
+tutorial 		使用说明书
+arithmetic		算数计算
+fractional		小数的
+semicolon		分号
+discard			丢弃，遗弃
+ratio			比例，系数
+constrained		约束，限制
+eliminate		淘汰，排除
+curb			限制，抑制
+disparate		完全不同的
+precedence		优先权
+demand			需求
+chop			截断
+potion			部分
+reposition		复位，改变位置
+subsequent		随后
+distinct		区别，差别
+examine			检查，调查，说明
+associate		关联，联合
+nevertheless	然而，尽管如此
+convertion 		惯例，约定，协定
+notify			通知，公告
+dinote			表示，指示
+primitive		原始的，远方的
+violation		违反
+C=Q/U=It/U
+prevent			阻止，禁止
+legacy			遗留遗产
+pending			阻塞
+meet		满足
+interval		时间间隔
+notation		符号
+alphabetical	以字母顺序
+distribution	分散，散布
+wizZard		向导
 ```
 
