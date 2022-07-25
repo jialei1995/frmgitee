@@ -2098,6 +2098,11 @@ union长度怎么计算
 
 	
 -------------FreeRTOS：
+如何确定stack大小：
+1.定义一个优先级最低得额外任务，计算其他所有任务消耗得栈利用率
+2.调用OSTaskStkchk函数传入任务的TCB指针，&free，&used   可以求利用率
+3.依据此结果调整每个任务的stack大小，让他最多占用栈的60%就行了
+
 keil的配置output文件夹下的晶振配置需不需要配置呢？
 start.c文件中SYSTEM_CLOCK就是时钟，配置的晶振时钟需要与它一致。
 
@@ -3149,4 +3154,33 @@ void SystemInit (void)
 #endif
 }
 
-栈回溯：
+
+map文件分析：
+文件内容包含：
+1.Section Cross References：模块、段(入口)交叉引用
+	main.o(i.main) refers to bms.o(.bss) for syspara main文件调用的bms文件中的变量与函数--
+	main.o(i.System_Initializes) refers to bsp.o(i.BSP_Initializes) for BSP_Initializes
+	main模块(main.o)中的System_Initializes函数(i.System_Initializes)，引用（或者说调用）了bsp模块(bsp.o)中的BSP_Initializes函数。
+2.Removing Unused input sections from the image：移除未调用模块	
+	Removing stm32f10x_gpio.o(i.GPIO_AFIODeInit), (20 bytes).
+	stm32f10x_gpio.c文件中GPIO_AFIODeInit模块（函数）未被调用，其代码大小20字节。
+3.Image Symbol Table：映射符号表
+	（局部symbols-函数变量）（全局symbols-函数变量）在内存中的地址位置
+	 0x0800xxxx指存储在FLASH里面的代码、变量等。---常量  
+	 0x2000xxxx指存储在内存RAM中的变量Data等。
+	 全局、静态变量等位于0x2000xxxx的内存RAM中。****并不是位于flash中。
+4.Memory Map of the image：内存（映射）分布
+	每个地址数据的可读可写性质。
+	Section Name：段名
+	大概包含：RESET、.ARM、 .text、 i、 .data、 .bss、 HEAP、 STACK等。
+5.Image component sizes：存储组成大小
+	每个文件中各个段大小
+分段：
+code：代码
+Ro-data：指除了内联数据(inline data)之外的常量数据；
+RW-data：指可读写（RW）、已初始化的变量数据；
+ZI-data：指未初始化（ZI）的变量数据；
+code与RO-data位于flash中
+RW-data与ZI-data位于内存 RAM中
+RW-data已初始化的数据会存储在Flash中，上电会从FLASH搬移至RAM。
+

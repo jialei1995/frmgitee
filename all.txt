@@ -2055,6 +2055,7 @@ linux内核移植：
 	比较版本的差异：git log 查看提交日志
 				git log --oneline  少量信息显示（**用的更多） 
 				git log + filename  显示此文件的log
+				git log -p  filename   查看此文件所有历史提交所作的修改
 				git show + commitid 显示此commitid的更改文件 
 				git reflog：显示信息中多了Head版本的HEAD{X},HEAD{Y}
 		git diff 315f9fe 666eb6c比较版本1与版本2
@@ -4443,7 +4444,7 @@ frame 栈帧编号：查看此帧的相关信息
 head -n file   查看前n行
 
 cal  -1 输出本月日历  -3上月本月下月日历
-
+tac filename:将文件内容倒序输出
 who 显示当前哪些windows的ip在登录本机器。
 w -i显示当前每个console在干啥，who的升级版
 tty：终端设备(ctl+alt+F1~F7)前6个是文本吧，第7个是界面。命令行直接输入tty，可以看到当前是ptsx几号终端
@@ -7204,3 +7205,48 @@ notepad++删除以xxx开头的行：
 ^[#;].*$  ----删除以‘#’或‘;’开头的行
 ^[xsadsadsa].*$  删除以字母x/s/a/d/s/a/d/s/a开头的行
 ^xsadsadsa.*$ 	删除以字符串xsadsadsa开头的行
+buf(.*)\r\n		删除带有buf的行
+
+
+
+代码技巧：
+-----------------------------------------------------
+程序按顺序执行：
+static u8 var;
+switch(var)
+{
+	case 0:
+		if(success)//确保程序当前case不成功，每次程序执行到这里继续干这次该干的活，干完了，再var++，下次就执行下个case的内容
+		{
+			var++;
+		}
+		break;
+	case 1:
+		if(success)//确保程序当前case不成功，每次程序执行到这里继续干这次该干的活
+		{
+			var++;
+		}
+		break;
+	case 2:
+		if(success)//确保程序当前case不成功，每次程序执行到这里继续干这次该干的活
+		{
+			var++;
+		}
+		break;
+}
+------------------------------------------------------------
+同一个flag两个变化的值合起来当作flag
+static u8 flag=0;
+if(success)
+{
+	flag = 1;
+}
+if(success && flag==1)
+{
+	flag = 2;
+}
+if(flag == 2)
+{
+	做该做的事，flag=0;
+}
+---------------------------------------------------------
