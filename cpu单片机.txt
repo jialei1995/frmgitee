@@ -3184,3 +3184,44 @@ code与RO-data位于flash中
 RW-data与ZI-data位于内存 RAM中
 RW-data已初始化的数据会存储在Flash中，上电会从FLASH搬移至RAM。
 
+往固定的位置写数据的方法：在0x80018f8地址处写8个字节数据--这里写的是常量
+static const uint8_t VERINFO[8] __attribute__((at(0x80018f8)))={var1,var2,var3,var4,var5,var6,var7,var8};
+
+
+--------------------------------------调程序出错问题记录
+1、485能发送但是收不到数据，进不了485中断，DE管脚必须是OD ，DE管脚的PORT一定记住要初始化
+2、程序中用LL_mDelay(1);正常---但是用HAL_Delay(1);导致程序卡死
+因为我们调用的uart2send函数在rs485porcess函数中在中断中调用的。
+
+问题：延时函数一直用的HAL_Delay()毫秒级延时，但是在中断中调用延时函数却卡死在这里，从封装函数中可以发现函数中有中断获取系统时钟HAL_IncTick(void)，由于优先级系统给的低，所以在高优先级的中断中无法产生这个低级的中断，导致程序卡死在HAL_Delay()中。
+由此建议直接不用HAL_Delay()，直接自己写延时函数：
+ void delay_ms(int32_t nms) 
+ {
+
+  int32_t temp; 
+
+  SysTick->LOAD = 8000*nms; 
+
+  SysTick->VAL=0X00;//清空计数器 
+
+  SysTick->CTRL=0X01;//使能，减到零是无动作，采用外部时钟源 
+
+  do 
+
+  { 
+
+       temp=SysTick->CTRL;//读取当前倒计数值 
+
+  }
+
+     while((temp&0x01)&&(!(temp&(1<<16))));//等待时间到达 
+
+     
+
+     SysTick->CTRL=0x00; //关闭计数器 
+
+     SysTick->VAL =0X00; //清空计数器 
+
+ }
+ 代码直接用就可以，但是要注意根据自己单片机的系统时钟来配置
+3、
