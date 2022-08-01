@@ -529,3 +529,29 @@ std::thread  mythread(fun);mythread线程变量的初始化函数与执行函数
 在 C++ Primer 中读到 new 是在堆里面申请一段内存资源，new 必须与 delete 成对使用，否则就会造成内存泄漏。但是在Qt中经常可以看见只 new 而不 delete 的情况，这并没有错，Qt 的内存管理机制允许这样的情况存在。
 qt 对 c++ 的内存管理机制进行了扩充，所有继承自QObject的类new出来的成员都会自动delete，而手动delete反而会造成不必要的麻烦
 但是在c++中如果不手动delete，new对象的内存在进程结束后才会被系统回收，在运行时占用内存越来越多，这就是内存泄露。
+
+QByteArray的操作：
+1、访问赋值：[]  at()  data[]   constData[],其中[]与data[]为可读可写
+at()和constData[]仅为可读。如果只需要读用这两种方法运行快
+
+2、数据转换
+1)转化为hex QByteArray text = QByteArray::fromHex("517420697320677265617421");
+	--字符串转QByteArray 51 74 20 69 73 20 67 72 65 61 74 21
+2)转为不同进制数值并显示，如二进制、八进制、十进制和十六进制等；
+	--QByteArray_var.toHex(); //return "303132"
+	QByteArray::number(var,n);转化int类型的var变量，转化成n进制
+3)转为整型、浮点型等数值类型；
+	QByteArray string("1234.56");
+	qDebug() << string.toInt();   // return 0, 小数均视为0
+	qDebug() << string.toInt(&ok1,16);   // return 0, 小数均视为0
+	qDebug() << string.toFloat();   // return 1234.56
+4）转为字符串类型；
+	QByteArray转为QString示例：
+		QByteArray ba("abc123");
+		QString str = ba; 
+	QString转为QByteArray示例：
+		QString str("abc123");
+		QByteArray ba = str.toLatin1();
+
+ 
+	
