@@ -117,7 +117,7 @@ distinct		区别，差别
 examine			检查，调查，说明
 associate		关联，联合
 nevertheless	然而，尽管如此
-convertion 		惯例，约定，协定
+convention 		惯例，约定，协定  convert转化
 notify			通知，公告
 dinote			表示，指示
 primitive		原始的，远方的
