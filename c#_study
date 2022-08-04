@@ -1123,3 +1123,22 @@ ctrl+g定位空值，下方单元格上移---删除空行
 VLOOKUP--(当前要查找的数据-单个方框，在哪个范围内查找，返回第几列，false-精确匹配)
 相对引用-下拉行号递增--右拉列号递增
 绝对引用-=$D$12+E12 将前面的数字固定住怎么拉都不会变
+
+------------------委托技术：
+delegate void UserDelegate();//声明void  void类型的委托--类外--类内都可以？？这里就在类内呀
+event UserDelegate RstEvent, ChangeEvent;//定义此委托类型的变量 RstEvent ChangeEvent--这个也在类内
+线程或者定时器
+{
+	if(成立)
+	{
+		RstEvent += new UserDelegate(TestReset);//在线程中不可以直接操作控件，通过RstEvent委托主线程去修改控件
+		RstEvent?.Invoke();  RstEvent变量不为空肯定可以执行
+	}
+
+	if(成立)
+	{
+		ChangeEvent += new UserDelegate(UpdateConfig);//在线程中不可以直接操作控件，通过委托主线程去修改控件
+		ChangeEvent += new UserDelegate(StreamPro);//在线程中不可以直接操作控件，通过委托主线程去修改控件
+		ChangeEvent?.Invoke();
+	}
+}

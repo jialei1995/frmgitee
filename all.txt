@@ -7269,3 +7269,31 @@ while(RingBuffRead(ptr))
 {
 	ptr++;//如果赋值成功，则指针偏移++，直到赋值失败为止
 }
+---------------
+检测某个信号的有无，在1ms定时器中断中去检测，注意都是static变量
+if(CHG_DEF==1)
+{
+	if(time < 20)
+	{
+		time++;
+	}
+	Retime =0;
+}
+else
+{
+	time= 0;
+	if(Retime<10000)
+	{
+		
+		Retime++;
+	}
+}
+if(time>10)//连续10次都能检测到信号，则返回有此信号
+{
+	ret = 1;
+}
+else if(Retime>2000)//连续2000ms检测不到此信号就返回无此信号
+{
+	ret = 0;
+}
+return ret;
