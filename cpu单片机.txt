@@ -3188,6 +3188,154 @@ RW-data已初始化的数据会存储在Flash中，上电会从FLASH搬移至RAM
 static const uint8_t VERINFO[8] __attribute__((at(0x80018f8)))={var1,var2,var3,var4,var5,var6,var7,var8};
 
 
+
+复制应用程序向量表到SRAM的起始地址。对应于应用程序Flash，向量表为从0x08003000开始的48×4个字节。具体向量表的大小需要根据启动文件定义来计算。  查询.s文件可知 __Vectors_Size  EQU  __Vectors_End - __Vectors=48条指令，每条指令就是4 byte
+代码：memcpy((uint32_t*)0x20000000, (uint32_t*)0x08003000, 48*4);   
+2.设置为从SRAM启动，这样当发生异常时，就会跳转到SRAM的起始地址部分，而该部分放置的正好是向量表。
+代码：SYSCFG_MemoryRemapConfig(SYSCFG_MemoryRemap_SRAM);
+
+
+怎么做充电机协议： 其实就是请求电流与请求电压的变化给外面传，看当前电流变化是不是按照请求值来的
+void  ChgProcess(void)
+{
+	static int32_t curvalue = 0;
+	static uint8_t curtime = 0;
+	static uint8_t sametime = 0;
+	static uint8_t staptime = 0;
+	if(syspara.batStat == STATE_DSG) //若有dsg电流则充电步骤归零
+	{
+			if(staptime<2)
+			{
+				staptime++;
+			}
+			else
+			{
+				dataCHG_step= 0;
+				curtime = 0;
+				staptime= 0;
+			}
+			return;//放电状态肯定不走充电协议，直接return
+	}
+	dataCHG_VC = 546;
+	switch(dataCHG_step)
+	{
+		case 0:
+			dataCHG_IC = 20;//请求充电电流2A--54.6V
+			sysflag.bits.CloseChgMos = 0;//不关闭充电mos
+			if((syspara.voltMin > 3100)&&(syspara.batStat == STATE_CHG)&&(syspara.current >800))//充电持续20s >800ma进入case1
+			{
+				curtime ++;
+				if(curtime > 20)//if成立&&持续20s进入step1
+				{
+					dataCHG_step = 1;
+				}
+			}
+			else  //if不满足，重新计时20s
+			{
+				curtime	= 0;
+			}
+		break;
+		case 1:
+			dataCHG_IC = 95;//请求电流9.5A ，一般充电机不会这么大，充电机有多大给多大，充电机的电流就是curvalue的值
+			if((abs(curvalue-syspara.current ))> 500)//检测如果给出来的电流不稳定，一直在if中
+			{
+				curvalue=syspara.current ;
+				curtime = 0;
+			}
+			else//电流稳定了
+			{
+				curtime++;
+				if(curtime > 10)//持续10s进入step2
+				{
+					dataCHG_step = 2;
+					curtime = 0;
+				}
+			}
+		break;
+		case 2:
+			dataCHG_IC = abs(curvalue / 200);   //请求电流为充电机最大输出的一半
+			if((abs(dataCHG_IC-(abs(syspara.current/100)) ))> 5)//请求的电流
+			{
+				sametime=0;
+				if(staptime<90)//90s的电流不稳定，就会退出 充电流程
+				{
+					staptime++;
+					curtime= 0;
+				}
+				else
+				{
+					curtime++;
+					if(curtime > 30)
+					{
+						dataCHG_step = 0xff;
+						curtime = 0;
+						staptime= 0;
+						sysflag.bits.Charger_mismatch = 1;
+					}
+				}
+			}			
+			else//请求充电机电流一半  稳定了
+			{
+				sametime++;
+				curtime = 0;
+				if(sametime > 10)//10s的电流稳定，则充电器匹配
+				{
+					sysflag.bits.Charger_mismatch = 0;
+					sysflag.bits.CHG_OVER = 0;//充电未完成
+					dataCHG_step = 3;//进入case 3
+					sametime = 0;
+				}
+			}	
+		break;
+		case 3:
+			dataCHG_IC = 95;
+			if(syspara.SOC >= 95)//一直充电，直到soc >95 进入阶段4
+			{
+				dataCHG_step = 4;
+				curtime = 0;
+				sametime = 0;
+			}
+		break;
+		case 4:
+			dataCHG_IC = 10;//最后阶段--充电请求1A充电，电压上去就报充电完成
+			if(syspara.voltMax >= CFG_BAT_VOL)
+			{
+				dataCHG_step = 5;
+				curtime = 0;
+				sametime = 0;
+				sysflag.bits.CHG_OVER = 1;//充电完成
+			}else
+			{
+				sysflag.bits.CHG_OVER = 0;//充电未完成
+			}
+			
+		break;
+		default:
+			dataCHG_IC = 0;
+			dataCHG_VC = 0;
+			if((sysflag.bits.DET_Flag==0)&&(syspara.chgMos==0))
+			{
+					if(curtime<30)
+					{
+							curtime++;
+					}
+					else
+					{
+						dataCHG_step = 0;
+						curtime=0;
+						sysflag.bits.CloseChgMos = 0;
+					}
+			}
+			else
+			{
+				curtime= 0;
+				sysflag.bits.CloseChgMos = 1;
+			}
+		break;
+	}
+}
+
+
 --------------------------------------调程序出错问题记录
 1、485能发送但是收不到数据，进不了485中断，DE管脚必须是OD ，DE管脚的PORT一定记住要初始化
 2、程序中用LL_mDelay(1);正常---但是用HAL_Delay(1);导致程序卡死

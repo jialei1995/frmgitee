@@ -399,3 +399,57 @@ bool isvalid(string s){
     }
     return stack.empty();
 }
+
+
+-------------分治法求最长子序列
+int MaxSubseqSum(int a[],int left,int right)//传入数组，头位置，尾位置
+{
+    int maxLeftSum,maxRightSum,maxMidSum;
+    int maxLeftBorderSum,LeftBorderSum;
+    int maxRightBorderSum,RightBorderSum;
+    int mid;
+    int i;
+    if(left==right) //递归出口，子序列只有一个元素时
+        return a[left];
+    mid=(left+right)/2; //求中间位置
+    maxLeftSum=MaxSubseqSum(a,left,mid);    //求左边序列的最大子序列和
+    maxRightSum=MaxSubseqSum(a,mid+1,right);    //求右边序列的最大子序列和
+    /*求中间跨左边与右边时的最大序列和，maxMidSum*/
+    maxLeftBorderSum=0;
+    LeftBorderSum=0;
+    for(i=mid;i>=left;i--)  //从中间位置向左找靠边界的最大子序列，初始化maxLeftBorderSum=0，如果左边加起来都小于0，则maxLeftBorderSum不变还是0
+    {
+        LeftBorderSum+=a[i];
+        if(LeftBorderSum>maxLeftBorderSum)
+            maxLeftBorderSum=LeftBorderSum;
+    }
+    maxRightBorderSum=0;
+    RightBorderSum=0;
+    for(i=mid+1;i<=right;i++)   //从中间位置向右找靠边界的最大子序列，初始化maxRightBorderSum=0，如果右边加起来都小于0，则maxRightBorderSum不变还是0
+    {
+        RightBorderSum+=a[i];
+        if(RightBorderSum>maxRightBorderSum)
+            maxRightBorderSum=RightBorderSum;
+    }
+    maxMidSum=maxLeftBorderSum+maxRightBorderSum;   //得到处在中间位置上的最大子序列和
+    return max3(maxLeftSum,maxRightSum,maxMidSum);
+}
+
+
+int maxbuf(int *buf,int len)
+{
+    int summax=0;
+    int curmax=0;//当前子序列总和
+    for(int i=0;i<len;i++)
+    {
+        curmax += buf[i];
+        if(curmax>summax)//更新最大子序列和
+        {
+            summax = curmax;
+        }else if(curmax<0)//<0，则重新开始累加
+        {
+            curmax=0;
+        }
+    }
+    return summax;
+}
