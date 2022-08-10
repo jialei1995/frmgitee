@@ -3254,23 +3254,22 @@ void  ChgProcess(void)
 		break;
 		case 2:
 			dataCHG_IC = abs(curvalue / 200);   //请求电流为充电机最大输出的一半
-			if((abs(dataCHG_IC-(abs(syspara.current/100)) ))> 5)//请求的电流
+			if((abs(dataCHG_IC-(abs(syspara.current/100)) ))> 5)//请求的电流不稳定
 			{
 				sametime=0;
-				if(staptime<90)//90s的电流不稳定，就会退出 充电流程
+				if(staptime<90)
 				{
 					staptime++;
 					curtime= 0;
 				}
-				else
+				else//90s的电流不稳定，就会退出 充电流程
 				{
 					curtime++;
 					if(curtime > 30)
 					{
-						dataCHG_step = 0xff;
+						dataCHG_step = 0xff;//进入0xff即default case
 						curtime = 0;
 						staptime= 0;
-						sysflag.bits.Charger_mismatch = 1;
 					}
 				}
 			}			
@@ -3310,7 +3309,7 @@ void  ChgProcess(void)
 			}
 			
 		break;
-		default:
+		default://不请求充电电流了
 			dataCHG_IC = 0;
 			dataCHG_VC = 0;
 			if((sysflag.bits.DET_Flag==0)&&(syspara.chgMos==0))

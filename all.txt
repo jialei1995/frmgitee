@@ -7297,3 +7297,80 @@ else if(Retime>2000)//连续2000ms检测不到此信号就返回无此信号
 	ret = 0;
 }
 return ret;
+------------------------------收到一条请求数据的指令，怎样循环回数据呢？
+while(1)//
+{
+	if((Sendpcdata_Flag != 0)&&(RS485sendFlag==0))//收到一条请求数据的指令&&当前485缓冲区没有要发的数据
+	{
+		if(CMD==0xe0)//第二次发e1的数据
+		{
+			CMD=0xe1;
+		}
+		else if(CMD==0xe1)//最后发fe的数据
+		{
+			Sendpcdata_Flag= 0;
+			CMD=0xFe;
+		}
+		else//第一次发ea的数据，需要把第一次要发的数据放到else里面，则第一次发这个
+		{
+			CMD=0xe0;
+		}
+		BootCmd_Process(CMD,0xff);//发送需要的数据出去
+	}
+	dootherthings();//处理其他事情
+}
+
+--------------------------------------采集电压如果采集小于1000，不更新syspara延时5次采集正常了才更新
+static uint16_t errVolttime[25];
+uint16_t tmpVolt[25];
+if((tmpVolt[i]>1000)||(errVolttime[i]>5))//采集正确才更新电压 或者 采集错5次才更新小于1000的电压
+{
+	if(tmpVolt[i]>1000)//采集正确，清零对应位置的延时计时
+	{
+		errVolttime[i] = 0;
+	}
+	syspara.cellVolt[i] = tmpVolt[i] ; 
+}
+else//采集错电压则不更新，5次都采集错误才更新
+{
+	errVolttime[i]++;
+}
+----------------------------------------求多次采集的平均电流往出传，防止电流波动
+#define CUR_AVG_TIME  60
+int32_t Temp30curr[60] = {0};
+int32_t processavgCurr(int32_t value)
+{
+	uint8_t i = 0;
+	//计算600ms内循环平均电流
+	Temp30curr[avg30currcount % CUR_AVG_TIME] = value;每次进来给数组某个位置赋值
+	avg30currcount++;//每次赋值后++
+	if (avg30currcount >= CUR_AVG_TIME)//数组已经采集满了，则计算平均电流
+	{
+		avgcurr30add = 0;
+		for (i = 0; i < CUR_AVG_TIME; i++)
+		{
+			avgcurr30add += Temp30curr[i];//将数组中的值全加起来
+		}
+		avg30currcount = CUR_AVG_TIME + avg30currcount % CUR_AVG_TIME;//保证此变量不会溢出
+		return avgcurr30add / CUR_AVG_TIME;
+	}
+	else//采集的电流<60次的时候，平均的就是刚开始那几个数字，avg30currcount<6
+	{
+		avgcurr30add = 0;
+		for (i = 0; i < avg30currcount; i++)
+		{
+			avgcurr30add += Temp30curr[i];
+		}
+		if (avg30currcount > 0)
+		{
+			return avgcurr30add / (avg30currcount);
+		}
+	}
+	return 0;
+}
+----------------------------------数据解析技巧
+把收到的所有数据的头字节替换成：换行+头字节--------保证每个有效数据都在每行开头
+全部粘贴数据到excel，筛选以数据头开头的行
+全选数据转置即可得到所有的数据
+
+485两方同时发数据，总线数据会暂时坏掉，直到一方停止，总线数据又正常，就会出现意想不到的485数据+正常的数据字节
