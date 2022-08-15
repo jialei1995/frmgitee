@@ -1142,3 +1142,12 @@ event UserDelegate RstEvent, ChangeEvent;//定义此委托类型的变量 RstEve
 		ChangeEvent?.Invoke();
 	}
 }
+
+****************************************************************
+ArrayList 转换成byte数组
+1.
+	//C# ArrayList 转换成byte数组
+	ArrayList al = new ArrayList();
+	byte[] array = (byte[])al.ToArray(typeof(byte));
+2.
+	Uart.buffer.CopyTo(0, ReDataBuf, 0, Uart.buffer.Count);

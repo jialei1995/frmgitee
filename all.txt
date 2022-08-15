@@ -7374,3 +7374,36 @@ int32_t processavgCurr(int32_t value)
 全选数据转置即可得到所有的数据
 
 485两方同时发数据，总线数据会暂时坏掉，直到一方停止，总线数据又正常，就会出现意想不到的485数据+正常的数据字节
+
+---------------------------------c转c#校验 
+uint16_t  user_uart_crc(uint8_t *pchMsg, uint16_t wDataLen)    wCRCTalbeAbs固定数组
+{
+	uint16_t wCRC = 0xFFFF;
+	uint16_t i;
+	uint8_t chChar;
+	for(i=0;i<wDataLen;i++)
+	{
+		chChar=*pchMsg++;//传入数组的指针偏移
+		wCRC=wCRCTalbeAbs[(chChar^wCRC)&15]^(wCRC>>4);
+		wCRC=wCRCTalbeAbs[((chChar>>4)^wCRC)&15]^(wCRC>>4);
+	}
+	return wCRC;
+}
+
+UInt16 myCRC16(byte[] pchMsg, UInt16 wDataLen, UInt16 offset)//无法传指针，所以传个数组校验的偏移
+{
+    UInt16 wCRC = 0xFFFF;
+    byte chChar;
+    int m = offset;//数组从offset开始往后校验
+    UInt16 i = 0;
+    for (i=0; i < wDataLen; i++)
+    {
+        chChar = pchMsg[m++];//传入数组的指针偏移
+        wCRC = Convert.ToUInt16(mywCRCTalbeAbs[(chChar ^ wCRC) & 15] ^ (wCRC >> 4));
+        wCRC = Convert.ToUInt16(mywCRCTalbeAbs[((chChar >> 4) ^ wCRC) & 15] ^ (wCRC >> 4));
+    }
+    return wCRC;
+}
+
+*ptr++ == *(ptr++)  先取值后偏移指针
+*++ptr == *(++ptr)	先偏移指针后取值
