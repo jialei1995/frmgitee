@@ -7205,8 +7205,10 @@ notepad++删除以xxx开头的行：
 ^[#;].*$  ----删除以‘#’或‘;’开头的行
 ^[xsadsadsa].*$  删除以字母x/s/a/d/s/a/d/s/a开头的行
 ^xsadsadsa.*$ 	删除以字符串xsadsadsa开头的行
-buf(.*)\r\n		删除带有buf的行
-
+buf(.*)\r\n	  buf.*\r\n	删除带有buf的行
+^[hao].*\r\n  删除以h/a/o开头的行
+^[hao].*$  删除以h/a/o开头的行
+勾选正则表达式
 
 
 代码技巧：
