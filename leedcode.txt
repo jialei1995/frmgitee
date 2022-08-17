@@ -504,3 +504,91 @@ int maxbuf(int *buf,int len)
 	    }
 	    return f[n];
     }
+4.	打家劫舍
+	int rob(vector<int>& nums) {
+        f[0] = nums[0];//第0位置，能偷最大数就是nums0
+        int n=nums.size();
+        for(int i=1;i<n;i++)
+        {
+            if(i==1)//第一位置能偷的最大数是nums0与nums1的最大值
+            {
+                f[i]=max(f[i-1],nums[i]);
+            }else
+            {
+                f[i]=max(f[i-2]+nums[i],f[i-1]);//第i位置能偷的最大值
+            }
+        }
+        return f[n-1];
+    }
+5.	哈希表，求数组中只出现一次的数字的和   给定的数组范围小就可以用hash表
+	int qiusum(int * arr,int size)
+	{
+		int sum=0;
+		for(int i=0;i<size;i++)//遍历所给数组，将对应的hash表对应下标的数值++
+		{
+			hash[arr[i]]++;
+		}
+		for(int j=0;j<size;j++)//遍历hash，如果数值为1，累加到sum，否则跳过
+		{
+			if(hash[j]==1)
+			{
+				sum+=j;
+			}
+		}
+		return sum;
+	}
+6.	N皇后问题
+	class Solution {
+    int hash[10][10];//>0表示该位置不能放置皇后
+    int cnt;
+
+    void doAdd(int r,int c,int n,int val)
+    {
+        if(r<0 || r>=n)return;
+        if(c<0||c>=n)return;
+        hash[r][c] += val;
+    }
+    void add(int r,int c,int n,int val)//val=1放置  val=-1取出，取出的时候将对应位置标记的数字都-1
+    {
+        //放置一个皇后需要将她所在的行列对角线标记
+        int i=0;
+        for(i=0;i<n;i++)
+        {
+            doAdd(r,i,n,val);//标记行
+            doAdd(i,c,n,val);//标记列
+        }
+        for(i=0;i<n;i++)
+        {
+            doAdd(r+i,c+i,n,val);
+            doAdd(r-i,c-i,n,val);//标记主对角线
+            doAdd(r+i,c-i,n,val);
+            doAdd(r-i,c+i,n,val);//标记副对角线
+        }
+    }
+
+    void dfs(int depth,int maxDepth)//当前要放的行，总共要放的行
+    {
+        int i;
+        if(depth==maxDepth)//最后一行都可以放，就成功了一种方法
+        {
+            ++cnt;
+            return;
+        }
+        for(i=0;i<maxDepth;++i)
+        {
+            if(hash[depth][i]==0)//没皇后能攻击到，第一行可放的位置0,0  0,1  0,2  0...
+            {
+                add(depth,i,maxDepth,1);//放置皇后
+                dfs(depth+1,maxDepth);//放下一行往哪里放
+                add(depth,i,maxDepth,-1);//取出来
+            }
+        }
+    }
+public:
+    int totalNQueens(int n) {
+        cnt=0;
+        memset(hash,0,sizeof(hash));
+        dfs(0,n);
+        return cnt;
+    }
+};
