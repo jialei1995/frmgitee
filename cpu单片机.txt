@@ -1839,7 +1839,7 @@ void I2C1_ER_IRQHandler(void) {
         SR1Register = 0;
         SR2Register = 0;    
 }发送各种错误进行错误中断不做对应的处理，最后只进行清除寄存器（SR1和SR2）操作。
-```
+```  
 野火I2C硬件初始化流程：
 I2C_InitTypeDef 定义iicinit结构体，用这个结构体变量去初始化iic控制器
 
@@ -3372,3 +3372,181 @@ void  ChgProcess(void)
  }
  代码直接用就可以，但是要注意根据自己单片机的系统时钟来配置
 3、
+
+
+--------------------------------I2C 寄存器操作读写reg数据
+void iic_write(slaveaddr,regaddr,data)
+{
+	//时钟分频  打开iic中断，每次收发完1字节收发中断标志自动置位
+	I2c.I2cCon |= (1<<6)|(1<<5);
+	//设置I2c为主机发送模式，使能iic发送与接收
+	I2c.I2cSta = 0xd0;
+	//发送从机地址,写
+	I2c.I2cDS = slaveaddr<<1;
+	//发送起始信号
+	I2c.I2cSta = 0xf0;
+	//等待从机接收完1个字节产生ack ack后中断挂起自动置位
+	while(!I2c.I2cCON&(1<<4));
+	//发送从机内部reg地址，先把数据放入DA reg中  
+	I2c.I2cDS = regaddr;
+	//清除中断标志位，开启下1字节regaddr的发送
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	//等待从机ack
+	while(!I2c.I2cCON&(1<<4));
+	
+	//发送data，先把数据放入DA reg中  
+	I2c.I2cDS = data;
+	//清除中断标志位，开启下1字节regaddr的发送
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	//等待从机ack
+	while(!I2c.I2cCON&(1<<4));
+	//发送stop信号,结束通信
+	I2c.I2cSta = 0xd0;
+	
+	//清除中断标志位
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	delay(10ms);//延时等待停止信号稳定
+}
+
+uint8_t iic_read(slaveaddr,regaddr)
+{
+	uint8_t retdata;
+	//时钟分频  打开iic中断，每次收发完1字节收发中断标志自动置位
+	I2c.I2cCon |= (1<<6)|(1<<5);
+	//设置I2c为主机发送模式，使能iic发送与接收
+	I2c.I2cSta = 0xd0;
+	//发送从机地址,写
+	I2c.I2cDS = slaveaddr<<1;
+	//发送起始信号
+	I2c.I2cSta = 0xf0;
+	//等待从机接收完1个字节产生ack ack后中断挂起自动置位
+	while(!I2c.I2cCON&(1<<4));
+	
+	//发送从机内部reg地址，先把数据放入DA reg中  
+	I2c.I2cDS = regaddr;
+	//清除中断标志位，开启下1字节regaddr的发送
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	//等待从机ack
+	while(!I2c.I2cCON&(1<<4));
+	
+	//清除中断标志位 重新开始一次通信，更改数据传输方向restart
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	//发送从机地址,读
+	I2c.I2cDS = slaveaddr<<1|0x01;
+	//设置I2c为主机接收模式，使能iic发送与接收
+	I2c.I2cSta = 0xb0;
+	//等待从机接收完1个字节产生ack
+	while(!I2c.I2cCON&(1<<4));
+	
+	//禁止主机应答信号--开启非应答，因为只接收1字节数据--清除中断标志位
+	I2c.I2cCON = I2c.I2cCON&((~(1<<4)) &(~(1<<7)));
+	//等待从机发来数据
+	while(!I2c.I2cCON&(1<<4));
+	//读取数据
+	retdata = I2c.I2cDA;
+	
+	//发送stop信号,结束通信
+	I2c.I2cSta = 0xd0;
+	//清除中断标志位
+	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
+	delay(10ms);//延时等待停止信号稳定
+	
+	return retdata;
+}
+
+--------------------------------I2C 硬件操作实现读取
+I2C_Config()
+{
+	io_init();
+	i2c结构体.mode = i2c_mode_i2c;
+	i2c结构体.dutecycle = dutecycle_2;
+	i2c结构体.ownaddr = HOSTADDR;//从机不得用此地址
+	i2c结构体.ACK = ACK_ENABLE;//允许应答
+	i2c结构体.acknowledgeaddr = 7bit;
+	i2c结构体.Speed = x;
+	I2c_init(&i2c结构体);//初始化结构体
+	I2c_cmd(i2c,ENABLE);//使能控制器
+}
+I2C_SendByte(slaveaddr,writeaddr,data)
+{
+	I2C_GenerateSTART();
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
+	I2C_SendData(writeaddr);//发送器件内部reg
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	I2C_SendData(data);//发送数据
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	I2C_GenerateSTOP();
+}
+I2C_SendBuffer(slaveaddr,writeaddr,u8* buffer,cnt)
+{
+	I2C_GenerateSTART();
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
+	I2C_SendData(writeaddr);//发送器件内部reg
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	while(cnt--)
+	{
+		I2C_SendData(*buffer);//发送数据
+		buffer++;
+		while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	}
+	I2C_GenerateSTOP();
+}
+u8 I2C_ReadByte(slaveaddr,writeaddr)
+{
+	u8 retdata;
+	while(I2C_GetFlagStatus(Flag_Busy));//查看总线是否繁忙，循环
+	I2C_GenerateSTART();
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
+	
+	I2C_CMD(ENABLE);//开启I2C功能
+	I2C_SendData(writeaddr);//发送器件内部reg
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	I2C_GenerateSTART();//restart 接收数据
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Receiver);//发送从机地址，读读读状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECT));//等待完成
+	
+	I2C_AcknowledgeConfig(Disable);//最后有一个数据时关闭ack应答
+	I2C_GenerateSTOP();
+	retdata=I2C_ReceiveData();
+	return retdata;
+}
+void I2C_ReadBuffer(u8*rcvbuf,cnt)//要读cnt个数据到rcvbuf中
+{
+	while(I2C_GetFlagStatus(Flag_Busy));//查看总线是否繁忙，循环
+	I2C_GenerateSTART();
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
+	
+	I2C_CMD(ENABLE);//开启I2C功能
+	I2C_SendData(writeaddr);//发送器件内部reg
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
+	I2C_GenerateSTART();//restart 接收数据
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
+	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Receiver);//发送从机地址，读读读状态
+	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECT));//等待完成
+	
+	
+	while(cnt)
+	{
+		if(cnt==1)//只剩1个要读得数据，读完就得返回nack了
+		{
+			I2C_AcknowledgeConfig(Disable);//最后有一个数据时关闭ack应答
+			I2C_GenerateSTOP();
+		}
+		if(I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_RECEIVED))//读到数据
+		{
+			*rcvbuf = I2C_ReceiveData();
+			rcvbuf++;
+			cnt--;
+		}
+	}
+	I2C_AcknowledgeConfig(Enable);//最后有一个数据时关闭ack应答
+}
