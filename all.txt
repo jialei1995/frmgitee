@@ -4108,40 +4108,110 @@ ctrl+r:输入最近输过的linux指令，os会默认匹配之前使用过的cmd
 	怎么能让grep == grep --color=auto呢？以后就不用巧后面的了
 	alias grep='grep --color=auto'临时生效
 	要想永久生效需要改配置文件才行一般都在/etc目录下
-	source /etc/bashrc 让这个文件重新生效
+	source /etc/bashrc 让这个文件重新生效 或者 /root/.bashrc
+	
 	grep -e 'x' -e 'y' 查带x或带y的行。
 	-n 显示行号
 	-i 忽略大小写匹配
-	^关键字：以关键字开头
-	关键字$ :以关键字结尾
+	^关键字：以关键字开头  '^var'   ||
+	关键字$ :以关键字结尾	'var$'
+	
+	grep -nB 3 '^www' passwd
+	grep -nB3 '^www' passwd    匹配开头是www的行再加上3行
+	grep -nA3 '^www' passwd   匹配开头是www的行再加下3行  
+	grep -nA3 -B3 '^error' passwd   
+	grep -nC3 '^error' passwd    过滤查看错误日志方法，过滤带error的前3行后3行
 	-v 取反打印
 	-v -x -n ====-vxn
-	-w 精确匹配关键词  grep -w 'xx' filename
-	-o 只打印匹配到的字符 grep -o '[0-9]' 只打印匹配到的行中有0-9的字符 
+	-w 精确匹配关键词 若行中含有chinese，用-w匹配chin则匹配失败，因为是精确匹配
+	-o 只打印匹配到的字符 grep -o '[0-9]'  打印出来的只有匹配到的字符，不会整体打印行  可以计算文档中共有多少个关键字
 列过滤工具：
 	cut：
 		cut -d':' -f1 passwd:查找以':'分割的第一列字符串
-
-	cat -n 文件名 显示出来的时候带行号
-	head 文件名：查看文件头10行
-
-----tr小工具
+		cut -d ':'  -f1 passwd |cut -c 1-3
+	-d:置顶分割符号--默认是\t分割		直接-d: 分割也是可以的
+	-c:只截取每行中的对应位置的字符  -c m-n
+	-f:显示第几列  -f1,6显示第一列与第六列
+sort工具：字符按照acsii排序升序输出
+	-u:去除重复行并且排序
+	-r：降序 ，默认升序
+	-o:重定向文件
+	-n:以数字排序  默认以字符排序
+	-t:分隔符  类似cut的-d参数
+	-k：第N列	类似cut的-f
+	-b:忽略前导空格
+	-R：随机排序
+	
+	sort -n -t: -k3 1.txt  利用文件中的以冒号分割的第3列数据对文件排序后整体输出
+uniq：只去除连续重复的行
+	-i:大小写忽视 重复行就会变多
+	-c：统计重复行
+	-d：只显示连续的重复行
+	uniq -dc 2.txt:统计每种重复行的个数,不重复的不显示
+diff：
+	-N:将不存在的文件当成空文件
+	-u:合并格式显示，gitee就是这么用的
+	touch dir1/file{1..5}
+	touch dir2/file{1..3}
+	touch dir2/test{4..5}
+	diff -q dir1 dir2  ----查看文件夹文件的不同，不对比文件中的内容
+	- diff -Nur在那个目录执行   打patch时就在那个补录打可以时-p0  在目录里面就开始-p1  -p2  
+	patch -p0 < 1.patch --fuzz=0	不需要指定要将patch往那个目录里面打
+	patch -RE < 1.patch 退回来打进去的patch
+	
+	单个文件打补丁：
+	diff -u file1 file2 > file1.patch 
+	patch file1 file1.patch 或者下面
+	patch file1 < file1.patch
+	
+----tr小工具 行内字符替换
+tr ' '   '\n'  空格换成换行符
+tr ' '   '\t'  空格换成制表符
 command |tr 'A-Z' 'a-z'
 tr 'A-Z' 'a-z' < filename   字母大小写转化
 tr -d 'a-zA-Z :/'  < filename :删除文件中的字母、空格、冒号、/
 tr -s 'a-z' < file 压缩相同的挨着的小写字母，压成一个 
----paste小工具
+tr -s ' ' < file   压缩相同的挨着的空格
+
+---paste小工具  合并文件行工具
 paste -d： file1 file2  并排合并打印，以:分割
 paste file1 file2 并排合并打印，以tab分割
-patse -s file1 file2 串着合并打印，一个文件中合并成一行
-----mkisofs -o xx.iso xx.tar.gz(压成tar包再做iso)
+patse -s file1 file2  file1内容合并成1行与file2合并成1行做对比
 
+shell 中的通配符：
+*：匹配0-n个任意字符
+？：匹配任意单个字符
+
+[list]：匹配[list]中任意单个字符，或一组单个字符
+[abc]  [a-z] [123]  [0-9]
+file[1-13]:表示1-1 3共2个字符中的一个字符
+file[2-13]:表示3共1个字符中的一个字符
+[0-9,10,22]:表示0-9+','中的任意1个字符
+[!list]：匹配除了[list]中任意单个字符
+
+{str1,str2,...}:匹配多个字符串
+file{1,2,10,11}.jpg
+
+bash中的引号：
+root@tengxuncloud:~/jl/dir1# echo "$(date +%F)"   命令得用双引号包含起来
+2022-09-02
+root@tengxuncloud:~/jl/dir1# echo '$(date +%F)'	  用单引号括起来的命令执行结果不会当成命令执行结果
+$(date +%F)
+双引号中允许通过$引用其他变量值
+单引号中不允许通过$引用其他变量值，bash中的特殊字符都会被当成普通字符
+``：反撇号，相当于$()      echo "`ls -la`"可以正常运行
+
+echo "`echo "`ls`"`"	  ``不允许嵌套，因为``本身不分顺序，会把"  `echo "`   ls  `"`  "命令解析错误
+echo "$(echo "$(ls)")"    $()允许嵌套
+echo "$(echo "`ls -la`")"  $()中套``允许 
+
+
+----mkisofs -o xx.iso xx.tar.gz(压成tar包再做iso)
 shell脚本如果./test.sh不给你说哪一行有问题。
 		所以建议用解释器运行：bash test.sh---会给你说哪一行有问题
 
-	取变量值->$a;  $直接加变量名也可以，${a}也可以
-
-		=两边不能有‘ ’空格。否则不能成功赋值
+	取变量值-> $a 直接加变量名也可以，${a}也可以
+	赋值=两边不能有空格。否则不能成功赋值
 	`uname -r`   就是得到命令执行的结果
 	a=$(uname -r)  也可以得到命令结果，并保存到a中
 	
@@ -4149,9 +4219,50 @@ shell脚本如果./test.sh不给你说哪一行有问题。
 	read -p 提示 变量名   选项都是可有可无的
 	read -n 定义字符数量
 	read name：将输入给name变量 
-	read -n 5 -p "input your name" name：输入长度不能超过5个。顺序不能换
+	read -n 5 -p "input your name" name：输入字符串长度不能超过5个。
 	从文件读入赋值：&&**
 	read -p 'inptu ip' IP < ip.txt 把ip.txt中的内容赋值给IP变量。
+
+### shell函数传参
+
+定义时：fun（）{$1xxx    $2xxx}    
+fun()
+{
+	echo "$* xx yy "  $*就表示每个入参都打印
+}
+返回值只能返回函数执行状态0成功非0失败。要其他的话用定义全局变量接受
+调用时fun xx yy,返回数字用return，返回值接收用$?  或者 res=`fun $1 $2` 或者 res=$(fun $1 $2)
+返回多个值的字符串用echo 'xxx'; echo 'yyy'
+res=$(fun)，返回值是多个字符串中间以空格分开
+
+read -p 'xxxxx'  varname
+
+shell
+shell脚本第一行
+set -x :就说后面的程序执行的时候类似外界sh -x 执行一样
+set +x:关闭这种提示
+
+set -e 之后的命令出错立即退出
+set +e 之后的命令出错不退出
+
+$(( xxx ))  双层括号内可以进行数学计算
+cat > $filename << EOF
+XXX
+XXX
+EOF  可以将中间的内容放到文件当中
+
+操作文件中的行
+while read line
+do 
+	op $line
+done < file.txt
+
+while read ip passwd 
+do
+	$ip=
+	$passwd=
+done<1.txt	
+
 
 变量分类：
 		本地变量->只对当前进程有效  定义在当前终端（是个进程），只能在当前终端使用
@@ -4334,46 +4445,7 @@ gpt分区：现在用的比较多-windows64 位以后基本都用的这种方式
   2. execstop  指明停止unit要运行的脚本的绝对路径
 - install  定义由systemctl enable 、systemctl disable实现或禁用时用到
 
-### shell函数传参
 
-定义时：fun（）{$1xxx    $2xxx}    
-fun()
-{
-	echo "$* xx yy "  $*就表示每个入参都打印
-}
-返回值只能返回函数执行状态0成功非0失败。要其他的话用定义全局变量接受
-调用时fun xx yy,返回数字用return，返回值接收用$?  或者 res=`fun $1 $2` 或者 res=$(fun $1 $2)
-返回多个值的字符串用echo 'xxx'; echo 'yyy'
-res=$(fun)，返回值是多个字符串中间以空格分开
-
-read -p 'xxxxx'  varname
-
-```shell
-shell脚本第一行
-set -x :就说后面的程序执行的时候类似外界sh -x 执行一样
-set +x:关闭这种提示
-
-set -e 之后的命令出错立即退出
-set +e 之后的命令出错不退出
-
-$(( xxx ))  双层括号内可以进行数学计算
-cat > $filename << EOF
-XXX
-XXX
-EOF  可以将中间的内容放到文件当中
-
-操作文件中的行
-while read line
-do 
-	op $line
-done < file.txt
-
-while read ip passwd 
-do
-	$ip=
-	$passwd=
-done<1.txt	
-```
 
 主机执行client-tool-linux ip#6677#cmdecho['cmd']  可以将此cmd在虚拟机中执行
 
@@ -4579,10 +4651,6 @@ docker load --input   xx.tar.gz   将这个镜像压缩包安装到os中
 ### vim 
 
 - vim 1.c +18直接打开就是第18行
-- diff -Nur在那个目录执行   打patch时就在那个补录打可以时-p0  在目录里面就开始-p1  -p2  
-diff -q dir1 dir2  只对比文件名，不对比内容
-patch -p0 < 1.patch --fuzz=0	不需要指定要将patch往那个目录里面打
-patch -RE < 1.patch 退回来打进去的patch
 vim中左括号跳右括号：%
 vim 查看二进制文件：：%!xxd + enter
 ^ + e:光标位置不变，文件向上移动

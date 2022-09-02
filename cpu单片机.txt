@@ -3550,3 +3550,7 @@ void I2C_ReadBuffer(u8*rcvbuf,cnt)//要读cnt个数据到rcvbuf中
 	}
 	I2C_AcknowledgeConfig(Enable);//最后有一个数据时关闭ack应答
 }
+
+
+---------------------printf的调用
+程序中无printf的底层实现，在程序中不要打印，否则就会出现程序卡死现象
