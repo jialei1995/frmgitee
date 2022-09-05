@@ -159,35 +159,6 @@ re.search("(？P<provice>(0-9){4})(?P<city>[0-9]{3}) (?P<birthday>[0-9]{4})","14
 re.split("[0-9]{2}","alex11name22jack33nike")
 以2个数字为分割符，将此字符串分成4段  返回列表
 
-sed：
-	sed 参数 ‘脚本语句’ filename
-	sed 参数 -f ‘脚本文件’ filename
-		a, append		追加'ammm'，每行之后加新行mmm '3annn'第3行后加一行新的nnn  '$akkk'文件最后加一行kkk
-		i,insert		插入  不加-i不能反映到文件中，只是在终端显示改了，实际文件没改
-		d,delete		删除
-		s,substitution	替换
-		sed -i '4a xxxxxxxxxxxx' filename  第四行追加xxxxxxxx
-		sed -i '2,7d'						删除2-7 行
-		sed 's/xxx/yyy/g' filename	 把行中带为xxx改成yyy，g表示都换，若没g，只换此行的第一个
-### sed 默认时对每一行都要处理的
-
-sed -i '/xxx/d'  file  删除含有xxx的行
-sed -i '88 r b.file'  filename:在filename的第88行后+b.file的内容 
-
-sed -n '/xxx/p'  file   打印
-
-sed -n -f  xx.sedscript file   根据sed脚本对file的内容进行修改输出
-sed -[opt]  '动作（p,i,a,d,c替换）'
-
-sed -i '$ c hello'  最后一行换成hello
-
-sed -i '/xxx/cyyy'  带xxx的行换成yyy
-
-sed -i '3ixxx'   3行前面新加xxx行
-sed -i '/[0-9]/d'   删除包含数字的行
-
-删注释:sed -i 's/^#//'  1.c  
-
 io：		
 	行缓存的函数：fgets 返回为null表示出错或到文件末尾    fputs 返回EOF（-1）表示出错，成功返回非负值
 			怎么区别读取错了还是读到文件尾（feof）  int feof（FILE*s）；到尾返回非零，没到尾返回0
@@ -4178,7 +4149,74 @@ paste -d： file1 file2  并排合并打印，以:分割
 paste file1 file2 并排合并打印，以tab分割
 patse -s file1 file2  file1内容合并成1行与file2合并成1行做对比
 
-shell 中的通配符：
+---sed工具：
+
+sed：
+	sed 参数 ‘脚本语句’ filename
+	sed 参数 -f ‘脚本文件’ filename
+		a, append		追加'ammm'，每行之后加新行mmm '3annn'第3行后加一行新的nnn  '$akkk'文件最后加一行kkk
+		i,insert		插入  不加-i不能反映到文件中，只是在终端显示改了，实际文件没改
+		d,delete		删除
+		s,substitution	替换
+		sed -i '4a xxxxxxxxxxxx' filename  第四行追加xxxxxxxx
+		sed -i '2,7d'						删除2-7 行
+		sed 's/xxx/yyy/g' filename	 把行中带为xxx改成yyy，g表示都换，若没g，只换此行的第一个
+		### sed 默认时对每一行都要处理的
+
+		sed -i '/xxx/d'  file  删除含有xxx的行  sed -i "/$var/d" file--注意要引用变量的时候不能用单引号，必须双引号
+		sed -i '88 r b.file'  filename:在filename的第88行后+b.file的内容 
+		sed -n '/xxx/p'  file   打印
+		sed -n -f  xx.sedscript file   根据sed脚本对file的内容进行修改输出
+		sed -[opt]  '动作（p,i,a,d,c替换）'
+		sed -i '$ c hello'  最后一行换成hello
+		sed -i '/xxx/cyyy'  带xxx的行换成yyy
+		sed -i '3ixxx'   3行前面新加xxx行
+		sed -i '/[0-9]/d'   删除包含数字的行
+		删注释:sed -i 's/^#//'  1.c  
+---awk工具：是个语言，很强大 一行一行的处理数据
+	awk [选项] '命令部分' filename  注意：引用shell变量需要用双引号引起来
+	-F：以什么符号分割，默认空格
+	-v:定义变量并赋值
+	正则表达式进行地址定位；awk 'NR==1,NR==5{print $0}'  打印1~5行
+							awk 'NR==1,NR==5;{print $0}' 打印1~5行2次，其他的都打印一次
+							awk 'NR==1||NR==5{print $0}'  打印第1行或者第5行
+							awk 'NR>=3&&NR<=5{print $0}'  打印第3行到第5行
+							1~5行打印1次，第1行满足分号后的条件，打印1次
+	root@tengxuncloud:~/jl# awk 'NR==1,NR==5;/^root/{print $0}' passwd |cat -n    
+  	 1  root:x:0:0:root:/root:/bin/bash
+     2  root:x:0:0:root:/root:/bin/bash
+     3  daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+     4  bin:x:2:2:bin:/bin:/usr/sbin/nologin
+     5  sys:x:3:3:sys:/dev:/usr/sbin/nologin
+     6  sync:x:4:65534:sync:/bin:/bin/syncr		
+	花括号{}进行语句的执行；
+	BEGIN..END:
+		'BEGIN{awk语句}；{处理中}；END{awk语句}'
+	awk中的相关变量：
+		$0:当前处理行的所有记录
+		$1,$2...$n:文件中每行以间隔符号分割的不同字段
+		NF：当前处理行的字段数--列数量
+		$NF:最后一列	--awk -F: '{print $NF}' 打印文件最后一列
+		FNR/NR：行号
+		FS：定义输入间隔符		
+		OFS：定义输出字段分隔符，默认空格
+	awk -F: '{print $NF,$(NF-1)}'  打印倒数第一第二列
+	awk -F: '/root/{print $0}'   打印包含root字符的行  
+	awk -F: 'NR==1,NR==5;/^root/{print $0}'	 打印以root字符开头的行  
+	awk 'NR==1,NR==5;{print $0}'  1~5行打印2次，后面的每行打印一次--分号前面就会处理并打印
+	
+	默认输出结果是以空格分割的，可以在BEGIN中指定输出分隔符，输入分割符：
+	awk -F: 'BEGIN{OFS="@"};{print $1,$NF}' passwd
+	awk 'BEGIN{FS=":";OFS="@@@@@@"};{print $1,$NF}' 
+	awk 'BEGIN{FS=":"};{print $1"@@@@@@@@@@@"$NF}' BEGIN中没有定义输出分割符，直接在处理数据中"@@@"也可以分割
+	awk 'BEGIN{FS=":"};{print "用户名是"$1"bash是"$NF}'  打印的时候前后都可以用""包起来想打印的
+	
+	print和printf两者的区别：
+	用print打印，会在打印结束后加上换行符
+	用printf打印，后面不会添加任何符号
+	cat 2.txt |awk -F' ' '{for(i=58;i<110;i=i+2){printf $i $(i+1)" "}print""}'  后面的print是为了换行
+
+----shell 中的通配符：
 *：匹配0-n个任意字符
 ？：匹配任意单个字符
 
@@ -4205,24 +4243,28 @@ echo "`echo "`ls`"`"	  ``不允许嵌套，因为``本身不分顺序，会把" 
 echo "$(echo "$(ls)")"    $()允许嵌套
 echo "$(echo "`ls -la`")"  $()中套``允许 
 
-
 ----mkisofs -o xx.iso xx.tar.gz(压成tar包再做iso)
 shell脚本如果./test.sh不给你说哪一行有问题。
 		所以建议用解释器运行：bash test.sh---会给你说哪一行有问题
 
 	取变量值-> $a 直接加变量名也可以，${a}也可以
 	赋值=两边不能有空格。否则不能成功赋值
+	unset  var---取消此变量
 	`uname -r`   就是得到命令执行的结果
 	a=$(uname -r)  也可以得到命令结果，并保存到a中
-	
+	$a 与 ${a}的区别：   A=123456
+	echo ${A:2:3}  切片：从2位置开始切3个
 交互：
-	read -p 提示 变量名   选项都是可有可无的
+	read -p ”提示“  变量名   选项都是可有可无的
 	read -n 定义字符数量
 	read name：将输入给name变量 
 	read -n 5 -p "input your name" name：输入字符串长度不能超过5个。
 	从文件读入赋值：&&**
 	read -p 'inptu ip' IP < ip.txt 把ip.txt中的内容赋值给IP变量。
-
+	
+	read -s var  : 不显示用户输入内容，密码就是这么做的
+	read -t 5  A ：5S内不输入则自动返回，给A赋值为空
+	
 ### shell函数传参
 
 定义时：fun（）{$1xxx    $2xxx}    
@@ -4265,28 +4307,38 @@ done<1.txt
 
 
 变量分类：
+		变量：
+			declare -i var  :当前中断变量var声明成int类型，不能赋值字符串了
+			-r：声明称只读变量  unset不了，只能重启终端了
+			export var:将定义好的普通变量var 临时导成环境变量
 		本地变量->只对当前进程有效  定义在当前终端（是个进程），只能在当前终端使用
 		环境变量—>当前终端能用，子进程也能使用
 				env：查看当前用户的环境变量（只是当前用户的）
 				set：查看当前用户的本地变量与环境变量 
-				定义环境变量->export DDD=777 定义1个环境变量
 		全局变量：/etc/bashrc  所有用户都生效   建议（函数与别名都放这里面）
 				/etc/profile  系统与所有用户都生效
-		系统变量：$? -> 上条命令执行结果是0 说明上条命令运行成功了  ping 11.1.1.1也可以
+  重要：系统变量：$? -> 上条命令执行结果是0 说明上条命令运行成功了  ping 11.1.1.1也可以
 						ls  --> echo $? 结果==0
 						lll -> echo $? 结果127说明上条命令出错了非0就是出错
 				$1 --$9  脚本后面的位置参数  ${10}得包住，不然会当成$1
-				$@ -->脚本后面的所有参数  $*-->脚本后面的所有参数
+				$@ $*-->脚本后面的所有参数 
 				$# -->脚本后面传参个数，不包含./xx.sh
+				echo "\$0=$0"  前面的$0是字符串，后面的是变量
+				$$:当前进程的进程号 
+				$!:当前终端后台运行的最后一个进程号
 四则运算：只支持整数运算
 	$(())  符号		echo $((1+1))
 	$[]   符号		echo $[1+1]
-	expr  程序       expr 10 / 5  **这个用的时候‘运算符’左右要加空格  乘号*用的时候要加转义字符\*
+	
+	expr  程序计算       expr 10 / 5  **expr 用的时候‘运算符’左右要加空格  乘号*用的时候要加转义字符\*
 	let   程序    	n=1;let n+=1
+	
+	echo 1+1.5|bc	bc可以帮忙处理数学运算
+	bc 工具可以计算数学  直接enter后算 quit+回车退出
 条件判断语句：
 	test+表达式  
-	[  ]   不支持正则（2边要有空格）字符串必须用""抱起来
-	[[  ]]  支持正则（2边都要有空格）字符串不需要用""包
+	[ 表达式 ]   不支持正则（2边要有空格）字符串必须用""抱起来
+	[[ 表达式 ]]  支持正则（2边都要有空格）字符串不需要用""包
 	判断2个字符串是否相等： test $s1 = $s2 等号两边都有空格，没空格是赋值
 						[ $s1 = $s2 ]  等号两边都有空格，[]中括号也是
 	if [ xxx ]：if后面也有‘ ’的，要注意
@@ -4294,7 +4346,8 @@ done<1.txt
 	-n ：字符串不为0
 	linux怎么判断两个文件一样：看inode号->ls -li file--->[ a -ef b ]
 	判断文件是否为空[ ! -s file ]
-	不会了man test关键字查
+	不会了man test关键字查 判断的内容
+	
 循环：
 	for i in{1..5}    打印5次你输入的第一个参数
 	do 
@@ -4351,13 +4404,6 @@ curl baidu.com  返回页面信息
 curl -A 'Mozila' baidu.com 制定agent
 .webp 是谷歌新出的一种图片格式
 wget -b http://ssssss  在后台下载  让你可以在当前终端继续操作别的动作
-
- cut -d '%' -f1  以%分割打印第一列
- awk -F: '{print $1}'  不带-F时默认以空格分隔
- print和printf两者的区别：
-	用print打印，会在打印结束后加上换行符
-	用printf打印，后面不会添加任何符号
-	cat 2.txt |awk -F' ' '{for(i=58;i<110;i=i+2){printf $i $(i+1)" "}print""}'  后面的print是为了换行
 
 ctrl z 停止运行，是让进程睡眠。不会杀死，得自己kill
 ls & ：把进程放后台运行 运行结束ls就结束了
