@@ -4215,7 +4215,25 @@ sed：
 	用print打印，会在打印结束后加上换行符
 	用printf打印，后面不会添加任何符号
 	cat 2.txt |awk -F' ' '{for(i=58;i<110;i=i+2){printf $i $(i+1)" "}print""}'  后面的print是为了换行
-
+	--date |awk '{print "month:" $2 "\nYear:" $NF}'  将结果分行打印
+	printf：格式化输出
+		%s 字符类型
+		%d 数值类型
+		-  左对齐，默认是右对齐
+	awk -F: '{printf "%-15s %-10s %-15s\n",$1,$2,$3}' /etc/passwd
+	awk -v NUM=3 -F: '{print NUM}'  passwd     -v变量赋值  变量NUM打印的时候不需要带$，带上就错了
+	awk -F: 'BEGIN{print "logshell\t\tloghome\n********"};{print $NF"\t\t"$(NF-1)};END{print "********"}' passwd		处理文件数据前打印两行+处理数据+处理完数据打印一行
+	awk与正则结合：
+		==：等于  !=不等于
+		~：匹配   !~:不匹配
+		&& || !  逻辑与或非
+	awk -F: '/^root/,/^lp/{print $0}'   筛选条件要以//隔开，中间逗号隔开，从以root开头的行打印到以lp开头的行
+	awk -F: 'NR==1,/^lp/{print $0}'		从第一行打印到以lp开头的行
+	awk -F: '/^root/||/^lp/{print $0}'   打印以root开头或者以lp开头的行
+	awk -F: '/^root/;/^lp/{print $0}' 	分号，命令分割，匹配到以root开头打印。匹配到以lp开头打印
+	awk -F: 'NR>=30 && NR<=39 && $0~/bash$/{print $0}'  匹配30~39行中以bash
+	
+	
 ----shell 中的通配符：
 *：匹配0-n个任意字符
 ？：匹配任意单个字符
