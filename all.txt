@@ -1598,7 +1598,8 @@ C++:c++98||c++11 ||c++14
 		int find(const char c,int pos=0)		找谁，默认从头开始找
 		string& replace(int pos,n,const string& str) 替换从pos开始的n个字符，替换为str的所有字母
 				string s = "abcdefghij";
-    			s.replace(1,3,"111111");  a111111efghi
+    			s.replace(1,3,"111111");    a111111efghi 可以用来去除空格 replace(" ","");
+				
 
 		string& insert(int pos,const cahr* str)从pos位置插入str
 		string& earse(int pos,int n)删除从pos位置开始的n个字符
@@ -3494,6 +3495,8 @@ class Cat:
 
 	二维数组初始化：
 	[[0 for i in range(10)]for j in range(9)] ; 也可以用numpy
+	range(begin,end,步进)  返回的是个序列，列表
+	for i in range(0,10,2)  i是0 2 4 6 8 左闭右开
 
 	global关键字，若想在python的函数内部对全局变量做修改，需要在函数内部先global var;
 	声明一下，否则函数内部修改的变量是局部变量，不是全局变量。
@@ -3563,6 +3566,17 @@ class Cat:
 		深浅拷贝：b = copy.deepcopy(a)
 		xx  is yy:判断id(xx) == id(yy)??  其实就是是不是一个对象的，一个id表示一个对象
 		xx == yy :判断xx的值是不是等于yy的值呢？？？
+		
+		
+python 匿名函数
+	定义结构：lambda 形参: 表达式
+	当我们编写一些简单的函数时，可以使用lambda一行解决
+	函数原型： lambda 变量1,变量2...变量n: 表达式
+	y = lambda x: 5*x + 5
+	y(2)
+	
+	z = lambda x,y: 5*x + y
+	z(2,5)
 ********************************************人工智能*****************************
 	机器学习：numpy，matplotlib
 		算法：
@@ -4462,8 +4476,9 @@ print("%s %s %s"%(n1,n2,n3))
 下面的这种如果变量直接往字符串中加变量，需要在字符串前加f
 teststr = f'{var}ssssssss'
 print("{0} de {1} {2}".format(n1,n2,n3)) 
-
-
+if x == '+': 
+    c = a+b
+    print('{}{}{}={}'.format(a,x,b,c)) {}中不用写数字也可以，变量可以是字符串
 ——————————————————————————————————————-runhe-------------------------------------
 ### grub
 
