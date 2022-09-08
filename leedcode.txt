@@ -453,7 +453,7 @@ int maxbuf(int *buf,int len)
     }
     return summax;
 }
-----------------------------------递归转动态 规划
+----------------------------------递归转动态 规划----用已知计算未知
 1.	青蛙跳台阶问题：
 	int numWays(int n) {//递归解法
 		if(n==1)
@@ -504,7 +504,11 @@ int maxbuf(int *buf,int len)
 	    }
 	    return f[n];
     }
-4.	打家劫舍
+4.	打家劫舍------
+
+	贪心思想做这个题：[5 2 6 3 1 7]---先挑最大的7 ，不能挑1 在其他位置挑最大的6，不能挑2 3. 再去其他位置挑最大的5 不能挑2了。所有的位置都不能挑了。返回相加结果
+							这种方法是错的，贪心的思想就是每次求最大的值---再去其他值中找次大的值---每次都是找最的。
+							
 	int rob(vector<int>& nums) {
         f[0] = nums[0];//第0位置，能偷最大数就是nums0
         int n=nums.size();
@@ -574,7 +578,7 @@ int maxbuf(int *buf,int len)
             ++cnt;
             return;
         }
-        for(i=0;i<maxDepth;++i)
+        for(i=0;i<maxDepth;++i)//第一行每个位置都能直接放 i表示往哪一列放
         {
             if(hash[depth][i]==0)//没皇后能攻击到，第一行可放的位置0,0  0,1  0,2  0...
             {
@@ -592,3 +596,30 @@ public:
         return cnt;
     }
 };
+
+7.求数组中连续子序列的最大的和---递推，动态规划问题
+设计dp[i]表示以arr[i]结尾的最大子序列和，dp[i]并不一定是前i个数中的最大子序列和，只是为了让dp[i]--->dp[i+1]之间产生联系。
+实际返回结果的时候返回的是什么呢？实际返回值
+int maxsubarr()
+{
+    int maxres=dp[0];
+    int size=sizeof(array)/sizeof(*array);
+    for(int i=1;i<size;i++)
+    {
+            if(dp[i-1]>=0)
+            {
+                    dp[i] = dp[i-1]+array[i];
+            }else
+            {
+                    dp[i] = array[i];
+            }
+            if(maxres<dp[i])//实际返回值
+            {
+                    maxres = dp[i];
+            }
+            printf("dp[%d]=%d,maxres=%d\n",i,dp[i],maxres);
+    }
+    return maxres;
+}
+
+
