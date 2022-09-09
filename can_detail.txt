@@ -15,78 +15,25 @@ can通信案例：
 https://blog.csdn.net/z609932088/article/details/84061467
 https://blog.csdn.net/weixin_30576859/article/details/95213928?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control
 
-
-bms应用层需要实现的功能：
-1.测量电压，温度，湿度
-2.对relay的控制
-3.充放电策略实现
-4.针对不同测量量的故障检测处理
-4.SOC/SOH的检测->针对不同电芯算法不同
-5.热管理
-
-驱动层实现的相对改动很小。
-
-SOC的检测：电流积分--最简单的的办法
-影响因素：温度，电芯一致性
-SOC=SOC0+/- K*容量变化量
-获得的不同的最大最小单体电压，消除一致性后获得整包电池的SOC
-显示的SOC不能跳变，给用户感觉不好->需要仲裁，显示哪个值到界面
-
 电芯用久了，内阻会变大
-SOH--->估测内阻
-
-SOP=（OCV-最小U）/内阻 *当前U
-瞬时内阻计算：电压的变化量/电流的变化量
-
-通信方式：
-CAN：抗干扰  BMU-->lecu
-				-->lecu
-				-->lecu
-菊花链：BMU-->LECU-->LECU--LECU
-成本低，每个lecu不需要cpu，抗干扰弱
-
-33771：采样芯片-->相比分立器件好处就是可以同一时刻采样多节电池电压，速度极快
-认识继电器控制的高边驱动与低边驱动方式的特点--看图
-AD1426  采集电压，14bit   cpu是12bit的
-sh36730x  采集电流电压温度
-ina219  采集电流
 
 ——————————————
-其实无所谓请求帧数据帧：
-我们发的帧都是ID+数据/cmd
-可以自己规定收到哪个id的哪个数据后执行对应的操作，都是自己定的。
-那些标准帧与扩展帧呢？
-扩展帧29bit里面包含了仲裁机制，其实对于我们来说标准帧就够用了，只是车上发来的数据有扩展帧。
+dbc文件制作与解析：
+BO_ 266 Rongliang: 8 Vector__XXX		---------id 266  帧名字--rongliang 8此帧数据长度  --里面包含3种数据--fullcap：bit32+4byte  descap:bit16+2byte  remcap:bit0+2byte
+SG_ FULL_CAP : 32|16@1+ (0.1,0) [0|0] "AH" Vector__XXX     SG_:signal名字FULL_CAP   (0.1,0)  分辨率+offset   [0|0]最小值~最大值   +、-：代表无符号 有符号数据
+SG_ DES_CAP : 16|16@1+ (0.1,0) [0|0] "AH" Vector__XXX
+SG_ REM_CAP : 0|16@1+ (0.1,0) [0|0] "AH" Vector__XXX			"AH"  代表单位  不写为空单位
 
-看门狗的喂狗最简单的方法就是在定时器中断中IWDG_ReloadCounter();reload计数值，让它无法计数到最大数值。
-就不会触发看门狗。
 
-一般看门狗的时钟源频率不会很高，分频下来--差不多x秒才会触发复位的。
+下载candb++软件，直接打不开
+2、复制文件“Cdbstat.dll”到系统目录下。
+3、系统目录一般为：C:\Windows\System32 64位系统为C:\Windows\SysWOW64
+重新打开成功
 
-短路的一瞬间会有100a通过板子，如果几百us内可以保护则板子不会坏。如果几秒内都不保护则板子会坏。
-stm32内部有几个bkp reg，专门用来存运行过程中的一些掉电不消失的数据，写几个reg与flash一样不会掉电消失。
+制作：制作各种帧-->制作各种数据（长度，intel还是motorola，单位，）-->将数据加到帧内部并且修改数据在帧内部的位置
 
-固件库里面有直接集成的对flash的op，LL库里面没有直接集成对flash的函数，得自己从hal库移植。
-怎么用time直接写delay函数？
-{
-	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);    72m/(8+1)=8m time时钟源分频下来是8m
-	fac_us = SystemCoreClock/8000000;// 8m/8m=1
-}
-void Delayms(u16 nms)//通过以下函数写个延时函数，不需要中断的。
-{
-    u32 temp;
-    SysTick->LOAD = (u32)nms*fac_ms;     reload值         
-    SysTick->VAL = 0x00;                  当前计数值     
-    SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk ;  控制和状态reg，使能systick，开跑
-    do
-    {
-        temp=SysTick->CTRL;
-    }while((temp&0x01)&&!(temp&(1<<16)));   当CTRL第1bit为0 || 16bit为1，跑完load值之后ctrl会置位
-    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;  失能systick
-    SysTick->VAL = 0x00;                        
-}
-NVIC_InitStructure.NVIC_IRQChannel=USB_LP_CAN1_RX0_IRQn;//则中断处理函数就是USB_LP_CAN1_RX0_IRQHandler()
-NVIC_IRQChannel就对应中断
-
-vscode添加头文件：
-Ctrl+Shift+P 打开命令 输入configuration 点第一个才有 c_cpp_properties.json
+打开cantest-->dbc-->加载协议-->选择dbc文件，即可
+数据的interl格式：高字节在后低字节在前
+数据的motorola格式：高字节在前低字节在后
+-----------------
+	
