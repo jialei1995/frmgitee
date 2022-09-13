@@ -3708,8 +3708,6 @@ int hammingDistance(int x, int y) {
         }
         return count;
     }
-负数右移的时候左边补的是1；-4 / 2 = -2
-正数右移左边补的0
 
 老鼠试毒药1000瓶，给瓶编号1100 1101 1110 ....
 微软飞机油箱
@@ -3805,7 +3803,7 @@ gcc -L：库路径     -I：头文件路径 -l：库名
 1. char a[10]  = {“hello”};
 a++;  里就会报错,因为a是char[]类型的，它表示的是这个数组的首地址和第一个元素的地址，不能直接去操作a++去移动地址，
 如果想移动可以char *p = a；然后再操作p，p++这样是完全正确的。
-因为a是数组名,不能进行赋值操作,所以也不能++操作,如果对数组名进行了赋值操作就会报
+因为a是数组名,不能进行赋值操作,所以也不能++操作,如果对数组名进行了赋值操作就会报 lvalue required as increment operand
 while(*p != '\0')  以后注意尽量不要直接判断p是否为NULL结束，应该*p取值取判断p指向的内存的数值取判断字符串是否到底了
 
 数据结构：
@@ -4301,6 +4299,7 @@ shell脚本如果./test.sh不给你说哪一行有问题。
 	
 	read -s var  : 不显示用户输入内容，密码就是这么做的
 	read -t 5  A ：5S内不输入则自动返回，给A赋值为空
+	read var1 var2 < 1.txt  从文件中获取数据给var1 var2赋值 
 	
 ### shell函数传参
 
@@ -4316,32 +4315,12 @@ res=$(fun)，返回值是多个字符串中间以空格分开
 
 read -p 'xxxxx'  varname
 
-shell
 shell脚本第一行
 set -x :就说后面的程序执行的时候类似外界sh -x 执行一样
 set +x:关闭这种提示
 
 set -e 之后的命令出错立即退出
 set +e 之后的命令出错不退出
-
-$(( xxx ))  双层括号内可以进行数学计算
-cat > $filename << EOF
-XXX
-XXX
-EOF  可以将中间的内容放到文件当中
-
-操作文件中的行
-while read line
-do 
-	op $line
-done < file.txt
-
-while read ip passwd 
-do
-	$ip=
-	$passwd=
-done<1.txt	
-
 
 变量分类：
 		变量：
@@ -4363,6 +4342,56 @@ done<1.txt
 				echo "\$0=$0"  前面的$0是字符串，后面的是变量
 				$$:当前进程的进程号 
 				$!:当前终端后台运行的最后一个进程号
+数组：
+	declare -a 定义普通数组；查看普通数组
+	declare -A 定义关联数组；查看关联数组
+	普通数组：只能使用整数作为数组索引
+	关联数组：可以使用字符串作为数组索引
+	普通数组：
+		赋值：
+			array=(var1 var2 var3 ..)  引用：${array[1]} 不加{}不行
+			array[x]=var3         单个赋值
+			array=(`cmd`)		  将cmd结果赋值给array  空格 换行符都会将元素分开
+			array4=(1 2 3 4 "hello world" [10]=linux) 双引号可以将长字符串接到一起，直接[]可以给固定下标赋值
+		读取：
+			array[*]、array[@]		获取数组里所有元素
+			#array[*]		获取数组里元素个数
+			!array[@]		获取数组所有的元素索引下标--有的数组中间部分没赋值
+			${names[@]:0:10}	获取所有元素后，切片显示0下标开始共10个
+			
+			对于数组：array=([0]="var1" [1]="var2" [2]="var3" [10]="sad")
+			root@tengxuncloud:~/jl# echo ${!array[@]}   所有下标不是连续的
+			0 1 2 10
+			root@tengxuncloud:~/jl# echo ${array[*]}	查看所有有效元素时又是连续显示
+			var1 var2 var3 sad
+			root@tengxuncloud:~/jl# echo ${array[*]:0:4}切片显示4个却又将所有元素都显示出来了
+			var1 var2 var3 sad
+			
+	关联数组：				
+		赋值： 
+			先得declare -A asso_array 声明是关联数据，不然会被当成普通数组
+			asso_array[linux]=one
+			asso_array=([name1]=harry [namen]="hello world")  多个同时赋值
+		读取方法与普通数组一样。下标是无序的
+		let asso_array[java]++    相当于array[i]++，必须有let
+			
+	变量内容的删除替换：*:所有  .:分隔符号 .*:去的是.与后面的*内容  *.:去的是左边的内容与.
+		%:从右往左去掉一个/key/
+		%%:从右往左最大去掉/key/
+		#:从左往右去掉一个/key/
+		##:从左往右最大去掉/key/
+		root@tengxuncloud:~/jl# url=www.taobao.com.test
+		root@tengxuncloud:~/jl# echo ${#url}
+		19                      
+		root@tengxuncloud:~/jl# echo ${url#*.}
+		taobao.com.test         
+		root@tengxuncloud:~/jl# echo ${url##*.}
+		test                    
+		root@tengxuncloud:~/jl# echo ${url%.*}
+		www.taobao.com          
+		root@tengxuncloud:~/jl# echo ${url%%.*}
+		www
+
 四则运算：只支持整数运算
 	$(())  符号		echo $((1+1))
 	$[]   符号		echo $[1+1]
@@ -4384,7 +4413,36 @@ done<1.txt
 	linux怎么判断两个文件一样：看inode号->ls -li file--->[ a -ef b ]
 	判断文件是否为空[ ! -s file ]
 	不会了man test关键字查 判断的内容
-	
+case语句：
+	case var in 
+	pattern 1) 或者 
+	hello|world|h)
+		cmd1
+		;;
+	pattern 2)
+		cmd2
+		;;
+	*)----default语句
+		cmd*
+		;;
+	easc	表示case结束
+	案例：给脚本传不同值做不同事情
+	#!/bin/bash
+	case $1 in   判断$1传的入参是什么
+			start|S)  入参是start或S，则进入此case
+			service apache start &>/dev/null &echo "start ok"
+			;;
+			stop|P)
+			service apache stop  &>/dev/null &echo "stop ok"
+			;;
+			reload|R)
+			service apache reload &>/dev/null &echo "reload ok"
+			;;
+			*)
+			echo "输入参数"
+			;;
+	esac
+
 循环：
 	for((i=1;i<=5;i++));do echo $i;done  双括号写法
 	for i in{1..5}    打印5次你输入的第一个参数
@@ -4416,8 +4474,118 @@ if 条件：a else b fi == 条件 && a || b
 1、如果p是q的充分条件，那么q一定是p的必要条件。
 2、如果p是q的必要条件，q一定是p的充分条件。
 
+问题：
+批量在多个服务器创建同一个用户： ip.txt里面放的每台主机ip 密码 
+for i in `wc -l ip.txt |cut -d' ' -f1`   根据ip.txt文件行数确定循环次数
+do
+done
 
-_______________________________________________________________
+---
+while read ip passwd
+do
+	/usr/bin/expect  <<-END &>/dev/null  #中间交互打印都给到null不显示
+	spawn ssh root@$ip
+	expect空格{
+	"yes/no"空格{send "yes\r";exp_continue} #登录时看到yes no选项，输入yes回车
+	"passwd:"空格{send "$passwd\r"}			#见到passwd后输入密码回车
+	}
+	expect "#" {send "useradd yy1;exit\r"} #登录成功执行命令
+	expect eof   #退出
+	END 	#END中间用的expect语言，见到END表示退出这种语法，回到shell脚本中
+done < ip.txt  将文件中的ip 密码分别赋值给循环变量ip passwd，有多少行就赋值多少次
+
+
+root@tengxuncloud:~/jl# cat except.sh
+#!/bin/bash
+set -x
+while read ip passwd
+do
+        /usr/bin/expect  <<-END &>/dev/null
+        spawn ssh root@$ip
+        expect {
+        "yes/no" {send "yes\r";exp_continue}
+        "password:" {send "$passwd\r"}
+        }
+        expect "#" {send "useradd yy1;exit\r"}
+        expect eof
+        END
+done < ip.txt
+root@tengxuncloud:~/jl# cat ip.txt
+127.0.0.1 jl02011318
+root@tengxuncloud:~/jl#
+案列1：
+将当前机器普通账户的公钥拷贝给别的root主机，则以后此普通用户可以直接免密登录这个root主机
+指令：ssh-copy-id root@x.x.x.x  拷贝需要密码，拷贝后 root主机的.ssh目录会多一个authorized_keys
+无交互生成公钥方法:ssh-keygen -P '' -f id_rsa  交互的密码都是空，-f：密钥文件名
+案例2：
+写一个脚本，将跳板机上yunwei用户的公钥推给所有它可以ping通的机器上,主机与密码文件提供 ip:passwd
+---fail code
+#!/bin/bash
+#判断yunwei账号是否存在
+{
+id yunwei
+[ $? -ne 0 ] && useradd -m yunwei && echo 123|passwd --stdin yunwei  #给yunwei设置密码
+} &> /dev/null   #多行命令都需要重定向结果到/dev/null时可以直接用{}括起来执行
+
+#expect是否存在
+rpm -q expect 
+[ $? -ne 0 ] && yum install expect && "expect 安装ok"
+
+#判断yunwei的密钥对是否存在，不存在就创建
+su - yunwei  #切换到运维账户再去创建密钥对 ------程序的执行过程中不能跨用户 ，这种代码有问题
+[ ! -f $/home/yunwei/.ssh/id_rsa.pub ] && ssh-keygen -P '' -f id_rsa
+---success code--yunwei只用创建一次，直接创建好了之后用yunwei账户去写代码
+#!/bin/bash
+
+#判断yunwei的密钥对是否存在，不存在就创建
+[ ! -f $/home/yunwei/.ssh/id_rsa.pub ] && ssh-keygen -P '' -f .ssh/id_rsa
+#循环检查网络能否ping通 并 直接公钥推送 ---能用1个循环解决的事情就不要用2个循环
+ip_txt=/~/ip.txt
+while read ip passwd  因为ip.txt中的内容是以:分割的，所以不用while做，还是用for
+do 
+done<$ip_txt   while的输入用于读的文件中数据以空格分割的文件
+
+---
+#!/bin/bash
+#生成公钥 -f 加的绝对路径
+[ ! -f $/home/yunwei/.ssh/id_rsa.pub ] && ssh-keygen -P '' -f /home/yunwei/.ssh/id_rsa
+
+for i in `cat ip.txt`    i就是遍历的每行数据
+do
+ ip=`echo $i|cut -d: -f1`
+ pass=`echo $i|cut -d: -f2`
+ ping -c1 $ip &>/dev/null
+ if[ $? -eq 0 ];then		ping成功，加公钥到此ip
+	/usr/bin/expect <<-END &>/dev/null
+	spawn ssh-copy-id root@$ip
+	expect{
+		"(yes/no)"  {send "yes\n";exp_continue}
+		"password:"  {send "$pass\n"}
+	}
+	expect eof
+	END
+  else		ping失败的ip加到某个txt文件中
+	echo $ip>>ip_down.txt
+  fi
+done<ip.txt
+
+测试是否拷贝成功
+ssh root@$ip hostname  不想跳转到别的机器，只想ssh后执行cmd后再回来 
+echo $? ==0 说明密钥拷贝成功了，!=0说明拷贝失败
+------------
+$(( xxx ))  双层括号内可以进行数学计算
+cat > $filename << EOF
+XXX
+XXX
+EOF  可以将中间的内容放到文件当中
+
+操作文件中的行
+while read line
+do 
+	op $line
+done < file.txt
+
+_________________________________________________________
 python 求解一元二次方程
 解方程组：y = x + 1,y = -x + 1
 
