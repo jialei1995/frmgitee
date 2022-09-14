@@ -136,6 +136,20 @@ ofd.Multiselect=true;  设置可以多选，一次性选择多个文件
 ofd.ShowDialog();  显示窗口
 ofd.Filter=""
 string[] path = ofd.Filenames  获取最后选择的全部文件的全路径
+ofd.FileName			带路径的文件名
+SafeFileName			纯粹的文件名
+FileInfo fi = new  FileInfo(openFileDialog1.FileName);获取文件的多种信息
+int down_file_size = (int)fi.Length;//文件信息中包含文件大小 精确到字节
+
+
+//只读方式打开文件 获得文件句柄
+Update.down_fs = new FileStream(UpdataFile.FileName, FileMode.Open, FileAccess.Read);
+//根据文件句柄获得 二进制文件句柄
+Update.down_rf = new BinaryReader(Update.down_fs);
+
+buff = Update.down_rf.ReadBytes(len);可以利用句柄从文件中读对应的长度的数据 出来
+
+
 
 Path.GetFileName(path[i]);根据全路径获取文件名
 
@@ -1151,3 +1165,14 @@ ArrayList 转换成byte数组
 	byte[] array = (byte[])al.ToArray(typeof(byte));
 2.
 	Uart.buffer.CopyTo(0, ReDataBuf, 0, Uart.buffer.Count);
+
+-----------------------------
+可以在视图-->tab键顺序修改每个控件的索引-->然后在事件处理函数中可以获取对应的索引将控件分开处理
+int n = (sender as Button).TabIndex;
+ShowWarning("当前按钮索引是"+n);  
+
+
+winform程序中console.write会打印到哪里去？？待测试
+
+DevExpress 控件开发
+
