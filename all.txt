@@ -4365,7 +4365,7 @@ set +e 之后的命令出错不退出
 			0 1 2 10
 			root@tengxuncloud:~/jl# echo ${array[*]}	查看所有有效元素时又是连续显示
 			var1 var2 var3 sad
-			root@tengxuncloud:~/jl# echo ${array[*]:0:4}切片显示4个却又将所有元素都显示出来了
+			root@tengxuncloud:~/jl# echo ${array[*]:0:4} 切片显示4个却又将所有元素都显示出来了
 			var1 var2 var3 sad
 			
 	关联数组：				
@@ -4443,10 +4443,39 @@ case语句：
 			echo "输入参数"
 			;;
 	esac
+	案例2：
+	----echo的另一种 写法
+	root@tengxuncloud:~/jl# cat---本身就是你输入什么 它查看什么
+	hello
+	hello
+	world
+	world
+	^C
+	root@tengxuncloud:~/jl# cat <<END  看到END才结束，结束的时候把输入的所有内容打印出来
+	> hello
+	> world
+	> END
+	hello
+	world
+	
+	root@tengxuncloud:~/jl# cat exp.sh  脚本中向向屏幕echo大量内容  不需要一个一个echo
+	#!/bin/bash
+
+	cat <<end
+	******chose*****
+	h help
+	m map
+	s select
+	********
+	end
+	
+	su jl <<END  跑到jl用户的家目录创建file文件，然后返回到当前用户
+	touch file
+	END
 
 循环：
 	for((i=1;i<=5;i++));do echo $i;done  双括号写法
-	for i in{1..5}    打印5次你输入的第一个参数
+	for i in {1..5}    打印5次你输入的第一个参数
 	do 
 		echo $1--------$i打印1到5，i每次都在变化
 	done     
@@ -4586,7 +4615,26 @@ do
 	op $line
 done < file.txt
 
-_________________________________________________________
+函数：
+程序入口在哪里？
+1. 没有函数入口，直接在shell中先source一下脚本名，然后直接在命令行 调用函数就可以 只对当前终端有效
+若要return   return的数字必须是0-255之间，不能随便return
+怎么返回字符串   直接echo $mystr即可，外面用变量接收就可以收到str
+
+echo $? 就可以读到自己定义的函数的返回值
+	调用：
+		当前终端命令行调用  source x.sh 
+		全局生效---将函数写到/etc/bashrc  --所有用户生效  /~/.bashrc  当前用户生效
+		脚本中调用---在别的脚本中调用写好的函数
+		本文件中函数调用，直接在本文件中 函数以外 的地方直接调用就能执行，不需要main入口
+
+随机数：
+$RANDOM--0~65535		$(($RANDOM%n))  ---0~n-1   $(($RANDOM%n+1))---1~n 
+电话号码切片显示：139****${var:7:4}    ${var:7:4}   从7开始数4个字母
+查看文件某行数据：head -n file |tail -1  选取文件前n行再取最后一行
+获取cmd结果：str=`cmd`
+
+--------------------------------------
 python 求解一元二次方程
 解方程组：y = x + 1,y = -x + 1
 

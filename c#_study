@@ -1176,3 +1176,216 @@ winform程序中console.write会打印到哪里去？？待测试
 
 DevExpress 控件开发
 
+
+
+can升级上位机code分析：
+显示界面拖入：openFileDialog类型的控件命名-UpdataFile，可以作为全局var调用
+
+升级前打开加载bin文件：
+private void btOpenFile_Click(object sender, EventArgs e)
+{
+	if (m_bOpen == 0)
+	{
+		MessageBox.Show("can未连接");
+		return;
+	}
+	//是个控件可以直接托进来的句柄
+	UpdataFile.Filter = "bin files(*.bin)|*.bin|All files(*.*)|*.*";
+	if (UpdataFile.ShowDialog() == DialogResult.OK)
+	{
+		try
+		{
+			tbFilePath.Text = UpdataFile.FileName;//把打开的文件的路径放到textbox显示
+		}
+		catch (ArgumentException ex)
+		{
+			MessageBox.Show(ex.ToString());
+			tbFilePath.Text = "";
+		}
+	}
+}
+
+
+点击更新按钮：
+private void btUpdata_Click(object sender, EventArgs e)
+{
+	if (tbFilePath.Text != "")//若刚才打开文件失败 则提示打开文件
+	{
+		try
+		{     
+			Update.UpdateFileName = UpdataFile.SafeFileName;//获取要升级的文件名，没啥用
+			Update.down_fi = new FileInfo(UpdataFile.FileName);//获取当前文件的信息-是个结构体
+
+			Update.down_file_path = UpdataFile.FileName;//文件的路径加名字
+			Update.down_file_size = (int)Update.down_fi.Length;//文件信息中包含文件大小
+			//只读方式打开文件 获得句柄
+			Update.down_fs = new FileStream(UpdataFile.FileName, FileMode.Open, FileAccess.Read);
+			//根据文件句柄获得 二进制文件句柄-用它可以直接读文件 会自动偏移指针
+			Update.down_rf = new BinaryReader(Update.down_fs);
+
+			baUpdataProgress.Maximum = (int)(Update.down_file_size / 1024);//设置进度条最大尺寸
+			baUpdataProgress.Minimum = 0;
+			Update.down_flag = true;//为真才能刷程序
+		}
+		catch (ArgumentException ex)
+		{
+			MessageBox.Show(ex.ToString());
+		}
+	}
+	else
+	{
+		MessageBox.Show("先选择要更新的文件");
+	}
+ }
+ 
+ 
+ 
+升级的线程：
+unsafe private void Down_Load_Bin_File()
+{
+	int send_bytes_ones = 0;
+	int timer = 0;
+	//若can没打开或者未点击升级按钮，则此线程sleep，不占用资源
+	if ((m_bOpen == 1) && (Update.down_flag == true))
+	{
+		byte[] buff = new byte[8];
+		UInt32 res = new UInt32();
+		res = VCI_GetReceiveNum(m_devtype, m_devind, m_canind);//看底层读了多少can数据
+		if (res >= 0)
+		{
+			UInt32 con_maxlen = 50;
+			IntPtr pt = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(VCI_CAN_OBJ)) * (Int32)con_maxlen);
+
+			res = VCI_Receive(m_devtype, m_devind, m_canind, pt, con_maxlen, 100);
+			for (UInt32 i = 0; i < res; i++)
+			{
+				VCI_CAN_OBJ obj = (VCI_CAN_OBJ)Marshal.PtrToStructure((IntPtr)((UInt32)pt + i * Marshal.SizeOf(typeof(VCI_CAN_OBJ))), typeof(VCI_CAN_OBJ));
+
+				if (obj.ID == 0x120)
+				{
+					if (obj.Data[0] == Update.down_sum)//看下位机发来的上一帧数据的校验是否正确
+					{
+						Update.down_reply_flag = 1;//下位机回复 flag置1
+						break;
+					}
+				}
+			}
+		}
+
+		//在每个步骤都是上位机先发送数据  更新sum校验
+		//从机返回收到数据的sum校验 pc进入下个步骤发数据
+		
+		//步骤1：发下位机ID
+		if (Update.down_step == 0)
+		{
+			if (Update.down_reply_flag == 0)
+			{
+				Update.down_sum = down_cmd();//发下位机ID
+			}
+			else
+			{
+				Update.down_reply_flag = 0;
+				Update.down_step = 1;	//收到下位机回复 进入步骤2
+				FrmUpdate_SetBt(false);//更新按钮不可点击
+			}
+		}
+		
+		//步骤2：发bin大小 + ID
+		if (Update.down_step == 1)
+		{
+
+			if (Update.down_reply_flag == 0)
+			{
+
+				timer++;
+				if ((timer % 20 == 1))//若收不到 回复 延时20次再发bin大小
+				{
+					Update.down_sum = send_size();
+				}
+			}
+			else 
+			{
+				timer = 0;
+				Update.down_step = 2;//收到回复 进入步骤3  准备步骤3要发的数据  bin的第一包 
+				Update.down_reply_flag = 0;
+				buff = Update.down_rf.ReadBytes(8);
+				Update.down_send_bytes += 8;//更新已发送的can数据 数量
+				send_bytes_ones = 8;
+			}
+		}
+		//步骤3：发bin 数据 一直发完
+		if (Update.down_step == 2)
+		{
+
+			if (Update.down_reply_flag == 0)
+			{
+
+				timer++;
+				if ((timer % 20 == 1))//延时一下再去发bin数据
+					Update.down_sum = send_file(buff, send_bytes_ones);
+			}
+			else
+			{
+				timer = 0;
+				//若待发的bin超过8字节
+				if ((Update.down_file_size - Update.down_send_bytes) >= 8)
+				{
+					//再读8字节
+					buff = Update.down_rf.ReadBytes(8);
+					//已发送字节+8
+					Update.down_send_bytes += 8;
+					send_bytes_ones = 8;
+
+				}
+				//刚好发完了 已发送字节=总bin大小 进入下一步升级step
+				else if (Update.down_file_size == Update.down_send_bytes)
+				{
+					Update.down_step = 3;
+					Update.down_reply_flag = 0;
+
+				}
+				else//还没发完，最后一包数量<8字节
+				{
+					//缺几个字节没发就读几个字节
+					buff = Update.down_rf.ReadBytes((Update.down_file_size - Update.down_send_bytes));
+					send_bytes_ones = Update.down_file_size - Update.down_send_bytes;
+					Update.down_send_bytes = Update.down_file_size;
+				}
+				if (Update.down_step != 3)//没到下一阶段，则发送bin下去
+				{
+					Update.down_sum = send_file(buff, send_bytes_ones);
+				}
+				//更新进度
+				FrmUpdate_SetProgress((int)(Update.down_file_size / 1024), (int)(Update.down_send_bytes / 1024), Update.down_send_bytes.ToString() + '/' + Update.down_file_size.ToString());
+			}
+
+
+		}
+		if (Update.down_step == 3)//到了最后阶段
+		{
+
+			if (Update.down_reply_flag == 0)
+			{
+				Update.down_sum = send_over();//发结束帧
+				Update.down_reply_flag = 0;
+			}
+			else
+			{
+				Update.down_flag = false;
+				Update.down_reply_flag = 0;
+				Update.down_send_bytes = 0;
+				Update.down_step = 0;
+				Update.down_rf.Close();
+				MessageBox.Show("下载完成");
+				FrmUpdate_SetBt(true);//升级按钮可点击
+				//Frm_SetT1(true);
+				//Frm_SetT2(true);
+			}
+		}
+
+	}
+	else//不需要升级则此线程休眠 不占内存
+	{
+		Thread.Sleep(3);
+	}
+}
