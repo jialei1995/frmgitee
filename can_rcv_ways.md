@@ -65,7 +65,7 @@ private Queue<GRecvObj> ReadDataQueue = new Queue<GRecvObj>();  //初始化直�
 unsafe private bool ReceiveCanData()
 {
     GRecvObj item = null;
-    while(ReadDataQueue.Count > 0)
+    while(ReadDataQueue.Count > 0)//队列中有数据 就循环处理数据
     {
         item = ReadDataQueue.Dequeue();//处理队头数据，数据是can的一帧数据  ID+8 byte数据
         if (item == null)

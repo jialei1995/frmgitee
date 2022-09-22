@@ -2204,8 +2204,6 @@ linux内核移植：
 			cat /proc/devices   查看可用的设备号（主设备）  
 		
 		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
-		     input/output 设备系统
-
 		静态申请设备号：
 			int register_chrdev_region(dev_t from, unsigned count, const char *name
 				成功0   失败负值			设备号        几个         名字“name”
@@ -3104,6 +3102,62 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	lb.pack()
 	# 防止程序退出
 	root.mainloop()		
+	
+	
+python 格式化输出：
+str(num) + str1 必须将前面的num转化成字符串才可以拼接
+print(num,'xxxxx',num);数字与字符串连起来打印
+print("%s %s %s"%(n1,n2,n3))
+下面的这种如果变量直接往字符串中加变量，需要在字符串前加f--->推荐使用的方法
+teststr = f'{var}ssssssss'
+>>> f"{2*100}"		  --->双引号中间会进行计算后保留结果
+'200'
+>>> f"{'abc'.upper()}"--->双引号中间会进行计算后保留结果
+'ABC'
+
+
+print("{0} de {1} {2}".format(n1,n2,n3)) 
+str="{0},{1},{0}".format("nihao","world")  打印你好，世界，你好
+str="{name},{age},{country}".format(name="zhangsan",age=17,country="world")  给格式化中的变量赋值打印
+if x == '+': 
+    c = a+b
+    print('{}{}{}={}'.format(a,x,b,c)) {}中不用写数字也可以，变量可以是字符串
+>>> info={"name":"jialei","age":17}
+>>> print("name={name},age={age}".format(**info))  //通过字典设置参数 **展开集合 
+name=jialei,age=17
+	str="name={0[name]},age={0[age]}".format(info) //通过format中数据 （序号+下标）提取数据
+
+list作为入参怎么提取其中数据：
+>>> list=["jialei","www.xxx.com",2022]		给list作为入参	
+		表示format后的第0个参数的第1个数据		     表示format后的第1个参数
+>>> str="web:{0[1]},name:{0[0]},time:{0[2]},其他入参:{1}".format(list,"haha")
+'web:www.xxx.com,name:jialei,time:2022,其他入参:haha'
+"cir={:.2f}".format(3.141592)   {：表示后面要对数据做处理 .2表示小数点后保留两位 f表示浮点数}
+									若没有f，则会总共显示n位有效数字，不仅仅是.后面的
+>>> "cir={:.4f},other={:.3f}".format(23.141592,5.6789)    多个format入参，一个一个处理
+'cir=23.1416,other=5.679'
+
+>>> print("www","haha","com",sep='.')  默认是空格分割，可以通过给sep赋值指定分割符号
+	end=''    默认赋值换行  给end赋值指定结尾字符
+www.haha.com
+
+大段数据打印：
+if __name__ == "__main__":
+    teacher="mr zhang"
+    days=3
+    message=(
+            f"{'请假条':_^15}\n"  第1行数据 将''中的数据居中 两边用_填充
+            f"{teacher}您好:\n"	  第2行数据 将变量直接打印
+            f"i want qingjia for{days}tian ,ok?\n"
+            )
+    print(message)
+	______请假条______
+	mr zhang您好:
+	i want qingjia for3tian ,ok?
+----从标准输入读入数据格式
+pas=input("提示")  给pas赋值
+
+
 ********************************************python***str**************************************8			
 		'''
 		print(myStr.capitalize())   # 不能改变原字符串，第一个字母大写输出
@@ -3174,7 +3228,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 				mylt.pop()          #弹出最后一个元素
 				mylt += src         #将src中元素一个一个加进去[1, 2, 3, 4, 'helo', 'wrold']
 				print(mylt)         #****这些操作都会改变原来的列表
----------------------------dict
+---------------------------dict 字典
 x=dict()   key本身可以是任意类型
 x={'key1':1,'key2':2,...}
 访问：x['key']
@@ -3372,12 +3426,12 @@ file_object.close( )
 
 2.读文件
 读文本文件
-input = open('data', 'r')
+jubing = open('data', 'r')
 #第二个参数默认为r
-input = open('data')
+jubing = open('data')
 
 读二进制文件
-input = open('data', 'rb')
+jubing = open('data', 'rb')
 读取所有内容，返回字符串---注意read之后再读就没了，因为已经读完了，读指针在最后
 file_object.read()
 除非read的时候指定长度
@@ -4683,16 +4737,7 @@ ctrl z 停止运行，是让进程睡眠。不会杀死，得自己kill
 ls & ：把进程放后台运行 运行结束ls就结束了
 rsync 备份日志的服务
 
-python 的print格式化：
-str(num) + str1 必须将前面的num转化成字符串才可以拼接
-print(num,'xxxxx',num);数字与字符串连起来打印
-print("%s %s %s"%(n1,n2,n3))
-下面的这种如果变量直接往字符串中加变量，需要在字符串前加f
-teststr = f'{var}ssssssss'
-print("{0} de {1} {2}".format(n1,n2,n3)) 
-if x == '+': 
-    c = a+b
-    print('{}{}{}={}'.format(a,x,b,c)) {}中不用写数字也可以，变量可以是字符串
+
 ——————————————————————————————————————-runhe-------------------------------------
 ### grub
 
