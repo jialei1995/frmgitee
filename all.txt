@@ -3154,9 +3154,24 @@ if __name__ == "__main__":
 	______请假条______
 	mr zhang您好:
 	i want qingjia for3tian ,ok?
-----从标准输入读入数据格式
+----python 从标准输入读入数据格式
 pas=input("提示")  给pas赋值
+a=int(input("提示")) 直接将输入的数据转化成int类型赋值给a
 
+-------------- 数据赋值 深浅拷贝
+>>> num1=[1,2,3]  num1地址指向列表
+>>> num2=num1	  num2也指向此列表  id(num1)==id(num2)
+>>> num2.append(4)	对num1的操作 就是对num2的操作  都是修改地址上的数据
+>>> num1			
+[1, 2, 3, 4]
+>>> num2
+[1, 2, 3, 4]
+深拷贝后则双方互不影响：
+import copy模块
+b = copy.deepcopy(a)   id(num1)!=id(num2)
+ 
+xx  is yy:判断id(xx) == id(yy)??  其实就是是不是一个对象的，一个id表示一个对象
+xx == yy :判断xx的值是不是等于yy的值呢？？？
 
 ********************************************python***str**************************************8			
 		'''
@@ -3228,6 +3243,10 @@ pas=input("提示")  给pas赋值
 				mylt.pop()          #弹出最后一个元素
 				mylt += src         #将src中元素一个一个加进去[1, 2, 3, 4, 'helo', 'wrold']
 				print(mylt)         #****这些操作都会改变原来的列表
+------------------------tuple 
+不能增加 内部元素  但是两个元组之间可以链接  tup=tup1+tup2
+不能删除 内部元素  可以删除tup这个对象，删除后无法访问了
+不能修改 元组中的数据
 ---------------------------dict 字典
 x=dict()   key本身可以是任意类型
 x={'key1':1,'key2':2,...}
@@ -3295,9 +3314,8 @@ bt = tk.Button(text="click me",command=myclick)		设置1个按钮，按下按钮
 	soup.a.name #a标签的名字  soup.title.name
 	soup.a.pqrent.name	#a父亲的名字
 	soup.a.attrs  #标签a的属性信息，属性包含[class/id/href：链接]
-
 	提取网站链接方法：
-		list_1 = re.findall('<a href=".*?" class=ulink',html.text)
+	list_1 = re.findall('<a href=".*?" class=ulink',html.text)
 							找这串字符串中的.*?代表的那部分，从html.text文档中 结果会以列表形式赋值给list_1
 import urllib.request
 import re
@@ -3310,23 +3328,53 @@ header = {
 #    "AppleWebKit/537.36"
 #    "Chrome/96.0.4664.110 Safari/537.36"
 }
-
 req = urllib.request.Request(url=url,headers=header)
-
 res = urllib.request.urlopen(req)
-
 html = res.read().decode('utf-8')
-
 pattern = "https://movie.douban.com/subject/[0-9]+/"
 urls=re.findall(pattern,html)
-
 urls=set(urls)
-
 print(len(urls))
-
 for u in urls:
     print(u)
 	
+urllib使用：
+import urllib.request
+
+res.status   请求网页的返回状态 200 正常 其他异常
+res.getheaders()	请求头
+
+#获取get请求
+res=urllib.request.urlopen("http://www.baidu.com/")
+#print(res.read())  #直接显示网页内容，无解码 可能会乱码
+print(res.read().decode('utf-8'))  #防止乱码--获取的内容直接用html显示就是百度首页
+
+#http://httpbin.org/  测试网页交互 
+
+
+#测试post请求 可以在网页直接点击按钮测试 post发送与接受
+post请求一般用于用户登录这类的--入参加用户名密码 cookie等信息，模拟真实登录
+1.可以直接通过linux命令:curl -X POST "http://httpbin.org/post" -H "accept: application/json"测试
+2.可以测试python：
+import urllib.parse
+data=bytes(urllib.parse.urlencode({"hello":"world"}),encoding='utf-8')
+res=urllib.request.urlopen("http://httpbin.org/post",data=data)  #测试post时得传参数
+print(res.read().decode('utf-8'))
+ctrl+/：pycharm批量注释
+
+
+构建请求对象（模拟网页去访问网站--因为有的网站不允许爬虫访问）
+import urllib.parse
+headers={
+    "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+}
+data=bytes(urllib.parse.urlencode({"hello":"world"}),encoding='utf-8')
+# 构建一个请求对象--（谷歌浏览器？某个客户端？等等）
+req=urllib.request.Request("http://httpbin.org/post",data=data,headers=headers,method='POST')
+res = urllib.request.urlopen(req)
+print(res.read())
+
+--------------------------------------	
 import shutil   移动文件
 shutils.copy('filename','./xxdir')  把文间移入dir-返回拷贝后的文件的相对路径
 shutils.copy('filename','./xxdir/newname')  把文间移入dir并重新命名为newname
@@ -3357,9 +3405,8 @@ python中对文件、文件夹（文件操作函数）的操作需要涉及到os
 
 文件操作：
 fp = open(“test.txt”,'w') 直接打开一个文件，如果文件不存在则创建文件
-
 关于open 模式：
-w 以写方式打开，会覆盖之前的内容
+w 以写方式打开，会覆盖之前的内容 文件不存在就新建
 a 以追加模式打开 (从 EOF 开始, 必要时创建新文件)
 r+ 以读写模式打开
 w+ 以读写模式打开 (参见 w )
@@ -3596,9 +3643,7 @@ class Cat:
 		t1.start()
 		t1.join()--阻塞等待t1死后为他收尸
 
-		深浅拷贝：b = copy.deepcopy(a)
-		xx  is yy:判断id(xx) == id(yy)??  其实就是是不是一个对象的，一个id表示一个对象
-		xx == yy :判断xx的值是不是等于yy的值呢？？？
+		
 	
 python 匿名函数
 	定义结构：lambda 形参: 表达式
@@ -5165,6 +5210,52 @@ try：这是 try 语句中的唯一必需子句。该块中的代码是 Python �
 except：如果 Python 在运行 try 块时遇到异常，它将跳到处理该异常的 except 块。我们实际上可以指定要在 except 块中处理哪个错误ValueError KeyboardInterrupt 
 else：如果 Python 在运行 try 块时没有遇到异常，它将在运行 try 块后运行该块中的代码。
 finally：在 Python 离开此 try 语句之前，在任何情形下它都将运行此 finally 块中的代码，即使要结束程序，例如：如果 Python 在运行 except 或 else 块中的代码时遇到错误，在停止程序之前，依然会执行此finally 块。
+
+if __name__ == "__main__":   此程序想一直运行不可能，随便一个异常程序就会退出
+    while(True):
+        chushu=float(input("chushu"))
+        beichushu=float(input("beichushu"))
+        res=float(chushu/beichushu)
+        print(res)
+
+if __name__ == "__main__":  
+    while(True):
+        chushu=float(input("chushu"))
+        beichushu=float(input("beichushu"))
+        try:
+            res=float(chushu/beichushu)  这行异常我们可以处理，input的异常还是会让程序退出
+            print(res)
+        except:
+            print("重新输入")
+
+if __name__ == "__main__":  此程序可以一直运行，因为所有的异常处理，都在预料之中
+							有专门的异常处理
+     while(True):
+         try:
+             chushu=float(input("chushu"))
+             beichushu=float(input("beichushu"))
+             res=float(chushu/beichushu)
+             print(res)
+         except Exception as e:   #程序不退出并提示为啥输错了
+             print(e," 重新输入")
+			 
+自己封装错误的类型AgeError
+class AgeError(Exception):
+    def __init__(self,errInfo):
+        self.errInfo=errInfo
+
+    def __str__(self):  发生此错误打印的字符串，入参errInfo+描述
+        return str(self.errInfo)+"age range err,should in 1-25    5"
+
+try:
+    age=int(input("pls input age"))
+    if(age<1 or age>255):
+        raise AgeError(age)  //发生此错误的时候传给AgeError的入参
+		else:
+        print("正常age:",age)
+		
+except AgeError as e:
+        print(str(e))
 ————————————————
 版权声明：本文为CSDN博主「ayuelei」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
 原文链接：https://blog.csdn.net/reallyr/article/details/87364399
