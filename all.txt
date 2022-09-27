@@ -4275,6 +4275,20 @@ sed：行处理工具
 		sed -n 's/\(192.\)\(168.\)1.1/\1\2254/gp' 1.txt
 		（192.）==\1   （168.）==\2  
 ---awk工具：是个语言，很强大 一行一行的处理数据
+	在协议中数据截取电压后计算：
+	
+	head -10 youxiao.txt |awk -F' ' '{print $3,$4,$5,$6,$7,$8}'  截取所有电压数据
+	将对应位置电压数据 高低字节 转化成10进制再合并 
+	head -10 youxiao.txt |awk -F' ' '{print strtonum("0x"$4)*256+strtonum("0x"$3)}'
+	截取电压位置的数据  
+	strtonum("0x"$n)   将对应位置的16进制转成10进制  转化成10进制 后可以直接运算
+	|awk -F' ' '{print strtonum("0x"$4)*256+strtonum("0x"$3),strtonum("0x"$6)*256+strtonum("0x"$5),strtonum("0x"$8)*256+strtonum("0x"$7)}'  > vol.txt
+
+	echo "4783" |awk '{printf("%x\n",$0)}'   10进制转16进制
+
+
+	
+
 	awk [选项] '命令部分' filename  注意：引用shell变量需要用双引号引起来
 	-F：以什么符号分割，默认空格
 	-v:定义变量并赋值
