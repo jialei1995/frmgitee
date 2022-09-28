@@ -4284,9 +4284,11 @@ sed：行处理工具
 	strtonum("0x"$n)   将对应位置的16进制转成10进制  转化成10进制 后可以直接运算
 	|awk -F' ' '{print strtonum("0x"$4)*256+strtonum("0x"$3),strtonum("0x"$6)*256+strtonum("0x"$5),strtonum("0x"$8)*256+strtonum("0x"$7)}'  > vol.txt
 
-	echo "4783" |awk '{printf("%x\n",$0)}'   10进制转16进制
+	echo "4783" |awk '{printf("%x\n",$0)}'   	10进制转16进制
+	echo "47 83" |awk '{printf("%d\n",$1*$2)}'  10进制显示
+	echo "47 83" |awk '{printf("%x\n",$1*$2)}'	计算结果转成16进制显示
 
-
+	i=0;for name in `ls`;do mv $name $i"-"$(($i+9999));let i=i+10000;done  批量重命名命令
 	
 
 	awk [选项] '命令部分' filename  注意：引用shell变量需要用双引号引起来

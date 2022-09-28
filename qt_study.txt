@@ -596,3 +596,19 @@ void Dialog::on_buttonBox_accepted()
     emit sendsignal();//切换页面1的时候需要发sendsignal触发界面1的connect函数
     this->close();
 }
+
+
+调试：
+在函数内部调试的时候默认局部变量会显示出来，全局变量不会
+全局变量的查看方法：
+	在变量窗口右键：add new expression .. 添加变量名称即可
+
+QByteArray byte = serial->readAll();
+QString qstr = byte.toHex();//收到的uart数据由16进制转成10进制
+
+int x=63;
+qDebug()<<QByteArray::number(x);  整数的10进制打印   16进制打印
+qDebug()<<QByteArray::number(x,16);
+qDebug()<<QByteArray::number(x,16).toUpper();
+
+参考git上的qt uart工程 去处理收到的uart数据。
