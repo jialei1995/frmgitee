@@ -4319,8 +4319,9 @@ sed：行处理工具
 	--date |awk '{print "month:" $2 "\nYear:" $NF}'  将结果分行打印
 	printf：格式化输出
 		%s 字符类型
-		%d 数值类型
+		%d 数值类型		16进制转10进制	printf '%x'  0xnnn 
 		-  左对齐，默认是右对齐
+		%x:10进制转16进制 打印：printf '%x'  10进制num 
 	awk -F: '{printf "%-15s %-10s %-15s\n",$1,$2,$3}' /etc/passwd
 	awk -v NUM=3 -F: '{print NUM}'  passwd     -v变量赋值  变量NUM打印的时候不需要带$，带上就错了
 	awk -F: 'BEGIN{print "logshell\t\tloghome\n********"};{print $NF"\t\t"$(NF-1)};END{print "********"}' passwd		处理文件数据前打印两行+处理数据+处理完数据打印一行
@@ -4604,6 +4605,10 @@ case语句：
 	done
 	
 	i=1;while(($i<=5));do echo $i;i=$[$i+1];done  涉及判断  四则运算
+批量修改win中特殊的文件名文件为普通命名的文件：
+i=1;for name in `ls`;do mv  $name $i".txt";let i=i+1;done   不管文件名是什么，直接mv  ---rename 带''的文件，会失败
+
+
 if 条件：a else b fi == 条件 && a || b
 
 

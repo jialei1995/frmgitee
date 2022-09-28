@@ -1316,12 +1316,10 @@ unsafe private void Down_Load_Bin_File()
 		//步骤3：发bin 数据 一直发完
 		if (Update.down_step == 2)
 		{
-
 			if (Update.down_reply_flag == 0)
 			{
-
 				timer++;
-				if ((timer % 20 == 1))//延时一下再去发bin数据
+				if ((timer % 20 == 1))//
 					Update.down_sum = send_file(buff, send_bytes_ones);
 			}
 			else
@@ -1335,35 +1333,30 @@ unsafe private void Down_Load_Bin_File()
 					//已发送字节+8
 					Update.down_send_bytes += 8;
 					send_bytes_ones = 8;
-
 				}
-				//刚好发完了 已发送字节=总bin大小 进入下一步升级step
+				//bin发完了 已发送字节=总bin大小 进入下一步升级step
 				else if (Update.down_file_size == Update.down_send_bytes)
 				{
-					Update.down_step = 3;
+					Update.down_step = 3;  //进入步骤4
 					Update.down_reply_flag = 0;
-
 				}
 				else//还没发完，最后一包数量<8字节
 				{
 					//缺几个字节没发就读几个字节
 					buff = Update.down_rf.ReadBytes((Update.down_file_size - Update.down_send_bytes));
 					send_bytes_ones = Update.down_file_size - Update.down_send_bytes;
-					Update.down_send_bytes = Update.down_file_size;
+					Update.down_send_bytes = Update.down_file_size; //更新已发送字节
 				}
-				if (Update.down_step != 3)//没到下一阶段，则发送bin下去
+				if (Update.down_step != 3)//没到下一阶段，则直接发送bin下去--能进else分支说明下位机有回复，直接发送下一帧数据即可
 				{
 					Update.down_sum = send_file(buff, send_bytes_ones);
 				}
 				//更新进度
 				FrmUpdate_SetProgress((int)(Update.down_file_size / 1024), (int)(Update.down_send_bytes / 1024), Update.down_send_bytes.ToString() + '/' + Update.down_file_size.ToString());
 			}
-
-
 		}
 		if (Update.down_step == 3)//到了最后阶段
 		{
-
 			if (Update.down_reply_flag == 0)
 			{
 				Update.down_sum = send_over();//发结束帧
@@ -1378,8 +1371,6 @@ unsafe private void Down_Load_Bin_File()
 				Update.down_rf.Close();
 				MessageBox.Show("下载完成");
 				FrmUpdate_SetBt(true);//升级按钮可点击
-				//Frm_SetT1(true);
-				//Frm_SetT2(true);
 			}
 		}
 
@@ -1389,3 +1380,6 @@ unsafe private void Down_Load_Bin_File()
 		Thread.Sleep(3);
 	}
 }
+
+vs软件打开Debug的时候，打开can工程就会报错，多点击几次继续程序才能运行
+解决办法：ctrl+alt+e   把Managed Debugging Assistants 选项点击开  去掉"LoaderLock"  重新调试就好了
