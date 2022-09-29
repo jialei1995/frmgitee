@@ -3559,3 +3559,17 @@ void I2C_ReadBuffer(u8*rcvbuf,cnt)//要读cnt个数据到rcvbuf中
 jtag与sw是单片机的两种不同的烧录--调试方式
 设置keil调试的时候可以在烧录哪里选择对应的烧录方法就可以
 不同的调试接插件 对应不同的调试方式
+
+//定时器中才能减---以此保障 延时是x ms------注意需要在keil工程中配置编译等级 为 0  不优化  否则程序就会卡死到这里
+1ms_delay(g_var)
+{
+	while(g_var>0);
+}
+
+timer1_1ms_handle()---定时器中断中
+{
+	if(g_var>0)
+	{
+		g_var--;
+	}
+}

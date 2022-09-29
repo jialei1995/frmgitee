@@ -612,3 +612,53 @@ qDebug()<<QByteArray::number(x,16);
 qDebug()<<QByteArray::number(x,16).toUpper();
 
 参考git上的qt uart工程 去处理收到的uart数据。
+
+
+---------------------qt再学习
+ui中放入控件后  点击主窗口  点击网格布局--->自动排列好 
+如果想把某个页面中的控件 剪切到另一个页面 直接剪切 复制即可 
+多个控件 想在某个控件内放东西  可以先在右边 控件栏 选中控件 再去左边操作
+stackWidget-->类似c#的tabWidget-->ui->stackedWidget->setCurrentWidget(ui->calc);根据各个界面名字进行切换
+
+mainWindow的菜单栏如何点击切换页面：
+添加转到槽
+
+槽函数也可以直接调用的，本质上只是一个函数而已，不一定非要触发才可以执行--构造函数中也可以执行
+一个ui界面文件 对应一个.h .cpp文件 是一套的
+
+安装mysql的链接：https://zhuanlan.zhihu.com/p/326439656
+
+
+Qt5.9.2如果使用的是mingw编译器，Qt只有32位的。连接64位的MySQL，即使把mysql安装目录下的libmysql.dll放到qt安装目录bin路径下，也是无法连接数据库。网上给出的做法是下载Qt对应版本的源码，重新编译。这种方法复杂繁琐，且容易编译失败。先发现一种简便方法，就是mysql的官网给出了连接32位的驱动。
+
+
+下拉框里面显示数据库内容
+QSqlQueryModel * queryModel = new QSqlQueryModel(this);//依附主窗体 不用操心 释放问题
+queryModel->setQuery("select * from table1");---只有1列数据
+ui->combox->setModel(queryModel); 将模型获取的数据直接添加到combox中 setModel入参是抽象item  queryModel就是继承的抽象item类 所以可以直接传
+
+下拉框改变槽函数：
+combox_curIndexChanged(const String &arg1) //arg1就是下拉框更新后的数据
+{
+	if(arg1 == "n1")
+	{
+		更新对应控件内容
+	}else if(arg1=="n2")//根据下拉框的内容 更新查询数据库 更新其他下拉框该显示的内容
+	{
+		//方法1：
+		QSqlQueryModel * queryModel = new QSqlQueryModel(this);//依附主窗体 不用操心 释放问题
+		queryModel->setQuery("select brand from table2 where fac='%1'");
+		ui->combox->setModel(queryModel); 将模型获取的数据直接添加到combox中 
+		//方法2： 
+		QSqlQuery query;
+		//用sql 根据 当前 combox 内容 筛选数据 不要忘记这里有''
+		QString sql=QString("select brand from table2 where fac='%1'").arg(arg1);
+		query.exec(sql);
+		//获取 查到的内容
+		while(query.next())
+		{
+			QString name=query.value(0).toString();
+			ui->combox->addItem(name);//往这个下拉框加入数据
+		}
+	}
+}
