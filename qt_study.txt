@@ -647,7 +647,7 @@ combox_curIndexChanged(const String &arg1) //arg1就是下拉框更新后的数�
 	{
 		//方法1：
 		QSqlQueryModel * queryModel = new QSqlQueryModel(this);//依附主窗体 不用操心 释放问题
-		queryModel->setQuery("select brand from table2 where fac='%1'");
+		queryModel->setQuery("select brand from table2 where fac='%1'").arg(arg1);
 		ui->combox->setModel(queryModel); 将模型获取的数据直接添加到combox中 
 		//方法2： 
 		QSqlQuery query;
@@ -658,7 +658,13 @@ combox_curIndexChanged(const String &arg1) //arg1就是下拉框更新后的数�
 		while(query.next())
 		{
 			QString name=query.value(0).toString();
+			/*如果获取到 2个序列的数据 则需要一个一个根据字段名接收
+			  int pri= query.value("price").toInt();
+			  string var= query.value("var2").toString();
+			*/
 			ui->combox->addItem(name);//往这个下拉框加入数据
 		}
 	}
 }
+
+qt中普通的函数可以只声明 不定义，但是自己右键->转到槽的槽函数 必须定义与声明都在（或都删）---如果只删掉定义不删掉声明 还是无法编译通过

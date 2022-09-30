@@ -3573,3 +3573,229 @@ timer1_1ms_handle()---定时器中断中
 		g_var--;
 	}
 }
+
+--------------------------stm32的中断学习
+每个GPIO都可作外部中断输入，供GPIO的外部中断线供有16个（EXTI_Line_x (x=0-15) ）
+stm32只分配7个中断向量给这16个中断线使用，分别为EXTI 0 / 1 / 2 / 3 /4 / 9_5 / 15_10  5-9  10-15 都会走到同1个IRQHandler中
+IRQHandler（中断服务函数）IRQn(中断通道)。一个中断向量 对应一个中断的处理函数
+
+
+rtc的alarm事件与EXTI 线 17 之间的关系：
+void RTC_IRQHandler(void)//
+{
+	if(EXTI_GetITStatus(EXTI_Line17)!= RESET)
+	{
+		EXTI_ClearITPendingBit(EXTI_Line17);//既要清exti的中断位
+		SetBit(genv.WeakFlag,WS_RTC);
+		RTCWeakNum++;
+		RTCWeakFlag=1;
+	}
+	RTC_ClearITPendingBit(RTC_IT_ALRA);//也要清rtc reg中的对应的bit
+}
+
+
+在《STM32F4xx中文参考手册》第585页有明确说明：
+所有 RTC 中断均与 EXTI 控制器相连。------------------------重要
+要使能 RTC 闹钟中断，需按照以下顺序操作：
+1.将 EXTI 线 17 配置为中断模式并将其使能，然后选择上升沿有效。  EXTI_InitTypeDef
+2. 配置 NVIC 中的 RTC_Alarm IRQ 通道并将其使能。				NVIC_InitTypeDef
+3. 配置 RTC 以生成 RTC 闹钟（闹钟 A 或闹钟 B）。				RTC_AlarmTypeDef
+RTC_SetAlarm(RTC_Format_BIN, RTC_Alarm_A, &RTC_AlarmStructure);
+RTC_AlarmCmd(RTC_Alarm_A,NewState);		使能RTC_Alarm_A
+RTC_ITConfig(RTC_IT_ALRA, NewState);
+
+要使能 RTC 唤醒中断，需按照以下顺序操作：						没用过
+1.将 EXTI 线 22 配置为中断模式并将其使能，然后选择上升沿有效。
+2. 配置 NVIC 中的 RTC_WKUP IRQ 通道并将其使能。
+3. 配置 RTC 以生成 RTC 唤醒定时器事件。
+
+
+要使能 RTC 入侵中断，需按照以下顺序操作：						没用过
+1.将 EXTI 线 21 配置为中断模式并将其使能，然后选择上升沿有效。
+2. 配置 NVIC 中的 TAMP_STAMP IRQ 通道并将其使能。
+3. 配置 RTC 以检测 RTC 入侵事件。
+
+
+要使能 RTC 时间戳中断，需按照以下顺序操作：						没用过
+1.将 EXTI 线 21 配置为中断模式并将其使能，然后选择上升沿有效。
+2. 配置 NVIC 中的 TAMP_STAMP IRQ 通道并将其使能。
+3. 配置 RTC 以检测 RTC 时间戳事件。
+
+
+测试此函数的调用-->改个485的调试函数
+void dbg_printf( const char* str, ... )
+{
+	va_list arp;
+	int d, r, w, s, l;
+	char sout[256];
+	unsigned char ptr = 0;
+	va_start( arp, str );
+	while ( ( d = *str++ ) != 0 )	//说明传入的字符串还没解析完
+	{
+		if ( d != '%' )			//找到%，程序往下继续分析  否则一直向后解析入参字符串
+		{
+			sout[ptr++] = d;
+			continue;
+		}
+		d = *str++;				//判断当前是整数 还是 字符 还是字符串 还是float
+		w = r = s = l = 0;
+
+		if ( d == '0' )		//是8进制数
+		{
+			d = *str++;
+			s = 1;
+		}
+		while ( ( d >= '0' ) && ( d <= '9' ) )	// %后面直接接的数字
+		{
+			w += w * 10 + ( d - '0' );
+			d = *str++;
+		}
+		if ( s )
+		{
+			w = -w;
+		}
+		if ( d == 'l' )
+		{
+			l = 1;
+			d = *str++;
+		}
+		if ( !d )
+		{
+			break;
+		}
+		if ( d == 's' )  // %后面接的字符串
+		{
+			char* s = va_arg( arp, char* );
+			while ( *s != 0 )
+			{
+				sout[ptr++] = *s;
+				s++;
+			}
+			continue;
+		}
+		if ( d == 'c' )		//接的字符
+		{
+			sout[ptr++] = ( char )va_arg( arp, int );
+			continue;
+		}
+		if ( d == 'u' )
+		{
+			r = 10;
+		}
+		if ( d == 'd' )		//接的整数
+		{
+			r = -10;
+		}
+		if ( d == 'X' || d == 'x' )
+		{
+			r = 16;    // 'x' added by mthomas in increase compatibility
+		}
+		if ( d == 'b' )
+		{
+			r = 2;
+		}
+		if ( !r )
+		{
+			break;
+		}
+		if ( l )
+		{
+			ptr = rf_itoa( ( long )va_arg( arp, long ), r, w, sout, ptr );
+		}
+		else
+		{
+			if ( r > 0 )
+			{
+				ptr = rf_itoa( ( unsigned long )va_arg( arp, int ), r, w, sout, ptr );
+			}
+			else
+			{
+				ptr = rf_itoa( ( long )va_arg( arp, int ), r, w, sout, ptr );
+			}
+		}
+	}
+
+	va_end( arp );
+	sout[ptr] = 0;
+	rf_puts( sout );
+}
+
+uint8_t rf_itoa( int32_t val, int radix, int len, char* sout, unsigned char ptr )
+{
+	uint8_t c, r, sgn = 0, pad = ' ';
+	uint8_t s[20], i = 0;
+	uint32_t v;
+
+	if ( radix < 0 )
+	{
+		radix = -radix;
+
+		if ( val < 0 )
+		{
+			val = -val;
+			sgn = '-';
+		}
+	}
+
+	v = val;
+	r = radix;
+
+	if ( len < 0 )
+	{
+		len = -len;
+		pad = '0';
+	}
+
+	if ( len > 20 )
+	{
+		return ptr;
+	}
+
+	do
+	{
+		c = ( uint8_t )( v % r );
+
+		if ( c >= 10 )
+		{
+			c += 7;
+		}
+
+		c += '0';
+		s[i++] = c;
+		v /= r;
+	}
+	while ( v );
+
+	if ( sgn )
+	{
+		s[i++] = sgn;
+	}
+
+	while ( i < len )
+	{
+		s[i++] = pad;
+	}
+
+	do
+	{
+		sout[ptr++] = ( s[--i] );
+	}
+	while ( i );
+
+	return ptr;
+}
+
+
+
+void rf_puts( const char* str )//新实现的putc
+{
+	u32 timeout = 0xffff;
+
+	while ( *str != 0 )
+	{
+		while( ( ( USART1->SR & 0X40 ) == 0 ) && ( ( timeout-- ) > 0 ) );
+
+		USART1->DR = ( u8 ) * str++;
+	}
+
+}
