@@ -1383,3 +1383,16 @@ unsafe private void Down_Load_Bin_File()
 
 vs软件打开Debug的时候，打开can工程就会报错，多点击几次继续程序才能运行
 解决办法：ctrl+alt+e   把Managed Debugging Assistants 选项点击开  去掉"LoaderLock"  重新调试就好了
+
+int [] getElement(int cnt)
+{
+	//int[] ret=new int[5];  返回值是个不确定大小的数组 用LIst完成（此函数有可能只有小于cnt的个数）
+	List<int> ret=new List<int>(cnt);//这样就好了
+	
+	return ret.ToArray();//不能直接返回ret，需要toArray
+	
+	//集合转数组可以用ToArray  那数组怎么转集合呀
+	new List<int>(array);----直接可以将数据转化成集合
+	
+}
+
