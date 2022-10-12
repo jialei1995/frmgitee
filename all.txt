@@ -6155,7 +6155,7 @@ int AveInt(int v,...)//返回一组 int的平均数
 {
 	int ReturnValue=0;
 	int i=v;     v不是直接传进来的入参 这种用法 V会自动计算 入参个数
-	va_list ap;
+	va_list ap;		//本质是个泛型指针 
 	va_start(ap,v);//ap指向 入参数据的开头那个数据
 	while(i>0)
 	{
@@ -7967,3 +7967,7 @@ UInt16 myCRC16(byte[] pchMsg, UInt16 wDataLen, UInt16 offset)//无法传指针�
 
 *ptr++ == *(ptr++)  先取值后偏移指针
 *++ptr == *(++ptr)	先偏移指针后取值
+
+
+
+int buf[10]={10};   并不会一次将所有位置都赋值10  只有0位置是10  其他位置都是0
