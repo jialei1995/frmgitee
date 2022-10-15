@@ -808,7 +808,7 @@ SYSTEM-V IPC 通讯机制：
 			0或-1 --msgctl（msgid,int cmd,jiegouti * buf）
 			IPC_STAT IPC_SET IPC_RMID
 	uinx域socket
-		管道与太老了，现在一般进程间通信用的都是socket与共享内存、消息队列。
+		管道太老了，现在一般进程间通信用的都是socket与共享内存、消息队列。
 		共享内存效率最高，但是没有枷锁机制，所以一般与信号灯集一起使用。
 		client.c
 			#define UNIX_DOMAIN "/home/zhangmiaoling/test/socket/UNIX.domain"
@@ -893,7 +893,6 @@ SYSTEM-V IPC 通讯机制：
 	真正的应用层开发的协议使不会用到这种函数的，下面的6层都由os帮你做（tcp/ip模型）
 	tcp的稳定不是不会丢包，是丢了会重传。
 	listen:其实不是监听，是限制同一时刻最多有多少client可以同时发起connect
-
 		#include <netinet/in.h>：sockaddr_in 头文件
 		DNS域名解析服务
 		典型协议：
@@ -1302,7 +1301,7 @@ c阶段：
 
 		cpu的7种模式：user,sys,und(未定义指令)，svc（管理模式），abt（abort指令预取终止或数据访问终止），irq,fiq 
 		每种模式有专用的reg，不同模式可访问的reg不一样
-**************************************************【C++】*************************************************************		
+**************************************************【C++】*************************************************************	
 C++:c++98||c++11 ||c++14
 	用途：
 		bool类型是c++新增的。if（！）不能==0，，只有c中的int可以这样
@@ -1574,19 +1573,17 @@ C++:c++98||c++11 ||c++14
 			m_age = new int (*p.m_age);属性在堆区
 		}
 	内存分区：
-		全局区：全局变量、静态变量static、常量const修饰的
+		全局区：全局变量、静态变量static
 		常量区：常量、字符串。				
 		代码区：存放2进制机器指令、是只读的
 		堆栈区
 	对于1个进程：有4g的虚拟地址空间，这个4G怎么布局
 		1.text- 存放二进制code与常量
 		2.数据段-已经初始化的全局变量+静态变量
-		3.bss段：未初始化的全局变量+静态变量
+		3.bss段：未初始化的全局变量+静态变量  --bss段的内容并不会放到bin文件中，在使用bss段里面的变量之前把bss段所占用的内存清零即可。
 		4.堆-匿名内存映射 malloc的内存
 		5.栈-编译器自动分配释放，局部变量
 	size a.out：显示可执行文件的数据段、代码段、bss段大小  注意：没有堆栈，堆栈在内存中的
-	
-		
 	
 	引用做函数返回值：									
 	***		注意不能返回局部变量的引用。				永远存的0x11的地址  这个地址中可以放别的值
@@ -1826,26 +1823,19 @@ linux内核移植：
 	5大子系统：进程管理、内存管理、文件系统、网络协议、设备管理【重点掌握】
 	● crypto：常用加密和散列算法（如AES、SHA 等），还有一些压缩和CRC 校验算法。
 	● documentation：内核各部分的通用解释和注释。
-	● fs：所支持的各种文件系统，如EXT、FAT、NTFS、JFFS2 等。
 	● include：头文件，与系统相关的头文件放置在include/linux 子目录下。
 	● init：内核初始化代码。著名的start_kernel() 就位于init/main.c 文件中。
 	● kernel ：内核最核心的部分，包括进程调度、定时器等，而和平台相关的一部分代码
 	放在arch/*/kernel 目录下。
-	● mm：内存管理代码，和平台相关的一部分代码放在arch/*/mm 目录下。
-	● net：网络相关代码，实现各种常见的网络协议。
 	● security：主要是一个SELinux 的模块。
 	● sound：ALSA、OSS 音频设备的驱动核心代码和常用设备驱动。
 	● usr：实现用于打包和压缩的cpio 等。
 
 	
-	子目录Makefile：
-		obj-y:编译进内核
-		obj- :不编译
-		obj-m:以模块形式编译
 	主目录Makefile：
 		setenv bootargs root=/dev/nfs nfsroot=192.168.1.101:/source/rootfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.1.250
 	
-	md 0x20008000查看该内存地址的数据
+	md 0x20008000 查看该内存地址的数据
 	先得tftp 20008000 1.txt将数据拉到这里
 	uboot--go 020008000只能启动裸机pc指针指导这里直接就能运行
 	uimage = zimage+头4m
@@ -2117,6 +2107,58 @@ linux内核移植：
 		git rm --cached dir/  -r   递归删除add的dir目录
 
 ********************************makefile********************************************
+$@:目标文件
+$<:第一个依赖文件
+$^:所有依赖文件
+%.c：所有.c文件
+.PHONY:clean假想目标，make clean的时候不会真的生成clean文件
+普通的目标：make目标的时候会生成目标文件的。
+
+变量：
+A := abc 及时变量，现在A的值就确定下来
+B = 123  用到此变量时值才会缺定
+all:
+	@echo $A:加@则命令行本身不显示，只显示打印结果
+	@echo $B
+A := $(C) 及时变量，现在A的值就确定下来，是空，因为此时C都还没赋值呢
+B = $(C) 用到此变量时值才会缺定，则B的值是abc 
+C = abc
+C += 123 ：此时C的值为--abc 123 
+A ?= 延时变量，只有第一次定义才会起作用，后面再使用?=就不再起作用了，忽略此句
+---
+A = a b c
+B = $(foreach f,$(A),$(f).o)
+则此时的B=a.o b.o c.o
+
+C = a b c d/
+D = $(filter %/,$(C)) 从C中匹配目录字符，则D = d/
+E = $(filter-out %/,$(C))  从C中剔除d/， 则E = a b c
+files = $(wildcard *.c):匹配此makefile所在的文件夹中的所有存在的.c文件（真实文件）。
+filesx = $(patsubst %.c,%.d,$(files))：将files变量的结果中所以有的.c变成.d赋值给filesx，
+对于不符合.c结尾的字符串，照搬下来不做修改
+实例：---------------------------------------------
+objs = a.o b.o c.o
+dep_files := $(patsubst %, .%.d,$(objs))
+dep_files := $(wildcard $(dep_files))
+CFLAGS = -Werror -I. （-Iinclude表示在include目录查找）  表示头文件在当前目录查找
+test:$(objs)
+	gcc -o test $^  利用所有的.o生成目标文件
+ifneq ($(dep_files),)  如果此变量不为空
+include $(dep_files)
+endif
+%.o:%.c
+	gcc $(CFLAGS) -c -o $@ $< -MD -MF .$@.d  防止因为.h文件修改而不编译
+distclean:
+	rm $(dep_files)
+
+顶层目录的CFLAGS：编译所有.c文件都会用到的编译选项
+顶层目录的LDFLAG：链接最后程序时用到的链接选项
+子目录中的EXTRA_CFLAGS:只给当前目录下的文件（不包含子目录）设置的额外的编译选项，可以不设置
+子目录中的CFLAGS_xxx.o：只给当前目录中具体的某个xxx.c文件设置的编译选项，编译其他.c时不加此选项
+
+obj-y += xxx.o  表示要编译当前目录中的xxx.c文件
+obj-y += yyy/   表示要编译当前目录下的yyy子目录
+
 	makefile的生成方式：
 	1.利用cmake命令与Cmakelists.txt（txt文件比较简单）
 	2.automake工具，即-./configure 生成makefile
@@ -6778,13 +6820,9 @@ reset->rom->uboot->内核设备树->文件系统->app程序
 通过nfs服务链接ubuntu与开发板。需要在ubuntu配置nfs服务，然后在板子上进行mount挂载ubuntu上
 共享的文件夹。挂载成功两个目录就共享了。
 
-交叉编译：在intel平台使用arm-linux-gcc编译出属于开发板的二进制程序，此程序只能在arm上执行，无法在intel执行
-
-
 制作的内核，dtb最终需要拷贝到板子的/boot目录中
 制作的lib/modules 最终需要拷贝到板子的/lib目录中
 直接reboot板子就会用新的内核与新的modules启动（启动之前最后执行一下sync，同步拷贝的文件）
-
 
 u-boot编译：
 进入u-boot目录
@@ -6800,11 +6838,6 @@ dd if=u-boot.bin  of=/dev/mmcblk1boot0  bs=512 seek=2  写入emmc，uboot.bin
 echo 1 > /sys/block/mmcblk1boot0/force_ro  改成只读状态
 也可以用烧写工具直接往emmc中烧写uboot
 
- 驱动与测试程序一般是一起用的。
- 写的驱动只是底层，测试程序才是将来你依据这个驱动需要开发的东西。
-需要将驱动模块安装到板子上，然后运行测试程序看看能否正常响应。
-
-
 main(argc,argv);
 程序传的参数默认是以空格分隔，如果不想以空格分隔，可以将参数用""包含起来。ps:
 ./hello jl xj   3个参数
@@ -6816,59 +6849,6 @@ gcc -o hello hello.c -v：加v可以查看详细的编译过程
 汇编：.s-->.o 						-c
 链接：*.o、*.so-->.app colloct		-o
 
-makefile:
-$@:目标文件
-$<:第一个依赖文件
-$^:所有依赖文件
-%.c：所有.c文件
-.PHONY:clean假想目标，make clean的时候不会真的生成clean文件
-普通的目标：make目标的时候会生成目标文件的。
-
-变量：
-A := abc 及时变量，现在A的值就确定下来
-B = 123  用到此变量时值才会缺定
-all:
-	@echo $A:加@则命令行本身不显示，只显示打印结果
-	@echo $B
-
-A := $(C) 及时变量，现在A的值就确定下来，是空，因为此时C都还没赋值呢
-B = $(C) 用到此变量时值才会缺定，则B的值是abc 
-C = abc
-C += 123 ：此时C的值为--abc 123 
-A ?= 延时变量，只有第一次定义才会起作用，后面再使用?=就不再起作用了，忽略此句
----
-A = a b c
-B = $(foreach f,$(A),$(f).o)
-则此时的B=a.o b.o c.o
-
-C = a b c d/
-D = $(filter %/,$(C)) 从C中匹配目录字符，则D = d/
-E = $(filter-out %/,$(C))  从C中剔除d/， 则E = a b c
-files = $(wildcard *.c):匹配此makefile所在的文件夹中的所有存在的.c文件（真实文件）。
-filesx = $(patsubst %.c,%.d,$(files))：将files变量的结果中所以有的.c变成.d赋值给filesx，
-对于不符合.c结尾的字符串，照搬下来不做修改
-实例：---------------------------------------------
-objs = a.o b.o c.o
-dep_files := $(patsubst %, .%.d,$(objs))
-dep_files := $(wildcard $(dep_files))
-CFLAGS = -Werror -I. （-Iinclude表示在include目录查找）  表示头文件在当前目录查找
-test:$(objs)
-	gcc -o test $^  利用所有的.o生成目标文件
-ifneq ($(dep_files),)  如果此变量不为空
-include $(dep_files)
-endif
-%.o:%.c
-	gcc $(CFLAGS) -c -o $@ $< -MD -MF .$@.d  防止因为.h文件修改而不编译
-distclean:
-	rm $(dep_files)
-
-顶层目录的CFLAGS：编译所有.c文件都会用到的编译选项
-顶层目录的LDFLAG：链接最后程序时用到的链接选项
-子目录中的EXTRA_CFLAGS:只给当前目录下的文件（不包含子目录）设置的额外的编译选项，可以不设置
-子目录中的CFLAGS_xxx.o：只给当前目录中具体的某个xxx.c文件设置的编译选项，编译其他.c时不加此选项
-
-obj-y += xxx.o  表示要编译当前目录中的xxx.c文件
-obj-y += yyy/   表示要编译当前目录下的yyy子目录
 
 ------------------------tty与uart
 tty-teletype 远程打印机后来演变成终端，所有的终端都是tty
@@ -7246,14 +7226,6 @@ BSS段：不需要重新定位，程序里面根本不包含bss段，只需要�
 怎么知道bss段地址范围，起始地址与长度？？
 在keil中使用散列文件（scatter file）描述 
 在gcc中使用链接脚本（link script）描述 
-
-程序中的全局变量如果初始化值为0，或者没有初始化，则这些变量被放在bss段也叫ZI段
-char g_char='a';
-const char g_char2 = 'b';
-int g_a = 0;	放在bss段
-int g_b;		放在bss段
-bss段的内容并不会放到bin文件中，在使用bss段里面的变量之前把bss段所占用的内存清零即可。
-
 
 使用push指令的时候顺序随便写，因为默认会将低标号的reg写到低地址，高标号的reg写到高地址。
 lr==r14 pc==r15 sp==r13  
