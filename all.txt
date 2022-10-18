@@ -2120,7 +2120,7 @@ B = 123  用到此变量时值才会缺定
 all:
 	@echo $A:加@则命令行本身不显示，只显示打印结果
 	@echo $B
-A := $(C) 及时变量，现在A的值就确定下来，是空，因为此时C都还没赋值呢
+A := $(C) 及时变量，现在A的值就确定下来，是空，因为此时C都还没赋值呢.相当于A=(C!=null)?C:"";
 B = $(C) 用到此变量时值才会缺定，则B的值是abc 
 C = abc
 C += 123 ：此时C的值为--abc 123 
@@ -2135,10 +2135,11 @@ D = $(filter %/,$(C)) 从C中匹配目录字符，则D = d/
 E = $(filter-out %/,$(C))  从C中剔除d/， 则E = a b c
 files = $(wildcard *.c):匹配此makefile所在的文件夹中的所有存在的.c文件（真实文件）。
 filesx = $(patsubst %.c,%.d,$(files))：将files变量的结果中所以有的.c变成.d赋值给filesx，
+obj = $(patsubst ./%.c,./%.o, $(src))  有没有 ./ 效果一样
 对于不符合.c结尾的字符串，照搬下来不做修改
 实例：---------------------------------------------
 objs = a.o b.o c.o
-dep_files := $(patsubst %, .%.d,$(objs))
+dep_files := $(patsubst %, .%.d,$(objs))----dep_files=.a.o.d .b.o.d .c.o.d
 dep_files := $(wildcard $(dep_files))
 CFLAGS = -Werror -I. （-Iinclude表示在include目录查找）  表示头文件在当前目录查找
 test:$(objs)
@@ -2173,16 +2174,12 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 		无依赖执行直接执行伪目标
 		直接make生成的是终极目标 target
 
-		= 是最基本的赋值
-		:= 是覆盖之前的值
-		?= 是如果没有被赋值过就赋予等号后面的值
-		+= 是添加等号后面的值
-
 		其实make是个软件，makefile只是个配置文件，make 命令没有makefile也能执行的
 			例如在有xx.c的目录中直接执行make xx，就会自动根据xx的名字找对应的.c然后生成对应的xx可执行文件
 			CC xx.c -o xx  隐士规则
 		目标：依赖
 			sh xx.sh    这里其实可以执当前目录的的shell脚本（用sh去运行此脚本）
+			
 		默认执行make命令其实是make的makefile中的第一个目标
 		
 		顶层make -C xxx -DMACRON 定义的宏会传到底层的任意makefile中去。
@@ -2200,7 +2197,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 
 		直接写模块入口函数：int init_module(void)		    这么写就不需要写module_init了
 				出口函数：void cleanup_module(void)		这么写就不需要写module_exit了
-		module_init与module_exit相当于给入口函数出口函数重命名的
+		module_init与module_exit 相当于给入口函数出口函数重命名的
 		安装：insmod +demo.ko---------对应module_init(demo_init);入口函数【安装】 module_init;
 		卸载：rmmod+demo  ---------对应module_exit(demo_exit);出口函数【卸载】	module_exit();
 
@@ -2215,7 +2212,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 				char y;
 				module_param(y,charp,0664) char型指针，传字符串的
 			sudo insmod ./hello.ko x=1 y=“字符类的这么传” z=3...安装时才传，安装后以后这里面的变量就固定下来了
-	
+
 		多个.c的模块怎么写：
 				更改makefile：在obj-m:=hello.o  下一行+
 				还只能是objs：hello-objs := hello.o hehe.o  注意不能这么写，两个hello.o产生了递归了。生成的hello.ko卸载不了了
@@ -2276,7 +2273,6 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 				eg：磁盘，闪存
 			网络设备：eg：网卡【网络设备没有设备文件】
 	描述所有字符设备有个结构体：cdev【内核要管理就要有统一的机制】就是这个结构体
-		
 			struct cdev{
 				struct module *owner;//THIS_MODULE
 				const struct file_operation * ops;	//里面全是函数指针，操作方法集【不同驱动操作集不一样】，提供给应用层
@@ -2575,7 +2571,7 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 	2.然后mknod  /dev/dev中的驱动名  +   c  +刚才看的dev号（主设备号）+ 驱动文件中的从设备号     //创建设备文件
 	驱动中的设备号与应用程序中的要一致。
 	写应用程序之前要申请设备号，应用程序操作此设备号。（是mknode申请的吗？）
-	命令都是32位的，驱动中的命令都是32位的。
+
 	struct file与之前学的FILE *f 完全不是1个东西;struct file描述一个已经open的文件，一旦文件被open，就会产生一个file结构体去描述他，
 特点：打开文件时就会被创建，close时就会被删除，这个结构体可以传递给每个对该文件进行操作的函数做入参。
 重要成员：mode_t mode;打开时是可读？可写？可读可写？
@@ -2598,8 +2594,7 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 	ioctl:
 		系统调用里面有个ioctl:
 			sys/ioctl.h
-			int ioctl(int d, int request,...)
-			对打开的文件描述符，发命令
+			int ioctl(int d, int request,...) 			对打开的文件描述符，发命令
 		驱动里面：
 			file_operations的结构体成员
 				long(*unlocked_ioctl)
@@ -2611,10 +2606,10 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 				nr------命令的序号
 				size----命令的参数类型（int char）
 
-	/sys 也是虚拟的目录，不会随硬盘转移。设备、驱动信息
+	/sys 也是虚拟的目录，不会随硬盘转移
 *************************************	adc：*******************************
 		一般soc内部用的逐次逼近型。猜数字量转换成模拟量与实际模拟量对比，多猜几次结果就对了
-		soc内有多个ad转换模块，每个模块多个通道，理论上都可以与pin脚连接起来，但是1般只会引出部分pin脚。
+
 		采样有单端采样，差分采样模式
 		采样精度不高的adc基准源直接接ACC就可以。
 		采用不同采样分辨率，时钟设置不一样（分辨率高的采样慢）
@@ -3150,8 +3145,7 @@ python 格式化输出：
 str(num) + str1 必须将前面的num转化成字符串才可以拼接
 print(num,'xxxxx',num);数字与字符串连起来打印
 print("%s %s %s"%(n1,n2,n3))
-下面的这种如果变量直接往字符串中加变量，需要在字符串前加f--->推荐使用的方法
-teststr = f'{var}ssssssss'
+下面的这种如果变量直接往字符串中加变量，需要在字符串前加f--->推荐使用的方法  teststr = f'{var}ssssssss'
 >>> f"{2*100}"		  --->双引号中间会进行计算后保留结果
 '200'
 >>> f"{'abc'.upper()}"--->双引号中间会进行计算后保留结果
@@ -3196,6 +3190,8 @@ if __name__ == "__main__":
 	______请假条______
 	mr zhang您好:
 	i want qingjia for3tian ,ok?
+
+
 ----python 从标准输入读入数据格式
 pas=input("提示")  给pas赋值
 a=int(input("提示")) 直接将输入的数据转化成int类型赋值给a
