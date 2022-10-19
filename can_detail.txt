@@ -1,21 +1,12 @@
 CAN总线知识：
-can：每个can设备都可以是主设备，也可以是从设备。
-CAN2.0A：只支持收发11位标识符（id）的标准帧
-CAN2.0B:支持收发11位id的标准帧或者29位id的扩展帧
 远程帧不发数据段
-1.多主控制，多个主机可以开始发送消息，如果多个主机同时发起总线请求时，高优先级id的单元获得优先权；失利的单元则停止发送而进行接收工作
-，并在总线再次空闲之前不再发报文
-2.同一网络中所有单元的通信速度一致
-3.所有unit有检错功能，检出错误会立即通知其他unit，正在发送消息的unit一旦检出错，会强制终止当前发送
-
 5种帧：数据帧，远程帧，错误帧，过载帧，帧间隔
 帧结构见图：
 
 can通信案例：
-https://blog.csdn.net/z609932088/article/details/84061467
 https://blog.csdn.net/weixin_30576859/article/details/95213928?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control
 
-电芯用久了，内阻会变大
+
 
 ——————————————
 dbc文件制作与解析：

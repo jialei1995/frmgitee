@@ -128,7 +128,6 @@ c++		string 不是char*传参的时候传string 并不会改变原来s的值，�
 		egrep  “[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}”  filename 在filename查找ip地址
 			   注意“ 位数	 值范围		仅分割意思   .在正则中有别的意思
 		\：在这里是转义字符 因为'.'是匹配任意1个字符的
-		. 匹配任一字符   			abc. 可以匹配abcd/abc9,,
 		[]匹配括号中任一字符		[abc]d   =ad/bd/cd
 		^：位于中括号内的时候-[^lxy] 匹配除lxy以外的任意1个字符
 		  位于中括号外的时候- ^con  匹配开头是con的行
@@ -149,6 +148,10 @@ c++		string 不是char*传参的时候传string 并不会改变原来s的值，�
 	
 python中的正则：
 re.findall("正则式子"，输入的字串)   re.search("xx",f.read());只找第一次出现的结果
+
+pattern = "https://movie.douban.com/subject/[0-9]+/"
+urls=re.findall(pattern,html)   从数据很多的网页把链接提取出来
+
 “^abc$”   以abc开头并结尾的字符串
 “a*” 匹配*号前的字符0次或多次
 “（ABC）{3,5}”  匹配abc字符串，最少3次最多5次
@@ -156,7 +159,8 @@ re.findall("正则式子"，输入的字串)   re.search("xx",f.read());只找�
 “((0-9){4})([0-9]{3}) ([0-9]{4})”  分组匹配输入的字符串
 例如，将身份证分组识别出来：re.search("([0-9]{4})([0-9]{3}) ([0-9]{4})","14262319950201131d")
 按照key，value的方式存储：
-re.search("(？P<provice>(0-9){4})(?P<city>[0-9]{3}) (?P<birthday>[0-9]{4})","14262319950201131d").gruops()
+re.search("(?P<province>[0-9]{4})(?P<city>[0-9]{2})(?P<birthday>[0-9]{4})","371481199306143242").groupdict()
+-{'province': '3714', 'city': '81', 'birthday': '1993'}
 re.split("[0-9]{2}","alex11name22jack33nike")
 以2个数字为分割符，将此字符串分成4段  返回列表
 
@@ -2234,27 +2238,19 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 
 		设备文件：
 			设备号：  设备号是一个纽带， 链接驱动程序 和  用户空间的设备文件，
-
-			struct file_operations里面{
-			int （*open）（struct inode*，...）其中open是变量int （*）（struct inode*，...）是个类型，可以typedef一下
-			}
-
-			写设备驱动程序， 首先申请设备号：
+		写设备驱动程序， 首先申请设备号：
 			cat /proc/devices   查看可用的设备号（主设备）  
 		
 		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
-		静态申请设备号：
-			int register_chrdev_region(dev_t from, unsigned count, const char *name
-				成功0   失败负值			设备号        几个         名字“name”
-			注销设备号   			注册的第一个设备号（注意这个不是主设备号）可以传MKDEV(ma,mi)
+			静态申请设备号：自己指定要注册的主设备号，次设备号
+			int register_chrdev_region(from, count, char *name)
+   			注册的第一个设备号（注意这个不是主设备号） 可以传MKDEV(ma,mi)，count=1就行，表示只注册一个设备号
 			void unregister_chrdev_region(dev_t from, unsigned count)
 			cat /proc/device   查看当前os中的设备号。 
 
-		动态申请设备号：
-			int alloc_chrdev_region(dev_t * dev,从设备号，count，char*name)；根据/proc/device看那个号没用就可以用
-			注销：注销方式一样的，就申请方式有点不一样                              
-			/proc/device这个文件中的设备好是主设备号，一般总设备号32bit是个很大的数字
-			 我们通常描述设备用主设备号与次设备号去描述
+			动态申请设备号：若申请多个，通过dev_t*变量传出来
+			int alloc_chrdev_region(dev_t * dev,从设备号，count，char*name)；动态根据/proc/device看那个号没用就可以用
+			注销：注销方式一样的，就申请方式不一样                            
 			void unregister_chrdev_region(dev_t from, unsigned count)
 			
 
@@ -2351,6 +2347,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 		5.引入设备树，平台设备中扫描到资源，通过总线与驱动连接起来
 		platform_bus_type：一边是dev列表，一边是dro列表，中间通过总线自动联系起来
 		联系方法：1.根据驱动侧的idtable 2.通过name
+
 
 *************************************阻塞底层实现*******************************
 	read write阻塞的底层靠
@@ -3358,6 +3355,7 @@ bt = tk.Button(text="click me",command=myclick)		设置1个按钮，按下按钮
 import urllib.request
 import re
 url="https://movie.douban.com/top250"
+
 请求不一定是get，有的网页就是需要post请求
 查看F12（检查）中的network--headers---Request Method
 对于post请求，
@@ -3367,18 +3365,17 @@ header = {
 #    "Chrome/96.0.4664.110 Safari/537.36"
 }
 req = urllib.request.Request(url=url,headers=header)
-res = urllib.request.urlopen(req)
-html = res.read().decode('utf-8')
+res = urllib.request.urlopen(req)	
+html = res.read().decode('utf-8')  #返回好大一个html文件，当前页面肯定包含进入子页面的链接
 pattern = "https://movie.douban.com/subject/[0-9]+/"
-urls=re.findall(pattern,html)
-urls=set(urls)
-print(len(urls))
-for u in urls:
+urls=re.findall(pattern,html) #re 按照pattern去解析html 获得文档中的链接
+urls=set(urls)  #去重
+print(len(urls)) #有几个 
+for u in urls:	#打印所有的链接
     print(u)
 	
 urllib使用：
 import urllib.request
-
 res.status   请求网页的返回状态 200 正常 其他异常
 res.getheaders()	请求头
 
@@ -3655,13 +3652,36 @@ class Cat:
 		_People__sex	一杠两杠属性
 		_People__sayHello()		一杠两杠方法
 	
-	People.sum：类变量	
 	class People():
-			sum = 0
+			sum = 0  #也可以当成类的sum  也可以当成对象的sum，看后面怎么用了
 			def __init__(self,sex):
 				self.sex = sex			#实例变量self.
-				People.sum += 1			#People.sum也可以写成self.sum
+				People.sum += 1			#每次调用都会往当前类总量+1 表示当前类的对象共创建了多少个--相当于self.__class__.sum;
+				self.sum += 1			#这种写法sum永远是1 每次构建的时候只会加到当前对象上
 				print('现在有%d个人。'%People.sum)	#类变量class.
+	 
+class People():
+    sum=0  #表示的是类的sum
+    def __init__(self):
+        self.__class__.sum += 1  #加1加到了类的sum上
+        #self.sum+=1  加1加到了对象的sum上 类的sum一直是0 
+    @classmethod  类方法--可以在类中直接这样定义类方法
+    def pself(cls): #cls 表示入参是当前类 对于类方法 必须这么写
+        print(cls.sum)
+		
+print(p1.__dict__)  打印对象拥有的属性  self.shuxing
+直接用类名.__dict__,这个打印出来的是类的属性 不是对象的属性
+People.pself()   0
+a=People()
+People.pself()   1
+b=People()
+People.pself()   2
+
+继承：
+class A(B,C):
+	pass   #先写B后写C 则构造函数用B的  先写C后写B，则构造函数用C的构造函数
+	
+	
 	函数参数：
 	以下是调用函数可以使用的正式参数类型：
 		必需参数
@@ -5210,9 +5230,6 @@ slab是内存分配器，malloc的内存就是它分配的
 ### mount -t iso9660 -o ro /dev/cdrom /mnt
 
 ​                    类型 ISO           挂载方式   只读  
-
-
-
 ### make
 
 make -j4编译时，如果出问题其他线程还会继续编译，不会卡停，4条线同时向下进行
@@ -5240,8 +5257,6 @@ NAT映射：路由器中有个NAT映射表，当私网ip（192.168.1.1）出去�
 所以腾讯会直接为A与B之间打通一个连通的洞让他们可以直接传输消息，使消息传输速度更快。
 
 ### git add过的文件修改后直接git commit -a 啥都不用加就好了
-
-
 ------
 
 ## python
@@ -5292,8 +5307,7 @@ if __name__ == "__main__":
         except:
             print("重新输入")
 
-if __name__ == "__main__":  此程序可以一直运行，因为所有的异常处理，都在预料之中
-							有专门的异常处理
+if __name__ == "__main__":  此程序可以一直运行，因为所有的异常处理，都在预料之中 有专门的异常处理
      while(True):
          try:
              chushu=float(input("chushu"))
@@ -5320,9 +5334,8 @@ try:
 		
 except AgeError as e:
         print(str(e))
-————————————————
-版权声明：本文为CSDN博主「ayuelei」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/reallyr/article/details/87364399
+
+
 ```python
 logging模块：默认>warnning的日志才会打印
 loggging.debug("xxx")
@@ -6251,8 +6264,6 @@ sha256 值只与文件中的内容有关，与时间戳无关，文件名也无�
 
 如何判断当前机器是物理机还是虚拟机：
 dmidecode -s system-product-name
-
-
 -------------------------贪心算法
 求局部最优解来达到整体最优效果
 1.分饼干（先排序饼干与小朋友）
@@ -6545,16 +6556,6 @@ dhclient -r或-x eth0 释放eth0的ip，释放当前租约，并杀死当前dhcl
 及时tools被卸载，/dev/vport*还是都存在的，若没有这些vport则vmtools无法安装
 成功安装tools只会多增加一个agent通道，此通道connect才说明tools正常。
 
---------C语言中'与”转义都得加\才可以。不然没法往双引号中间加进去。
-
----------------搜索引擎去广告：
-intitle:关键词  **
-filetype:pdf，doc，ppt，png
-2015..2020  限定时间段
-ctrl+shift+V---->无格式粘贴
-
-要增加对文件的读写要增加对文件目录的读写，则要增加对目录的目录的读写。
-
 平时说的网速单位是bit，转换成byte就得除以8. 下载上行速度为下载东西与上传速度，
 服务器给客户端发数据的速度与客户端给服务器发数据的速度。
 
@@ -6612,9 +6613,6 @@ unicode LE：小端
 unicode BE：大端-->容错低，一旦丢失一个字节，整个文件乱码
 UTF8：无头部 ---->容错高，丢失字节只会让一个字符乱码，不影响其他
 UTF8-BOM：有头部
-
-8bit的锁存器：共9根线，1根enable线，8个data线。enable为1时才可以将数据写进去，enable为0时，data的电平高低不会写入。
-
 
 serial串口日志在/var/log/libvirtd/qemu/virtname.seriallog中，可以看到开机自启的log（dm-1,error）
 观察fstab中的分区是否都已经成功挂载。
@@ -6806,6 +6804,29 @@ win+x：打开具有管理员权限的cmd行
 option->file option->auto indent：取消indent open brace/indent close brace
 
 ----------u-boot
+命令：print--打印环境变量
+------------------------怎么从boot中启动开发板---1---
+一、配置环境变量
+movi read 从emmc中读数据 读到内存
+EMMC启动命令：bootcmd=movi read kernel 0x41000000;movi read dtb 0x42000000;bootm 0x4100000 - 0x42000000 --- bootm是启动命令
+将kernel放到内存哪里，dtb放到内存哪里， 然后从内存哪里启动
+
+----------------2-------
+网络的方式启动： 下载内核 dtb到内存对应位置  然后启动
+bootcmd=tftp 41000000 uImage-0522;tftp 42000000 exynos4412-fs4412-0522.dtb;bootm 41000000 42000000
+
+
+mytest=tftp 41000000 uImage-0522;tftp 42000000 exynos4412-fs4412-0522.dtb;bootm 41000000 42000000
+
+二、执行 boot命令，会自动找环境变量为 bootcmd的变量，执行启动
+    自己run mytest--也可以成功启动内核
+
+
+ioctl---控制设备文件--对于普通文件 只需要读写功能就够了
+int ioctl(int fd, unsigned long request, ...)
+对于设备文件（鼠标）--需要实现移动，按键按下 单击  双击 等多个操作，则需要不同的实现--不同的命令--底层需要操作不同的寄存器去实现
+如果底层只是个简单的eeprom，只需要实现read write完全够用了
+--------------------------------------------------
 可以先将内核，文件系统，u-boot，设备树，驱动烧写到sd卡或者emmc。
 通过拨动拨码开关选择板子以什么方式启动：
 emmc/uart（下载系统到内存启动）/nfs/sd卡/
@@ -6926,23 +6947,31 @@ s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop----从
 尽量优先使用smbus，大多器件都支持smbus。
 	
 iic的重要结构体：
-i2c_adapter{
+i2c_adapter{    描述内核中的i2c适配器
 	num;//第几个iic控制器
 	传输函数(即read/write)函数
 }
-i2c_client{
+i2c_client{		描述从机
 	addr;//从机地址
 	struct i2c_adapter* adapter;//挂载在哪个iic设备上
 }
-i2c_msg{   i2c传输的数据结构
+i2c_msg{      描述i2c传输的数据结构
 	buf；数据 
 	length；长度
 	i2c_client；//msg本身就含有了目的地址
 }
-很重要的函数：
+很重要的函数--内核中的i2c适配器固有方法：
 i2c_transfer(struct i2c_adapter* adapter,struct i2c_msg*msg,int num);//num表示msg数组数量，
 一般第一次发器件地址，再发内部reg地址，再发数据传输函数，最终会调用更底层的transfer函数
 
+linux的i2c体系分3部分：
+i2c核心：
+	内核提供-提供了总线驱动和设备驱动的注册、注销、i2c通信。芯片中的总线驱动由厂家完成，外围设备由驱动工程师完成。核心将他们串起来
+总线驱动：器件厂家提供
+	对硬件体系结构中适配器端的实现，包含i2c_adapter,通信方法，控制适配器产生通信信号的函数
+设备驱动：驱动工程师提供
+	为上层应用实现读写函数。
+----------------------------------------------
 linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调用内核提供的iic的drv函数。
 
 还可以使用i2c_tools工具去访问iic设备：

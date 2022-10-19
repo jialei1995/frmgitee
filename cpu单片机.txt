@@ -1017,7 +1017,7 @@ VPRO在gpioinit的时候没有置1.需要初始化的时候置1，不然sh367309
 keil中ctrl+b：查找当前keil工程中的所有断点，keil中断点太多了就会警告无法调试。需要取消部分断点再去调试。
 
 SysFlag sysflag;定义此变量之后，若要赋值只能给sysflag=x去赋值，不能直接赋值内部共用体成员的值
-ps：sysflag.bits.mem1 = 1   这种操作会报警
+ps：sysflag.bits.mem1 = 1   这种操作需要放到函数内部执行  不能直接定义后就去初始化  会报警
 正确的做法是：将sysflag.bits.mem1 = 1写在其他函数内部。可以写一个init函数，在函数内部对成员mem1进行初始化。
 
 
@@ -1053,14 +1053,11 @@ s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
 
 ## 对enum的学习 struct中的：占位
 
-1. enum ASN{MON=7, TUE, WED=10, THU, FRI};  
-
-2. ASN是个标识符，是一种数据类型（可选项-可有可无）
-
-*enum DAY
+1. 
+enum DAY
 {
    MON=1, TUE, WED, THU, FRI, SAT, SUN
-};*
+};
 
 enum DAY good_day, bad_day; //变量good_day和bad_day的类型均为枚举型enum DAY
 
@@ -1075,7 +1072,7 @@ enum    //跟第一个定义不同的是，此处的标号DAY省略，这是允�
     wednesday,
     thursday,
     friday
-} workday; //变量workday的类型为枚举型enum DAY，这种无法再定义此类型的变量
+} workday; //变量workday的类型为枚举型enum DAY，这种无法再定义此类型的其他变量，只能定义这一个
 
 ---
 
