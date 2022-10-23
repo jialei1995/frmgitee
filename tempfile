@@ -1,0 +1,92 @@
+---python环境
+vscode 写完代码  可以直接在下面的终端利用:python + test.py执行code
+下载python插件：左边出现-运行调试-创建json文件
+直接保存创建的文件
+点击运行或 F5 运行code
+
+可以直接打断点调试
+
+多文件一起调试 互相调用怎么做：
+import sys
+sys.path.append('./')   #设置当前目录为环境目录
+from demo1 import fun	从文件夹导入模块文件
+fun.Hello()				文件.函数执行
+
+下载conda 可以随意切换python版本--直接修改新的python环境
+很方便
+conda create -n py37 python=3.7  创建新的python唤醒
+conda activate py37
+
+
+----------c/c++环境：
+安装：C/C++ Extension Pack
+安装gcc g++编译器，然后将路径加到环境变量（不能用qt里面的gcc软件，好像与vscode不兼容）
+https://winlibs.com/中下载UCRT runtime中的安装包（加速下载）
+配置.vscode中的json文件--指导vscode处理文件夹下的各个文件
+先删除目录中之前的.vscode文件夹（可能配置的是python或其他环境）
+按F5--选择GDB，然后选择g++那行（如果vscode没识别到环境变量需要重启电脑 再去选择g++）
+然后就可以直接运行+调试了
+
+https://ghproxy.com/（加速下载github文件的链接，直接将下载链接拖进来即可）
+
+另一个视频的总结：
+cmakelists基本语法：指令（参数1 参数n）
+指令与大小写无关
+set(HELLO hello.cpp)
+add_executable(hello main.cpp ${HELLO})
+重要指令：
+	指定最小版本要求
+	cmake_minimum_required(VERSION 2.8.3)
+	工程名称
+	project(HELLOWORLD)
+	显示定义变量 var表示a.c b.c
+	set(SRC a.c b.c)
+	向工程添加多个特定头文件搜索路径
+	include_directories(/usr/include ./include)
+	向工程添加库搜索路径
+	link_directories(/usr/lib/ ./lib)
+	生成库文件-通过变量SRC生成共享库文件 libhello.so--静态库（STATIC）
+	add_library(hello SHARED ${SRC})---这种生成库的方式多简单
+	添加编译参数
+	add_compile_options(-Wall -std=c++11 -O2)
+	生成可执行文件
+	add_executable(main main.cpp)
+	为target添加需要的共享库
+	target_link_libraries(main hello)
+	向当前工程添加存放源文件的子目录：src中也需要一个Cmakelists.txt文件
+	add_subdirectory(src)
+重要变量：
+	CMAKE_C_FLAGS  gcc编译选项
+	CMAKE_CXX_FLAGS g++编译选项
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+	CMAKE_BUILD_TYPE  编译类型
+	set(CMAKE_BUILD_TYPE Debug/Release) 
+构建方式：外部构建：在工程目录新建build文件夹
+在build文件夹志雄cmake .. 根据上级目录的cmakelists生成makefile
+再执行make命令去编译
+
+测试：
+cpp文件内容：
+root@ubuntu:/home/jl/Desktop# cat hello.cpp 
+#include<iostream>
+using namespace std;
+int main()
+{
+	cout<<"hello world"<<endl;
+	return 0;
+}
+CMakeLists内容:
+root@ubuntu:/home/jl/Desktop# cat CMakeLists.txt 
+cmake_minimum_required(VERSION 3.0)
+project(HELLOWORLD)
+add_executable(hello_cmake  hello.cpp)
+编译方法：
+1.当前目录执行：cmake当前目录执行：cmake .即可生成makefile 再去make生成二进制
+2.新建build目录 在build目录中执行cmake ../ + make
+
+用vscode，下载c/c++  cmake  cmake-tool
+程序写完先在最底部点击cmake 成功后 直接点击 最底部的debug就可以调试程序
+
+qt-再学习
+添加图片资源--工程目录add new--qt--resource file--输入.qrc名称（随便）
+右键 res.qrc add现有文件--将所有图片载入即可使用
