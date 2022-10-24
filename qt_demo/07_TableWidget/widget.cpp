@@ -18,16 +18,19 @@ Widget::Widget(QWidget *parent) :
     ui->tableWidget->setRowCount(5);
 
     //设置正文
-    //ui->tableWidget->setItem(0,0, new QTableWidgetItem("亚瑟"));
+
+    //ui->tableWidget->setItem(0,0, new QTableWidgetItem("亚瑟"));//往 i j 位置放入QTableWidgetItem类型的data
     QStringList nameList;
     nameList<< "亚瑟"<< "赵云"<< "张飞"<< "关羽" << "花木兰";
 
-    QList<QString> sexList;
+    //QStringList====QList<QString>
+    /*QList<QString>*/QStringList sexList;
     sexList << "男"<< "男"<< "男"<< "男"<< "女";
 
     for(int i = 0 ; i < 5 ;i ++)
     {
         int col = 0;
+        //往 i j 位置放入QTableWidgetItem类型的data
         ui->tableWidget->setItem(i,col++, new QTableWidgetItem(nameList[i]));
         ui->tableWidget->setItem(i,col++, new QTableWidgetItem(sexList.at(i)));
         //int 转 QString

@@ -1,0 +1,3 @@
+childWidget继承Qwidget--写函数 操控子类界面的控件
+直接在主界面新建Qwidget 提升此类为childWidget
+可以直接调用子类中写的函数 

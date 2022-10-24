@@ -20,7 +20,7 @@ Widget::Widget(QWidget *parent) :
     ui->treeWidget->addTopLevelItem(minItem);
     ui->treeWidget->addTopLevelItem(zhiItem);
 
-    //追加子节点
+    //追加子节点 必须是QTreeWidgetItem类型的儿子
     QStringList heroL1;
     heroL1 << "刚被猪" << "前排坦克，能在吸收伤害的同时造成可观的范围输出";
     QTreeWidgetItem * l1 = new QTreeWidgetItem(heroL1);

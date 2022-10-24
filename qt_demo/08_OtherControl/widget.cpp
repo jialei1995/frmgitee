@@ -52,3 +52,4 @@ Widget::~Widget()
 {
     delete ui;
 }
+
