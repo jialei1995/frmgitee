@@ -41,8 +41,7 @@ ChooseLevelScene::ChooseLevelScene(QWidget *parent) :
     // 6. Back按钮
     myButton* backBtn = new myButton(":/res/BackButton.png",":/res/BackButtonSelected.png");
     backBtn->setParent(this);
-//    backBtn->resize(80,80);
-//    backBtn->move(320,620);
+
     backBtn->move(this->width()-backBtn->width()-20, this->height()-backBtn->height()-20);
     connect(backBtn, &QPushButton::clicked, [=](){
         //qDebug() << "点击了返回按钮";

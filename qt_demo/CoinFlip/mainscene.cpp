@@ -29,37 +29,19 @@ MainScene::MainScene(QWidget *parent) :
 
     // 添加音效
     QSound *startSound = new QSound(":/res/TapButtonSound.wav",this);
-    startSound->play();
 
-    //设置背景音乐
-//    QSound *myMusic=new QSound(":/res/myDouDZ.wav",this);//声音还可以减小点
-//    myMusic->setLoops(-1);
-//    myMusic->play();
     //多曲
     QMediaPlaylist *playList=new QMediaPlaylist(this);
 
     playList->addMedia(QUrl("qrc:/res/myDouDZ.wav"));
-//    playList->addMedia(QUrl("qrc:/res2/xiaShan.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/xy.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/fk.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/bm.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/nsyw.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/xiaShan.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/xy.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/gs.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/fk.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/nsyw.mp3"));
-//    playList->addMedia(QUrl("qrc:/res2/bm.mp3"));
-//    playList->setCurrentIndex(0);
-
     QMediaPlayer *player=new QMediaPlayer(this);
     player->setVolume(60);
     player->setPlaylist(playList);
-    player->play();
+   // player->play();  播放背景bgm
 
     // 4. 创建Start按钮
     myButton* startBtn = new myButton(":/res/MenuSceneStartButton.png");
-    ChooseLevelScene* choice = new ChooseLevelScene();
+    ChooseLevelScene* choice = new ChooseLevelScene();//主界面就创建好了  就看在哪里show出来
     connect(choice, &ChooseLevelScene::chooseBackScene,this,[=]()->void{
 
         sleep(700);
@@ -86,7 +68,7 @@ MainScene::MainScene(QWidget *parent) :
         // 设置窗口固定
         choice->setGeometry(this->geometry());
 
-        this->hide();
+        this->hide();//只是隐藏
         choice->show();
 
     });

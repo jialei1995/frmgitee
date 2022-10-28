@@ -124,3 +124,89 @@ linux下面生成的文件格式elf格式。
 set payload linux/x64/meterpreter/reveser_tcp 回车
 ```
 
+# --------------------------再学习
+
+破解linux密码：
+
+```py
+unshadow /etc/passwd /etc/shadow > appomy.txt  将两个文件合并
+root@kali:~# john appomy.txt 
+Proceeding with wordlist:/usr/share/john/password.lst, rules:Wordlist
+0000             (root)
+密码              用户名
+
+unshadow的合并不是cat那种合并
+```
+
+--破解word excel zip包密码流程：
+
+```sh
+//将文档哈希转化成 哈希值 存到txt中
+root@kali:~# python /usr/share/john/office2john.py sec.docx > hash.txt 
+//直接执行命令解析txt
+root@kali:~# john hash.txt 
+Proceeding with wordlist:/usr/share/john/password.lst, rules:Wordlist
+123              (sec.docx)
+密码              文档
+```
+
+```
+cd /usr/share/john
+rar2john filename.rar > hash.txt  破解rar密码
+john hash.txt
+
+
+zip2john sec.zip > zip.txt   破解zip密码
+```
+
+### nmap
+
+```sh
+root@kali:~# nmap 192.168.60.1/24  扫描网关/掩码24的当前网关中的ip与开启的服务
+Nmap scan report for 192.168.60.1 (192.168.60.1)
+Host is up (0.00048s latency).
+Not shown: 999 filtered ports
+PORT     STATE SERVICE
+6000/tcp open  X11
+MAC Address: 00:50:56:C0:00:08 (VMware)
+
+Nmap scan report for 192.168.60.2 (192.168.60.2)
+Host is up (0.00033s latency).
+Not shown: 999 closed ports
+PORT   STATE    SERVICE
+53/tcp filtered domain
+MAC Address: 00:50:56:E1:FA:57 (VMware)
+
+Nmap scan report for 192.168.60.128 (192.168.60.128)
+Host is up (0.0014s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+MAC Address: 00:0C:29:4B:67:CC (VMware)
+
+Nmap scan report for 192.168.60.254 (192.168.60.254)
+Host is up (0.00037s latency).
+All 1000 scanned ports on 192.168.60.254 (192.168.60.254) are filtered
+MAC Address: 00:50:56:FA:9A:44 (VMware)
+
+Nmap scan report for 192.168.60.129 (192.168.60.129)
+Host is up (0.0000050s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+共有5个主机
+Nmap done: 256 IP addresses (5 hosts up) scanned in 8.00 seconds 
+```
+
+### crunch
+
+```sh
+crunch 11 11 -t 1381234%%%% > mob.txt   随机生成10000条电话号码数字  11表示长度
+
+crunch 6 6 -f /usr/share/crunch/charset.lst hex-lower -o 3.txt  根据给定模板生成 00001-fffff
+
+crunch 3 3 -p abc 123 iop > 6.txt   组合3个字符串  有几种组合方法
+
+```
+
