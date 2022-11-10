@@ -90,3 +90,15 @@ add_executable(hello_cmake  hello.cpp)
 qt-再学习
 添加图片资源--工程目录add new--qt--resource file--输入.qrc名称（随便）
 右键 res.qrc add现有文件--将所有图片载入即可使用
+注意：工程所在的目录不能是中文名称，会报错
+
+只有在布局控件-Qwidget等等布局控件中才能直接点击栅格布局
+
+第二个参数的传入方式：
+//因为参数类型是void *int的 void valueChanged(int);
+void(QSpinBox:: * spSignal )(int) = &QSpinBox::valueChanged;
+connect(ui->=
+
+
+虚拟机安装完成 点击vmware的虚拟机 --安装vm-tools
+然后tar包就会放到虚拟机  自己解压  进入目录 执行 ./vmxx.pl  -d  不加-d需要自己不断回车

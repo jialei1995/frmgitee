@@ -667,4 +667,23 @@ combox_curIndexChanged(const String &arg1) //arg1就是下拉框更新后的数�
 	}
 }
 
-qt中普通的函数可以只声明 不定义，但是自己右键->转到槽的槽函数 必须定义与声明都在（或都删）---如果只删掉定义不删掉声明 还是无法编译通过
+qt中普通的函数可以只声明 不定义，但是自己右键->转到槽的槽函数 必须定义与声明都在（或都删）
+---如果只删掉定义不删掉声明 还是无法编译通过
+
+
+
+Qclipboard   剪切内容的类
+QGUIApplication::clipboard()->test()---返回的就是当前剪切板中的内容（如果先在windows中复制的东西，运行
+qt程序后直接qDebug此表达式，返回的就是当前剪切板中的内容）
+Qdir::currentpath()
+
+多进程：
+Qprocess * ptr=new QProcess(this);  必须定义成指针  否则函数完成的时候变量消失  进程就必须结束
+用指针就需要考虑指针的释放--connect(ptr,SLOT(finished()),delete ptr);//自己释放自己
+QStringList args;
+args<<"/select"+QString("path");
+ptr->start("explorer",args);开启进程 资源管理器
+
+
+args<<"/xx"+"yy"  报错 “yy”是char * 无法直接+  需要转化成QString才能加
+args<<"/xx"+QString("yy")<<"zz"   则args[0]="/xxyy"  args[1]="zz"

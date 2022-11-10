@@ -155,6 +155,10 @@ re.findall("1[3589][0-9]{9}",s)  []中间的|有没有都行
 pattern = "https://movie.douban.com/subject/[0-9]+/"
 urls=re.findall(pattern,html)   从数据很多的网页把链接提取出来
 
+“[^abc]”  匹配abc以外的其他字符
+>>> s="ahhhb12345cchhaajjjbb"
+>>> re.findall("[^abc]{5}",s)   需要连续有5个才行 
+['12345']
 “^abc$”   以abc开头并结尾的字符串
 “a*” 匹配*号前的字符0次或多次
 “（ABC）{3,5}”  匹配abc字符串，最少3次最多5次
@@ -1217,10 +1221,15 @@ c阶段：
 			运行内核
 代码分析：
 			.lds 连接文件（查看每段代码的位置）
+				编译C代码不会create lds文件，因为libc库中包含链接file
+				编译汇编代码  需要自己写lds文件 才可以生成二进制
 			.global ——start  中断向量表
 			cpu设置svc模式  ：关闭中断、看门狗、mmu、cache  时钟串口初始化
 			自搬移到内存（重定位）
 			调到。main （大部分硬件初始化）
+
+keil:debug时  左侧的Internal:里面可以看到程序运行的消耗时间
+
 
 电脑几核：
 	cpu可以直接访问内存（存当前正在执行的程序与data），但不能直接访问外存。
@@ -1229,7 +1238,7 @@ c阶段：
 		r13：sp-栈顶地址
 		r14：lr-函数返回地址，函数调转时存放函数运行完后的地址，调用完函数后，pc调到这里继续往下执行。
 		cpsr：当前程序状态寄存器
-		spsr：备份当前程序状态寄存器[中断时自动调用]
+		spsr：备份当前程序状态寄存器[中断时自动调用],不进中断没用
 		3级指令流水线：最高效
 	
 	
@@ -1920,6 +1929,12 @@ linux内核移植：
 					echo "7 4 1 7" > /proc/sys/kernel/printk  开启内核打印到屏幕
 					arm-none-linux-gnueabi-addr2line：很多2表示to的意思。寻找addr所在的文件行数
 					oops:pc:[<0xxxxxxxxx>].报错的时候回显示行号---写入NULL地址数据，访问NULL指针
+					
+					解压内核code前用puts
+					解压内核时用putstr
+					内核解压后 uart初始化之前 printascii
+					uart初始化之后printk
+					
 			3.rootfs：自己制作或者选用别人的改改。
 
 
@@ -1929,7 +1944,7 @@ linux内核移植：
 							4、FLASH移植（EMMC）  1.1初始化EMMC    1.2添加相关命令（movi write。。）
 		PC端：配置tftp服务（传电脑的-要移植的东西-到板子的内存，然后板子可以烧到emmc，以后就不用接电脑了）					
 			配置nfs服务：实现象windows与linux的文件挂载功能的挂载，（板子挂载到linux，在linux运行程序就是在板子运行）
-*************************************内核编译*******内核调试****************************************8
+*************************************内核编译***************************************8
 		•解压内核
 		•修改内核顶层目录下的Makefile
 		ARCH		?= $(SUBARCH)
@@ -3037,6 +3052,7 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 
 
 ***********************************************并发竟态*******************************************
+		1个cpu就可以实现并发无法实现并行  多个cpu可以实现并行
 		通过1个全局变量的值解决竟态可以吗？？（看着没啥毛病，但是由于时间片的分配会影响的）程序的执行可能会被打断
 
 		hello_open()		-----这个函数其实不实现也可以，平时打开文件打开的是设备文件，open并不是只通过这个函数打开的文件
@@ -3623,6 +3639,7 @@ class Cat:
 
 	二维数组初始化：
 	[[0 for i in range(10)]for j in range(9)] ; 也可以用numpy
+	bool dp[m+1][n+1]   也可以创建n+1行 m+1列
 	range(begin,end,步进)  返回的是个序列，列表
 	for i in range(0,10,2)  i是0 2 4 6 8 左闭右开
 
@@ -3901,7 +3918,7 @@ void (*)signal(int type,void(*pFun)(int arg))(int);
 void (*signal(int type,void(*pFun)(int arg)))(int);  signal返回函数指针，不是返回一般的char*指针（看着就很麻烦，所以要typedef）
 
 typedef struct A A;则struct A==A;  A直接就是个数据类型，可以--A var，去定义变量。
-
+struct  B   B;前一个B是类型  后一个B是变量  并不会报错，可以正常使用  用到那种只需要1个的变量
 typedef void (int,int) ABC;
 typedef void ABC（int,int）;       
 
@@ -4953,6 +4970,7 @@ gpt分区：现在用的比较多-windows64 位以后基本都用的这种方式
 ### 软件包版本beta完美  alpha很多bug还在测试
 
 ## linux命令 shell命令
+split -b size(字节)  file   splitfile   分割大文件
 hexdump 将二进制转化为ascii区看，类似vim 中:%!xxd去看
 
 mktemp -d test.XXXX  创建目录，创建于当前目录
@@ -7027,6 +7045,7 @@ device + pin_ctroller：将引脚复用与引脚配置写到设备树中，直�
 指令不对
 数据访问问题
 reset 
+
 中断的处理：
 1.初始化：设置中断源，使可以产生中断
 2.执行程序
@@ -7038,7 +7057,17 @@ reset
 	恢复现场
 }
 
-线程是CPU调度的基本单位，每个线程都有自己的栈。
+linux内核的中断：进入内核态 可以访问内核空间地址 （平时我们都是在用户态）
+系统调用也是一种特殊的中断--通过软中断 向内核发出明确的请求（要读 还是要写 还是要ioctl）
+硬件中断--键盘鼠标 网卡等设备
+libc库就是封装了好多stdcall的库
+
+理解：linux编程更安全  不会坏板子
+（用户态程序 没有内核态的权限 做的操作都是读写 啥的，不会随便读写reg 导致系统崩掉）
+（让更有经验的程序员去写内核代码，内核代码一旦写错 系统就会崩溃）
+（底层的人把 硬件操作都实现好 上层的程序员直接调用 不需要关注底层实现  写的程序更简单 板子也不会崩溃）
+优点：
+
 
 linux中中断不能嵌套，不能被优先级更高的中断打断。
 单片机中都可以，linux中不可以？
@@ -7155,11 +7184,64 @@ CPSR寄存器的第24bit这个bit是0表示当前用的是ARM指令--每个汇�
 						  是1表示当前用的是thumb指令--每个汇编命令16bit
 						  
 汇编：
+mov r0,#<=8bit的数   用mov最多写8bit的数
+ldr  r5,=0xffffffff  可以写32bit的立即数
+add r0,r1  r0=r0+r1   进位会导致 C置1
 cmp r1,r3 
+指令后加S（条件码）：运算结果会影响NZCV位
+cmp不加s也会影响--别的指令不加s不会影响
+
 moveq r1,r2---如果r1==r1,则r1=r2。这句的执行条件是上面的cmp成立
 						  
 operation{条件}{S} Rd,Rn,operand2
-						 
+
+条件码：不能单独执行，必须跟到cmd后面
+加了条件码  指令的执行结果会影响nzcv位
+{
+cmp  r0,r1
+moveq r5,3   r0==r1  执行
+movne r5,4	 r0!-r1  执行
+eq =  gt>  ne!=  le <=
+}
+
+{
+n:negtive-->=0  置1   <0置0
+z:结果是否为0  为0，则置1  不为0，置0
+c:进位置1 ，不进置0
+v:alu运算（加减乘除） 
+}
+
+str r0,[r2,#4]！  前索引，先移位后赋值  ！：是否更新偏移后的地址
+str r0,[r2],#4   后索引，先赋值后移位  []：表示往地址所指向的位置赋值
+
+{
+	ldr r2,=buf    r2作为指针地址 指向buf
+	
+.data
+	buf:
+		.space  16   申请15字节的空间
+	buf:
+		.word 0x01
+		.word 0x02,0x03,0x04  申请数组 ，每个数据都是4byte的类型
+}
+
+c->汇编
+if(a==4||a==10)  x=0
+{
+	cmp r0,4
+	cmpne  r0,#10 r0不等于4  则继续判断 r0是否等于10
+	moveq  r1,0   以上任意一个相等，则r1=0  否则本行不执行
+}
+		
+if(a==0)  fub(1)
+{
+	cmp r1,#0
+	moveq r0,1   #传参用的r0 r1 r2  作为入参1 2 3
+	b  fun
+}	
+
+
+	
 operation:汇编指令 
 条件：执行条件 
 S：命令执行后是否修改程序状态寄存器 cmp默认就会修改CPSR，不需要加S
@@ -7979,3 +8061,5 @@ UInt16 myCRC16(byte[] pchMsg, UInt16 wDataLen, UInt16 offset)//无法传指针�
 
 
 int buf[10]={10};   并不会一次将所有位置都赋值10  只有0位置是10  其他位置都是0
+
+printf  等stdlib函数 不属于kernel层  都是应用层的库
