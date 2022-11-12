@@ -5417,6 +5417,9 @@ numpy.arange(10)   生成n个数字的一维数组
 data.reshape(2,5)  把它变成二维的
 data.reshape(2,5).T   再转置
 numpy.sqrt(data)   每个数字都开根
+
+numpy.zeros((4,2))  4行两列的数组 全为0   注意双层括号
+
 np.genfromtxt('1.txt',delimiter=',')  提取1.txt中数据，1.txt中数据是以‘，’分割的
 data.astype(int)  data中每个数据都转化为int类型
 ---pandas
