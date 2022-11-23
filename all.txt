@@ -1665,6 +1665,14 @@ C++:c++98||c++11 ||c++14
     cout<<v.first<<endl;
 
 ****************************************vector***********************
+	vector<int>  vec(100); //可以用变量当作数组长度
+	int vec[100];   //不能用变量直接当作数组长度 
+	两种方法创建的数组是一样的，只是上一种的数组如果空间用完可以继续push_back  而下面的数据长度就固定下来了
+		
+	queue的push只能插入简单的数据类型，对于自己构造的数据类型无法直接插入，需要
+	q.push(Person("name",age))
+	反正push能做的，emplace都能做
+
 	输入不定长的vector
 	{
 		v.push_back(x);
@@ -8066,3 +8074,6 @@ UInt16 myCRC16(byte[] pchMsg, UInt16 wDataLen, UInt16 offset)//无法传指针�
 int buf[10]={10};   并不会一次将所有位置都赋值10  只有0位置是10  其他位置都是0
 
 printf  等stdlib函数 不属于kernel层  都是应用层的库
+
+c# 中收到数据 uint16  怎么转成  int16去给数据带正负号？   res=(short)tmp;  直接转原数据即可
+

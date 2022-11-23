@@ -28,6 +28,7 @@ https://winlibs.com/中下载UCRT runtime中的安装包（加速下载）
 然后就可以直接运行+调试了
 
 https://ghproxy.com/（加速下载github文件的链接，直接将下载链接拖进来即可）
+拷贝解压后的C:\mingw64 放到c盘根目录即可---然后配置此bin目录到环境变量即可
 
 另一个视频的总结：
 cmakelists基本语法：指令（参数1 参数n）
