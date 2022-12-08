@@ -20,19 +20,36 @@
 20、sizeof求对象大小
 21、指针和引用的区别
 
-void print_num(int i)
-{
-  std::cout << i << '\n';
-}
+
 std::function<void(int)> f_display = print_num;
 std::function<void(int)>相当于数据类型，这里是个void返回值，int入参的函数类型，赋值print_num。
 
 std::function<void()> f_display_42 = []() { std::cout << 42<< '\n'; }; lamda表达式，没入参
 
 
+引用：
+1.给变量取别名
+2.引用定义的时候必须初始化--不能int&b;  不初始化是错误的
+3.引用一旦初始化，不可以修改	 int &b=a;  b=c; 这里只是将c的值赋值给b，并不是更改引用，引用只能定义的时候去赋值。
+int a=10;
+int &b=a;   则b与a都可以操作同一数据
+4.引用做函数返回值-- 接收返回值需要  int &ret=fun();
+	4.1不要返回局部变量的引用---可以返回 局部的static变量--因为它在全局区  函数执行完，他也不会被释放，程序结束才会被释放
+	4.2函数的调用可以作为左值（=左边的值）
+		int & test(){static a=10;return a;}
+		int &ref=test();//test的内部的局部静态变量返回给ref 则ref值就是test函数返回值
+		test()=1000；   则ref的值就会变成1000  这句话相当于给a的别名赋值，会直接修改a的值，则也会修改ref的值
 
+5.引用的本质
+	int a=10;
+	int &ref=a;  //相当于 int *const ref=&a;指针指向不可更改--也说明了为啥引用不可以再修改指向
+	ref=20;    //内部发现ref是引用 自动转化成*ref=20;
 
-
+6.常量引用
+	const int &ref=10;//ref变为只读状态，不可修改
+	用处：
+	int a=100;
+	void print(const int&value){cout<<value;}  //保证函数中用ref用的只是只读状态 并不想更改入参的值
 
 
 

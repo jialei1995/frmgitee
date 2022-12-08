@@ -1396,3 +1396,7 @@ int [] getElement(int cnt)
 	
 }
 
+
+
+英文国际化：
+程序中的messageBox.Show("nihao"); 在中文系统中会显示成确定，更改当前的系统的语言为英文，则运行后确定就会变成ok
