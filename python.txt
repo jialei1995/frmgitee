@@ -51,5 +51,47 @@ l[1]=2
 
 
 
+字符之间不可以直接相减 ，但是可以直接相加表示拼接
+'1'-'0'  错误
+应该ord('1')-ord('0')    ord()  传入单个字符表示  获取当前字符的ascii码
+'1'>'0'  可以直接判断两个字符的ascii的大小   就是不能减，其他都可以
+
+python中的queue
+import queue
+
+deque = queue.deque()
+
+if deque:  满足表示队列不为空
+max(deque) 直接返回队列中的最大值
+deque.append(value) 入队
+deque.popleft()  头出队---不为空则不能出队
+deque.pop()   尾端出队---不为空则不能出队
+
+直接用list也可以当成队列使用：
+入队 append 
+左边出队  pop(0)
+右边出队  pop()
+求列表中的最大最小值max(l)  min(l)
 
 
+round(a, 2)  保留小数点后2位
+round(a)	 取整 小数点后不保留
+
+strs = [str(num) for num in nums]  将数字数组转化成字符串数组，对字符串数组按照特定的排序规则排序	
+函数中定义的局部strs在子函数中可以直接使用，不需要传参就可以--参考strs
+def minNumber(self, nums: List[int]) -> str:
+	def quick_sort(l , r):
+		if l >= r: return
+		i, j = l, r
+		while i < j:
+			while strs[j] + strs[l] >= strs[l] + strs[j] and i < j: j -= 1
+			while strs[i] + strs[l] <= strs[l] + strs[i] and i < j: i += 1
+			strs[i], strs[j] = strs[j], strs[i] #交换strs的i j 位置的数据
+		strs[i], strs[l] = strs[l], strs[i]
+		quick_sort(l, i - 1)
+		quick_sort(i + 1, r)
+	
+	strs = [str(num) for num in nums]  将数字数组转化成字符串数组，对字符串数组按照特定的排序规则排序
+	quick_sort(0, len(strs) - 1)
+	return ''.join(strs)   拼接排序后的数组
+		

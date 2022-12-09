@@ -957,3 +957,24 @@ int coinChange(vector<int>& coins, int amount) {
 	}
 	return dp[amount] > amount ? -1 : dp[amount];
 }
+
+
+
+剑指 Offer 45. 把数组排成最小的数（自定义排序，清晰图解）
+def minNumber(self, nums: List[int]) -> str:
+	def quick_sort(l , r):
+		if l >= r: return
+		i, j = l, r
+		while i < j:
+			while strs[j] + strs[l] >= strs[l] + strs[j] and i < j: j -= 1
+			while strs[i] + strs[l] <= strs[l] + strs[i] and i < j: i += 1
+			strs[i], strs[j] = strs[j], strs[i] #交换strs的i j 位置的数据
+		strs[i], strs[l] = strs[l], strs[i]
+		quick_sort(l, i - 1)
+		quick_sort(i + 1, r)
+	
+	strs = [str(num) for num in nums]  将数字数组转化成字符串数组，对字符串数组按照特定的排序规则排序
+	quick_sort(0, len(strs) - 1)
+	return ''.join(strs)   拼接排序后的数组
+		
+函数中定义的局部strs在子函数中可以直接使用，不需要传参就可以
