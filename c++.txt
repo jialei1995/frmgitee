@@ -73,24 +73,49 @@ obj.getNmae(){return m_name}   对象不可以直接通过.访问私有属性。
 只要写一个类：系统就会提供3个默认函数-默认构造 析构 拷贝构造 
 
 拷贝构造函数：  复制p2的属性 给p  Person p=Person(p2);
-Person(const Person &p)  
+	Person(const Person &p)  
+	{
+		m_age=p.m_age;
+	}
+	编译器默认提供的拷贝是浅拷贝--值value 的简单复制
+	深拷贝：各自对象 创建各自内部的 堆，各对象操作自己的堆数据  互不影响
+
+	对于有指针的类，浅拷贝的时候 指针简单复制，表示两个对象指向同一堆区，因此当析构的时候 指针就会被重复释放 ---产生问题
+	Person(const Person & p)
+	{
+		m_height=new int(*p.m_height);//深拷贝核心代码-要申请空间+给申请的空间赋值（赋值原对象的对应的堆的数据）
+		m_height=p.m_height;		 //若是浅拷贝就是直接的赋值   与堆毫无关系
+	}
+
+
+	int * var_int = new int(value);//相当于先申请空间  然后给空间写数据value 
+
+初始化列表：只能构造函数 初始化类内的属性 
+Test():m_a(1),m_b(2),m_c(3)
 {
-	m_age=p.m_age;
-}
-编译器默认提供的拷贝是浅拷贝--值value 的简单复制
-深拷贝：各自对象 创建各自内部的 堆，各对象操作自己的堆数据  互不影响
 
-对于有指针的类，浅拷贝的时候 指针简单复制，表示两个对象指向同一堆区，因此当析构的时候 指针就会被重复释放 ---产生问题
-Person(const Person & p)
-{
-	m_height=new int(*p.m_height);//深拷贝核心代码-要申请空间+给申请的空间赋值（赋值原对象的对应的堆的数据）
-	m_height=p.m_height;		 //若是浅拷贝就是直接的赋值   与堆毫无关系
 }
 
+剑指 Offer 50. 第一个只出现一次的字符
+#include<map>
+class Solution {
+public:
+    char firstUniqChar(string s) {
+        map<int, int> frequency;
+        for (char ch: s) {
+            ++frequency[ch];//先遍历str将每个字母的数量记下来
+        }
+        for (int i = 0; i < s.size(); ++i) {//按照str中字母的顺序去遍历map
+            if (frequency[s[i]] == 1) {
+                return s[i];
+            }
+        }
+		for(char m :s)
+        {
+            if(frequency[m]==1)   return m;
+        }
 
-int * var_int = new int(value);//相当于先申请空间  然后给空间写数据value 
+        return ' ';
 
-
-
-
-
+    }
+};
