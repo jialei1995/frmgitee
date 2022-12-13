@@ -978,3 +978,85 @@ def minNumber(self, nums: List[int]) -> str:
 	return ''.join(strs)   拼接排序后的数组
 		
 函数中定义的局部strs在子函数中可以直接使用，不需要传参就可以
+
+
+岛屿问题：
+岛屿的最大面积：
+class Solution {
+public:
+    int maxAreaOfIsland(vector<vector<int>>& grid) {
+        int res = 0;
+        for (int r = 0; r < grid.size(); r++) {
+            for (int c = 0; c < grid[0].size(); c++) {
+                if (grid[r][c] == 1) {//若当前位置为岛屿 则求面积
+                    int a = area(grid, r, c);
+                    res = max(res, a);
+                }
+            }
+        }
+        return res;
+    }
+    //深度优先遍历
+    int area(vector<vector<int>>& grid, int r, int c) {
+        if (!inArea(grid, r, c)) { //当前位置超出数组接线  返回0  无新增面积
+            return 0;
+        }
+        if (grid[r][c] != 1) { //当前位置为海 或者 当前位置已经遍历过  无新增面积
+            return 0;
+        }
+        grid[r][c] = 2;//加标志 表示当前位置已经遍历过了
+        return 1 
+            + area(grid, r - 1, c)
+            + area(grid, r + 1, c)
+            + area(grid, r, c - 1)
+            + area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
+    }
+
+    bool inArea(vector<vector<int>>& grid, int r, int c) {
+        return 0 <= r && r < grid.size() 
+                && 0 <= c && c < grid[0].size();
+    }
+
+};
+
+岛屿的周长：
+class Solution {
+public:
+    int islandPerimeter(vector<vector<int>>& grid) {
+        int res=0;
+        for (int r = 0; r < grid.size(); r++) {
+            for (int c = 0; c < grid[0].size(); c++) {
+                if (grid[r][c] == 1) {//若当前位置为岛屿 则求周长
+                    return  area(grid, r,c);
+                }
+            }
+        }
+        return res;
+    }
+    //深度优先遍历
+    int area(vector<vector<int>>& grid, int r, int c) {
+        if (!inArea(grid, r, c)) { //当前位置超出数组接线  返回1  临界边 新增周长为1 
+            return 1;
+        }
+        if (grid[r][c] ==0)//当前方向是水 新增周长1
+        {
+           return 1;
+        }
+
+        if (grid[r][c] != 1) { //已经遍历过
+            return 0;
+        }
+        //后面的表示当前位置为1  可以上下左右扩散
+        grid[r][c] = 2;//加标志 表示当前位置已经遍历过了
+        return area(grid, r - 1, c)
+            + area(grid, r + 1, c)
+            + area(grid, r, c - 1)
+            + area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
+    }
+
+    bool inArea(vector<vector<int>>& grid, int r, int c) {
+        return 0 <= r && r < grid.size() 
+                && 0 <= c && c < grid[0].size();
+    }
+
+};
