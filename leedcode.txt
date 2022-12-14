@@ -1060,3 +1060,100 @@ public:
     }
 
 };
+
+
+岛屿数量：
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int res = 0;
+        for (int r = 0; r < grid.size(); r++) {
+            for (int c = 0; c < grid[0].size(); c++) {
+                if (grid[r][c] == '1') {//若当前位置为岛屿 则求面积
+                    res+=1;
+                    area(grid, r, c);
+                }
+            }
+        }
+        return res;
+    }
+    //深度优先遍历  把遍历过的岛屿置'0'，否则害怕把同一个岛屿上多个1重新计算
+    void area(vector<vector<char>>& grid, int r, int c) {
+        if (!inArea(grid, r, c)) { //当前位置超出数组接线  返回0  无新增面积
+            return;
+        }
+        if(grid[r][c] == '0')
+            return;
+        grid[r][c] = '0';//加标志 表示当前位置已经遍历过了
+        
+        area(grid, r - 1, c);
+        area(grid, r + 1, c);
+        area(grid, r, c - 1);
+        area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
+        return;
+    }
+
+    bool inArea(vector<vector<char>>& grid, int r, int c) {
+        return 0 <= r && r < grid.size() 
+                && 0 <= c && c < grid[0].size();
+    }
+};
+
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int res = 0;
+        for (int r = 0; r < grid.size(); r++) {
+            for (int c = 0; c < grid[0].size(); c++) {
+                if (grid[r][c] == '1') {//若当前位置为岛屿 则求面积
+                    res+=1;
+                    area(grid, r, c);
+                }
+            }
+        }
+        return res;
+    }
+    //深度优先遍历
+    void area(vector<vector<char>>& grid, int r, int c) {
+        if (!inArea(grid, r, c)) { //当前位置超出数组接线  返回0  无新增面积
+            return;
+        }
+        if(grid[r][c] == '0')
+            return;
+        if(grid[r][c] == '2')
+        {
+            return;
+        }
+        grid[r][c] = '2';//加标志 表示当前位置已经遍历过了
+        
+        area(grid, r - 1, c);
+        area(grid, r + 1, c);
+        area(grid, r, c - 1);
+        area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
+        return;
+    }
+
+    bool inArea(vector<vector<char>>& grid, int r, int c) {
+        return 0 <= r && r < grid.size() 
+                && 0 <= c && c < grid[0].size();
+    }
+};
+
+38. 外观数列
+string countAndSay(int n) { //用前一个值推理下一个值
+	vector<string> dfs(n+1);
+	dfs[1] = "1";
+	for (int i = 2; i <= n; ++i) {
+		int start = 0;
+		int pos = 0;
+		while (pos < dfs[i-1].size()) {
+			while (pos < dfs[i-1].size() && dfs[i-1][pos] == dfs[i-1][start]) {
+				pos++;
+			}
+			dfs[i] += to_string(pos - start) + dfs[i-1][start];
+			start = pos;
+		}
+	}
+	
+	return dfs[n];
+}
