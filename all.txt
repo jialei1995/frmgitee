@@ -1632,7 +1632,7 @@ C++:c++98||c++11 ||c++14
 					也可以直接insert({1,2})  反正就是插入2个数字，这样最简单
 			删除：earse(m.begin());迭代器方式   earse(m.begin()，m.end());区间方式删除
 				earse(3);按照key值方式删除
-		
+			empty()  map是否为空
 			查找：map.find(x);map<int,int>::iterator pos=m.find(3),	找到返回所在位置迭代器，找不到反回m.end
 
 	set容器：集合，集合中的元素不会重复的。
@@ -1642,6 +1642,7 @@ C++:c++98||c++11 ||c++14
 			clear（）清空
 			erase（pos）删除迭代器位置的元素  erase（s.begin(),s.end()）区间删除
 			erase（elem）
+			empty()  set是否为空
 	除了利用iterator遍历方法，还可以用
 	for(string ch:s){ 如果s是个vector<string>
         cout<<ch<<" ";
