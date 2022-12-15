@@ -1157,3 +1157,104 @@ string countAndSay(int n) { //用前一个值推理下一个值
 	
 	return dfs[n];
 }
+
+while(条件1 && 条件2) 与 while(条件2 && 条件1) 不一样，因为&&符号的特殊性，前者不成立后者就不会执行
+while(条件1 || 条件2) 与 while(条件2 || 条件1) 不一样，因为&&符号的特殊性，前者成立后者就不会执行
+
+对于需要访问数组下标的条件：
+while(pos<len(dfs[i-1]) and dfs[i-1][start]==dfs[i-1][pos] ): 若数组越界就不会访问下标
+while(dfs[i-1][start]==dfs[i-1][pos] and pos<len(dfs[i-1])):  程序会异常，因为会先访问越界下标 才会
+
+79. 单词搜索
+class Solution {
+public:
+    bool check(vector<vector<char>>& board, vector<vector<int>>& visited, int i, int j, string& s, int k) {
+        if (board[i][j] != s[k]) {//当前位置不符 直接退出
+            return false;
+        } else if (k == s.length() - 1) { //word遍历到最后一位了说明包含此单词
+            return true;
+        }
+        visited[i][j] = true;//遍历过某个位置  置true
+        vector<pair<int, int>> directions{{0, 1}, {0, -1}, {1, 0}, {-1, 0}};//变量方向
+        bool result = false;
+		//4个方向都要遍历
+        for (const auto& dir: directions) {
+            int newi = i + dir.first, newj = j + dir.second;//计划要遍历的点坐标
+			//若点坐标在board范围内 并且没有被遍历过  则递归处理新的点坐标 否则不做处理
+            if (newi >= 0 && newi < board.size() && newj >= 0 && newj < board[0].size()) {
+                if (!visited[newi][newj]) {//新点没被遍历过
+                    bool flag = check(board, visited, newi, newj, s, k + 1);
+                    if (flag) {
+                        result = true;  //若存在直接break;
+                        break;
+                    }
+                }
+            }
+        }
+        visited[i][j] = false;//回溯法精髓  --- 用完恢复
+        return result;
+    }
+
+    bool exist(vector<vector<char>>& board, string word) { //一个一个点作为初始点 去遍历 board
+        int h = board.size(), w = board[0].size();
+        vector<vector<int>> visited(h, vector<int>(w));
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                bool flag = check(board, visited, i, j, word, 0);//从word的0位置开始  board的i j位置开始
+                if (flag) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
+def exist(self, board: List[List[str]], word: str) -> bool:
+	def check(board,i,j,word,pos,visited):
+		if(board[i][j]!=word[pos]):
+			return False
+		elif(pos==len(word)-1):
+			return True
+		dirs=[[0,1],[0,-1],[1,0],[-1,0]]
+		visited[i][j]=True
+		for dir in dirs:
+			newi=i+dir[0]
+			newj=j+dir[1]
+			if(newi>=0 and newi<len(board) and newj>=0 and newj<len(board[0]) and visited[newi][newj]==False):
+				ret=check(board,newi,newj,word,pos+1,visited)
+				if(ret==True):
+					return True
+		visited[i][j]=False #for循环完了在恢复--原因：4个方向都不对，当前节点要退回去  从下一个节点去当作头处理
+		return False
+			
+
+	visited = [[False for i in range(len(board[0]))] for i in range(len(board))]  
+	for i in range(len(board)):
+		for j in range(len(board[0])):
+			ret=check(board,i,j,word,0,visited)
+			if(ret==True):
+				return True;
+	return False
+	
+	
+108. 将有序数组转换为二叉搜索树
+class Solution {
+public:
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        return helper(nums, 0, nums.size() - 1);
+    }
+
+    TreeNode* helper(vector<int>& nums, int left, int right) {
+        if (left > right) {
+            return nullptr;
+        }
+        //总是选择中间位置左边的数字作为根节点
+        int mid = (left + right) / 2;
+
+        TreeNode* root = new TreeNode(nums[mid]);  //构造根节点
+        root->left = helper(nums, left, mid - 1);	//构造左子树
+        root->right = helper(nums, mid + 1, right); //构造右子树
+        return root;
+    }
+};
