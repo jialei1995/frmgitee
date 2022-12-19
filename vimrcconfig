@@ -57,3 +57,203 @@ set   wildmode=list:longest,full
 set   nowrap
 
 set  tags=/usr/include/tags
+
+
+
+i:insert before
+I:insert before a line
+a:append 
+A:append after a line
+o:insert after line 
+O:insert above
+vim：直接进入不是编辑模式 ，因为我们大部分时间在浏览而不是编辑
+:vs  竖分屏  	:sp 横分屏
+:%s/test/qqq/g  全局替换
+:s/test/qqq/g  只替换光标所在行
+:↑   查看上条命令
+在插入模式下：
+	ctrl+u 删除当前位置到行首的数据----在终端也能用
+	ctrl+w 删除上一个单词--------------在终端也能用
+切换回命令行模式的时候--可以用ctrl+c切换  不用esc
+gi:切换回最后一次编辑模式所在的光标位置，进入插入模式
+
+快速移动：
+	w/W:下一单词开头
+	e/E:下一单词结尾
+	b/B:回到上单词开头
+	搜索某一字符并且跳过去 f(char)跳到char上
+					t(char)跳到char的前一字符
+					F（char） 在行尾的时候倒着往前搜char字符
+	;  跳到下一个  ,跳到上一个char
+	
+	^跳到行首 0跳到行首 $跳到行尾
+	gg:文件第一行
+	G：文件尾
+	ctrl+o：返回原来的位置
+	H、M、L：跳到文件开头 中间 结尾
+	
+	ctrl+u：向上翻页
+	ctrl+f：向下翻页
+	zz：把当前行放到页面中间--便于查看代码
+增删改查：
+	daw:删除当前位置单词 del around word
+	diw:删除当前单词  不删周围的空格
+	dd:删除当前行
+	dt(char)：删除当前位置到char之间的所有
+	x:直接删除当前光标处字符 
+	:syntax on 高亮显示关键单词
+快速修改：
+	r:replace  r(char):把光标处的字符换成char
+	c:change	cw:替换当前单词 进入插入模式
+	s:substitute	s:删除当前字符并进入插入模式
+	R:进入不断替换的模式 esc退出
+	S:删除当前行进入插入模式
+	ct(char):删除当前光标到char之间的字符并进入插入模式
+	
+	hls：高亮显示搜索结果
+替换：
+	:[range]s/{pattern}/{string}/{flag}
+	range:10,20--10到20行 %全部
+	pattern:要替换的模式
+	string:替换后的文本
+	flag: g:全局  c:确认或拒绝修改 n:统计个数
+	
+	查找1到6行有几个self：:1,6 s/self//n
+	精确替换:s /\<quack\>/thing/g
+	
+	
+vim:同时打开多个文件
+:ls  列举当前打开的多个文件 信息
+:b x 跳到对应的文件 :bpre bnext bfirst blast跳到对应文件
+:b 文件名  跳到对应的文件--可以tab补全
+
+:e +tab 可以补全打开新的文件
+
+一个缓冲区可以分割成多个窗口：
+ctrl+w  s:水平分割	或者 :sp
+ctrl+w  v:垂直分割	或者 :vs
+ctrl+w  上下左右：切换当前窗口
+对同一个文件在窗口A做的修改会立刻同步到其他窗口中
+
+vim的text object
+	[number]<cmd>[text object]
+	次数+命令(d c-单词替换 y-赋值)+text object（w-单词 s-句子 p-段落）
+					s-sentence   p：paragraph段落
+	iw:inner word  如viw：v进入选择模式 iw选中当前单词
+	aw:a word 选中当前单词加单词后的空格
+	is:  as:一句话
+	ip:  ap:一段话
+	
+	替换双引号中的字符: this is "test 1 test2 test3"
+	vi"--选中双引号中的字符--x删除
+	ci"--直接删除双引号中的字符 并进入插入模式
+	更改{}中的内容，光标放到{}之间任意位置 ci{、或} 直接删除之前的数据
+		并进入插入模式
+	
+	yiw:复制一个单词
+vim中的寄存器：
+	在normal模式： "a yy  将yy复制的内容存到a寄存器
+	"b dd  将dd的内容存到b寄存器
+	
+	：reg 查看当前所有reg内容
+	：reg a  查看当前a寄存器内容
+	
+	"a p 将a寄存器中的数据粘贴  
+	"b p 将b寄存器中的数据粘贴
+	平时直接剪切复制的数据会保存到无名reg中""就是无名寄存器
+	"+ 表示系统剪切板
+	:set clipboard=unnamed   可以直接将系统剪切板数据放到无名寄存器
+	在vim中直接粘贴，也可以直接将vim中复制的数据放到系统剪切板在系统中ctrl+v粘贴
+	
+vim的宏：高级用法---若每行操作一样，只需要录制一行 后面直接引用宏即可
+	q{reg name} 选择要保存的reg
+	@{reg name} 回放寄存器中保存的数据
+	
+	怎么给文件中的多个链接添加双引号？
+		qa看到recording @a说明已经开始录制  将之后对一行加双引号的操作
+		做完后 在按q退出录制---此时reg a中已经保存了对一行做""的操作
+	在其他行：@a---就会执行加双引号的操作
+	v全选后面的所有行+ :'<,'>normal @a  执行normal模式的@a 操作
+	什么情况会使用宏？？
+	批量加引号 还能怎么做？
+		v全选：---加前面的引号:'<,'>normal I" ----
+			加后面的引号 :'<,'>normal A"
+补全大法：
+	ctrl+n ctrl+p补全单词 n：nect  p:pre
+	ctrl+x ctrl+f补全文件名
+	ctrl+x ctrl+o 各种语言全能补全--需要插件--以后再用
+	
+vim配色：--可以在github下载配色的vim文件  然后将此文件放到.vim/color/目录中即可通过
+:colorscheme ctrl+d去使用新增的配色
+	:colorscheme  查看当前配色主题
+	:colorscheme ctrl+d 查看系统主题 替换当前主题
+	持久化配置需要写道vimrc中去 colorscheme default设置默认主题
+vim的个性化配置：
+	vim ~/.vimrc  
+	映射 在vimrc中
+	let mapleader=","  设置vim的leader键，一般设置为,或空格
+	inoremap jj <Esc>   以后编辑过程中可以 jj当成esc
+	inoremap <leader>w <Esc>:w<cr>	,w == esc+:w+回车
+		编辑过程中,w就会实现保存--更方便
+	
+	基本映射：normal模式下的映射
+		:map - x  按-就会删除单个字符
+		:map <space> viw  按下空格选中整个单词
+		:mao <c-d> dd  ctrl+d就可以删除一行
+	在visual  insert模式下 都可以定义映射
+	inoremap就是insert模式下定义映射的方法
+	
+	insert模式删除行设置：
+	imap <c-d> <Esc>dd   
+	nmap normal模式下的映射设置
+	
+	map提供了非递归映射：nnoremap--normal模式的nore非递归map
+						 vnoremap--visual模式的noremap--NoRecurse
+						 inoremap--insert模式的noremap
+	普通的映射会实现递归：---所以任何情况我们都要使用非递归去映射
+	map - x
+	map \ -   则map最后会将 \解释为 x 删除
+
+vim插件：
+	插件管理器--可以通过它去管理多个vim插件
+	vim-plug
+	下载https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+   curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+	
+	call plug#begin()
+	Plug 'mhinz/vim-startify'   在begin与end之间添加vim的功能插件即可
+	call plug#end()
+	
+	需要安装git才能增加插件--因为插件是git自己下载的
+	添加完成在vim内部:source .vimrc更新即可
+	不能退出vim界面去更新  因为.vimrc不是shell脚本
+	
+	然后执行:PlugInstall  就会自动安装startify插件（最近打开过的历史文件记录）
+	
+	vim直接回车可以看到此插件的功能 可以直接回车跳到对应文件 
+
+	Plug 'vim-airline/vim-airline'----底行显示状态
+	Plug 'scrooloose/nerdtree'--------查看目录结构
+	Plug 'vim-airline/vim-airline-th
+	
+	vim打开后 :NERDTree 可以查看当前目录的结构树
+	Plug 'ctrlpvim/ctrlp.vim'
+	vim后ctrl+p 可以搜索要打开的文件的名字 避免繁琐的查找
+当前窗口移动到任意位置： 
+	Plug 'easymotion/vim-easymotion'
+	安装后需要映射：nmap ss <Plug>(easymotion-s2)
+	直接在文件中ss:要跳到的位置 的两个字母
+成对编辑：
+	将成对的""改成‘’单引号
+	Plug 'tpope/vim-surround'
+	ys iw" 给当前单词添加双引号
+	cs " ' 将当前位置两边的双引号 改成 单引号 cs ( ]将（）改成[]
+	ds ' 删除' ds“删除双引号
+vim--python插件：
+	pythin-mode
+	
+
+	
+	
+	
