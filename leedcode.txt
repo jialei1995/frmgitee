@@ -1258,3 +1258,46 @@ public:
         return root;
     }
 };
+
+
+128. 最长连续序列
+int longestConsecutive(vector<int>& nums) {
+	set<int> num_set;
+	for (int num : nums) {
+		num_set.insert(num);
+	}//set 去重
+
+	int maxlen = 0;
+	for (int num : num_set) {
+		if (!num_set.count(num - 1)) 当前位置数字 前面的数字找不到 ，则以当前位置为头 开始往后找最长序列
+		{
+			int currentNum = num;
+			int currentStreak = 1;
+
+			while (num_set.count(currentNum + 1)) {//当前位置数字的 +1能找到
+				currentNum += 1;
+				currentStreak += 1;
+			}
+
+			maxlen = max(maxlen, currentStreak);//更新
+		}else
+		{
+		//当前位置不属于头 没必要去计算最长长度
+		}
+	}
+
+	return maxlen;   
+	
+def longestConsecutive(self, nums: List[int]) -> int:
+	num_set = set(nums)  python中list转set 方法，直接set(list)即可直接转化
+
+	maxlen=0
+	for num in num_set:  
+		if(num-1 not in num_set):  判断某个元素不在set中
+			currentNum=num
+			currentlen=1
+			while(currentNum+1 in num_set): 判断某个元素是否在set中
+				currentNum+=1
+				currentlen+=1
+			maxlen=max(currentlen,maxlen)  
+	return maxlen
