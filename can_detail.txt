@@ -6,14 +6,15 @@ CAN总线知识：
 can通信案例：
 https://blog.csdn.net/weixin_30576859/article/details/95213928?utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromMachineLearnPai2~default-2.control
 
-
-
 ——————————————
 dbc文件制作与解析：
 BO_ 266 Rongliang: 8 Vector__XXX		---------id 266  帧名字--rongliang 8此帧数据长度  --里面包含3种数据--fullcap：bit32+4byte  descap:bit16+2byte  remcap:bit0+2byte
 SG_ FULL_CAP : 32|16@1+ (0.1,0) [0|0] "AH" Vector__XXX     SG_:signal名字FULL_CAP   (0.1,0)  分辨率+offset   [0|0]最小值~最大值   +、-：代表无符号 有符号数据
 SG_ DES_CAP : 16|16@1+ (0.1,0) [0|0] "AH" Vector__XXX
 SG_ REM_CAP : 0|16@1+ (0.1,0) [0|0] "AH" Vector__XXX			"AH"  代表单位  不写为空单位
+1+  intel 数据   0+ motorl数据
++ - :代表当前数据有无符号
+0|16:从0bit开始 共16bit长度，属于REM_CAP
 
 
 下载candb++软件，直接打不开

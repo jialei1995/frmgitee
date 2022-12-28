@@ -1269,6 +1269,7 @@ int longestConsecutive(vector<int>& nums) {
 
 	int maxlen = 0;
 	for (int num : num_set) {
+		//count  返回 num的个数 因为set会去重 只会返回0/1
 		if (!num_set.count(num - 1)) 当前位置数字 前面的数字找不到 ，则以当前位置为头 开始往后找最长序列
 		{
 			int currentNum = num;
