@@ -489,6 +489,17 @@ mGraph2->setPen(QPen(QColor(0, 180, 60)));设置线条颜色
 
 listWidget:每行一个选项卡，additem增加选项
 ui->listWidgetLanguage->addItem(tr("中文"));
+//以下5行 设置滚动时可以用鼠标左键按下去滚动
+//禁用横向滚动条
+ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+//禁用纵向滚动条
+ui->listWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+//设置横向按照像素值为单位滚动
+ui->listWidget->setHorizontalScrollMode(QListWidget::ScrollPerPixel);
+//设置纵向按照像素值为单位滚动
+ui->listWidget->setVerticalScrollMode(QListWidget::ScrollPerPixel);
+//设置滚动对象以及滚动方式为鼠标左键拉动滚动
+QScroller::grabGesture(ui->listWidget, QScroller::LeftMouseButtonGesture);
 
 
 groupbox里面可以放各种同类型控件,一次性放多个
@@ -687,3 +698,207 @@ ptr->start("explorer",args);开启进程 资源管理器
 
 args<<"/xx"+"yy"  报错 “yy”是char * 无法直接+  需要转化成QString才能加
 args<<"/xx"+QString("yy")<<"zz"   则args[0]="/xxyy"  args[1]="zz"
+
+
+
+定义槽函数：
+需要在.h文件中 加public slots: 修饰   直接定义函数，在.c文件调用时会报错  无此槽函数
+public   slots:
+    void load();
+
+connect(ui->mypushButton,SIGNAL(clicked()),this,SLOT(load()));
+
+获取当前线程ID 当前时间：年月日 时分秒 毫秒
+str = QString("Subthread Id: %1, Time:%2").arg((unsigned)QThread::currentThreadId())
+                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss zzz"));
+
+延时  或者异步 执行槽函数，都可以解决主界面还未初始化完调用load卡死的问题。
+//异步执行load函数
+QMetaObject::invokeMethod(this, "load", Qt::QueuedConnection);
+//延时10毫秒执行load函数
+QTimer::singleShot(10, this, SLOT(load()));
+
+exp:
+public slots:  头文件中必须将此，两个函数声明成槽函数 否则后面无法调用
+    void timeSlot();
+    void Load(qint32 nMsecs);
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    qDebug()<<"satart";
+	//这里3种方法都可以解决主界面显示慢 问题
+    QMetaObject::invokeMethod(this,"Load",Qt::QueuedConnection);//无参数，QueuedConnection表示异步调用，等主线程
+    //QMetaObject::invokeMethod(this,"Load",Qt::QueuedConnection, Q_ARG(qint32, 5000));//异步调用，Q_ARG传参数
+    //QTimer::singleShot(10,this,SLOT(timeSlot()));//启用单次计时器
+}
+
+void MainWindow::Load(qint32 nMsecs)
+{
+    QThread::msleep(nMsecs);
+    this->setWindowState(Qt::WindowMaximized);
+    ui->label->setText("执行invokeMethod之后");
+}
+
+void MainWindow::timeSlot()
+{
+    QThread::msleep(3000); //
+    this->setWindowState(Qt::WindowMaximized);
+    ui->label->setText("执行QTimer之后");
+}
+
+获取类的属性和方法 方便调用：
+//拿到控件元对象--定义出来的控件对象--可以是widget界面，可以是按钮 标签控件
+const QMetaObject *metaObject = widget->metaObject();
+
+//所有属性的数量
+int propertyCount = metaObject->propertyCount();
+//propertyOffset是自定义的属性开始的位置
+int propertyOffset = metaObject->propertyOffset();
+//循环取出控件的自定义属性, int i = 0 表示所有属性
+for (int i = 0; i < propertyCount; ++i) {
+    QMetaProperty metaProperty = metaObject->property(i);
+    const char *name = metaProperty.name();
+    const char *type = metaProperty.typeName();
+    QVariant value = widget->property(name);
+    qDebug() << name << type << value;}
+
+//所有方法的数量
+int methodCount = metaObject->methodCount();
+//methodOffset是自定义的方法开始的位置
+int methodOffset = metaObject->methodOffset();
+//循环取出控件的自定义方法, int i = 0 表示所有方法
+for (int i = 0; i < methodCount; ++i) {
+    QMetaMethod metaMethod = metaObject->method(i);
+    const char *name = metaMethod.name();
+    const char *type = metaMethod.typeName();
+    qDebug() << name << type;}
+
+Qt内置图标封装在QStyle中，大概七十多个图标，可以直接拿来用，相当于给label嵌入背景，改变label形状 颜色：
+	/*
+    SP_TitleBarMenuButton,    SP_TitleBarMinButton,    SP_TitleBarMaxButton,
+    SP_TitleBarCloseButton,    SP_MessageBoxInformation,    SP_MessageBoxWarning,
+    SP_MessageBoxCritical,    SP_MessageBoxQuestion,...
+    */
+    QPixmap pixmap = this->style()->standardPixmap(QStyle::SP_MessageBoxCritical);
+    ui->label->setPixmap(pixmap);
+
+多个控件重组到一起：
+可以将控件A添加到布局，然后控件B设置该布局，这种灵活性提高了控件的组合度，比如可以在文本框左侧右侧增加一个搜索按钮，按钮设置图标即可。将lineEdit设置到布局，然后给布局增加btn控件，实现控件组合
+	QPushButton *btn = new QPushButton;
+    btn->resize(30, ui->lineEdit->height());
+    QHBoxLayout *layout = new QHBoxLayout(ui->lineEdit);
+    layout->setMargin(0);
+    layout->addStretch();
+    layout->addWidget(btn);
+	
+巧妙的使用inherits判断是否属于某种类。
+	QTimer *timer = new QTimer;         		  // QTimer inherits QObject
+    qDebug()<<timer->inherits("QTimer");          // returns true
+    qDebug()<<timer->inherits("QObject");         // returns true
+    qDebug()<<timer->inherits("QAbstractButton"); // returns false
+
+qt中的泛型数据类型：
+struct MyClass{
+    int id;
+    QString name;
+};
+Q_DECLARE_METATYPE(MyClass)  //定义好数据类型，需要声明成内部类型 后面才可以直接与泛型转换
+	QVariant data[4];
+    //存储数据
+    MyClass myClass;
+    myClass.id=0;
+    myClass.name=QString("LiMing");
+    data[0]=QString("ddd");//泛型的数组 可以随意赋值不同类型的数据
+    data[1]=123;
+    data[3]=QVariant::fromValue(myClass);
+    //获取数据
+    QString str=data[0].toString();
+    int val=data[1].toInt();
+    if(data[3].canConvert<MyClass>())//如果data[3] 可以转化成MyClass类型
+    {
+        MyClass myClass=data[3].value<MyClass>();//则转化data[3] 为MyClass 类型的数据myClass
+        int id=myClass.id;  获取data[3]中存的数值 
+        QString name=myClass.name;
+        qDebug()<<id<<" "<<name;
+    }	
+	
+善于利用QComboBox的addItem的第二个参数设置用户数据，可以实现很多效果，使用itemData取出来。
+特别注意的是第二个参数是QVariant类型，这就不要太灵活了，意味着可以附带万能的数据比如结构体，这样就可以带一堆数据了，而不是一个数据。
+比如下拉框选择学号，对应元素可以附带该学生的姓名、班级、成绩等。很多人以为只能附带QString、int之类的数据，因为通常的用法也是那两种。
+	QStringList listVideoOpenInterval, listVideoOpenIntervalx;
+    listVideoOpenInterval << "0.0 秒" << "0.1 秒" << "0.3 秒" << "0.5 秒" << "1.0 秒" << "2.0 秒";
+    listVideoOpenIntervalx << "0" << "100" << "300" << "500" << "1000" << "2000";
+    for (int i = 0; i < listVideoOpenInterval.count(); ++i) {
+        ui->cboxVideoOpenInterval->addItem(listVideoOpenInterval.at(i), listVideoOpenIntervalx.at(i));
+    }//cbox显示的是listVideoOpenInterval的值，实际对应的listVideoOpenIntervalx数值
+
+    //取出对应的值
+    int indexVideoOpenInterval = ui->cboxVideoOpenInterval->currentIndex();
+    indexVideoOpenInterval = ui->cboxVideoOpenInterval->itemData(indexVideoOpenInterval).toInt();
+	
+	------------复杂数据类型
+	QVariant data[4];
+    QStringList listVideoOpenInterval;
+    listVideoOpenInterval << "xiaoming" << "xiaohong" << "xiaoli" ;
+    MyClass myClass;
+    myClass.id=0;     myClass.name=QString("LiMing");
+    data[0]=QVariant::fromValue(myClass);
+    myClass.id=1;     myClass.name=QString("Lihong");
+    data[1]=QVariant::fromValue(myClass);
+    myClass.id=2;     myClass.name=QString("Lili");
+    data[2]=QVariant::fromValue(myClass);//制作3个struct数据 以QVariantList添加到combox中
+    QVariantList listVideoOpenIntervalx;
+    listVideoOpenIntervalx << data[0]<<data[1]<<data[2];
+    for (int i = 0; i < listVideoOpenInterval.count(); ++i) {
+        ui->cboxVideoOpenInterval->addItem(listVideoOpenInterval.at(i), listVideoOpenIntervalx.at(i));
+	}
+	//当combox索引发生改变时  可以通过index获取到当前索引中隐含的数据信息
+	void Widget::on_cboxVideoOpenInterval_currentIndexChanged(const QString &arg1)
+	int indexVideoOpenInterval = ui->cboxVideoOpenInterval->currentIndex();
+	QVariant testval = ui->cboxVideoOpenInterval->itemData(indexVideoOpenInterval);//根据currentIndex获取itemdata
+	if(testval.canConvert<MyClass>())//如果 testval 可以转化成MyClass类型
+	{
+		MyClass myClass=testval.value<MyClass>();//则转化testval 为MyClass 类型的数据myClass
+		int id=myClass.id;  //获取testval中存的数值
+		QString name=myClass.name;
+		qDebug()<<id<<" "<<name;
+	}
+	
+在pro中判断Qt版本及构建套件位数:打印的信息在QT下面的"概要信息"中  不在"应用程序输出"里面
+message(qt version: $$QT_VERSION)
+message($$QT_ARCH)
+
+Project MESSAGE: qt version: 5.14.0
+Project MESSAGE: i386
+
+设置样式表：
+setStyleSheet("QPushButton{text-align:right}");  设置当前项目种所有button中的数据 右对齐
+ui->mypushButton->setStyleSheet("text-align:right");  设置某个btn的数据右对齐
+
+Qlabel 3种设置文本的方法：
+//常规办法
+ui->label->setText("hello");
+//取巧办法
+ui->label->setProperty("text", "hello");  设置label的text文本，内容为hello
+//属性大法 
+ui->label->setStyleSheet("qproperty-text:hello;");  设置样式表 qproperty-text 为 hello
+setStyleSheet("QLabel{qproperty-text:hello}");     设置当前项目所有label的text都是hello
+
+QEventLoop的使用:在程序运行到某个位置时 将程序卡5s，5s之后loop退出 程序继续运行
+用法1：
+QEventLoop loop;//定义一个事件循环
+QTimer::singleShot(5000, &loop, SLOT(quit()));//创建单次定时器，槽函数为事件循环的退出函数
+loop.exec();//事件循环开始执行，程序会卡在这里，直到定时时间到，本循环被退出
+
+用法2：pushButton的clicked事件中 loop阻塞，直到mypushButton按键按下，quit loop循环才能打印出来fun end
+void Widget::on_pushButton_clicked()
+{
+    qDebug()<<"fun start";
+    QEventLoop loop;
+    connect(ui->mypushButton, SIGNAL(clicked()), &loop, SLOT(quit()));
+    loop.exec();
+    qDebug()<<"fun end";
+}
