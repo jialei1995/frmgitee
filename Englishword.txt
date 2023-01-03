@@ -134,3 +134,6 @@ distribution	分散，散布
 wizZard		向导
 ```
 
+2023年：
+transparent：透明的
+backup：备份

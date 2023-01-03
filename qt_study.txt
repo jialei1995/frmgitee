@@ -902,3 +902,57 @@ void Widget::on_pushButton_clicked()
     loop.exec();
     qDebug()<<"fun end";
 }
+
+
+很多人Qt和Qt Creator傻傻分不清楚
+Qt Creator是使用Qt编写的集成开发环境IDE，和宇宙第一的Visual Studio一样;
+	他可以是msvc编译器的（WIN对应的Qt集成安装环境中自带的Qt Cerator是msvc的），
+	也可以是mingw编译的，还可以是gcc的。
+如果是自定义控件插件，需要集成到Qt Creator中，必须保证
+该插件的动态库文件（dll或者so等文件）对应的编译器和
+Qt版本以及位数和Qt Creator的版本完全一致才行，否则基本不大可能集成进去。
+特别注意的是Qt集成环境安装包中的Qt版本和Qt Creator版本未必完全一致，必须擦亮眼睛看清楚，有些是完全一致的。
+
+很多人在绘制的时候，设置画笔以为就只可以设置个单调的颜色，其实QPen还可以设置brush比如设置QPen的brush以后，可以使用各种渐变，比如绘制渐变颜色的进度条和文字等，而不再是单调的一种颜色。
+
+很多控件都带有 viewport，比如QTextEdit/QTableWidget/QScrollArea，有时候对这些控件直接处理的时候发现不起作用，
+需要对其 viewport()设置才行
+ui->scrollArea->viewport()->setStyleSheet("background-color:yellow;");
+ui->scrollArea->setStyleSheet("background-color:yellow;");
+
+
+QDateTime dateTime;时间的各种转换
+QString dateTime_str = dateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+//从字符串转换为毫秒（需完整的年月日时分秒）
+datetime.fromString("2011-09-10 12:07:50:541", "yyyy-MM-dd hh:mm:ss:zzz").toMSecsSinceEpoch();
+//从字符串转换为秒（需完整的年月日时分秒）
+datetime.fromString("2011-09-10 12:07:50:541", "yyyy-MM-dd hh:mm:ss:zzz").toTime_t();
+//从毫秒转换到年月日时分秒
+datetime.fromMSecsSinceEpoch(1315193829218).toString("yyyy-MM-dd hh:mm:ss:zzz");
+//从秒转换到年月日时分秒（若有zzz，则为000）
+datetime.fromTime_t(1315193829).toString("yyyy-MM-dd hh:mm:ss[:zzz]");
+
+
+在我们使用QList、QStringList、QByteArray等链表或者数组的过程中，如果只需要取值，强烈建议使用 at() 取值而不是[] 操作符
+因为Qt的容器类不能辨别 [] 操作符是否将出现在一个赋值的左边还是右边，他假设最坏的情况出现并且强制执行深层赋值，
+而 at() 函数则不被允许出现在一个赋值的左边。使用at保证不会修改原值
+
+安全的删除Qt的对象类，强烈建议使用deleteLater而不是delete，
+因为deleteLater会选择在合适的时机进行释放，而delete会立即释放，很可能会出错崩溃。
+如果要批量删除对象集合，可以用qDeleteAll，比如 qDeleteAll(btns);
+
+
+很多时候需要在已知背景色的情况下，能够清晰的绘制文字，这个时候需要计算对应的文字颜色。
+	ui->label->setStyleSheet("background-color:black;");  设置label的背景颜色
+    sleep(1000);   颜色等待label的颜色固定住  
+	QPalette pal = ui->label->palette();
+	QBrush brush = pal.background();
+	QColor color = brush.color();  获取label的背景色
+	
+	double gray = (0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) / 255;
+	QColor textColor = gray > 0.5 ? Qt::black : Qt::white;  计算一个合适的显示颜色
+
+	ui->label->setText("test");
+	QPalette pe;
+	pe.setColor(QPalette::WindowText,textColor); 设置字体颜色到label上
+	ui->label->setPalette(pe);
