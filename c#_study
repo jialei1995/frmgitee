@@ -1400,3 +1400,8 @@ int [] getElement(int cnt)
 
 英文国际化：
 程序中的messageBox.Show("nihao"); 在中文系统中会显示成确定，更改当前的系统的语言为英文，则运行后确定就会变成ok
+
+
+c# 中的Uint32  不能存0xff ff ff ff会溢出
+只有uint  long 才能装下0xff ff ff ff  long里面是包含正负符号的  uint 是无符号的
+坑死人了，c语言uint32就能存下 c#存不下导致函数处理数据 异常，还不会退出来提示。太他妈坑了

@@ -956,3 +956,322 @@ datetime.fromTime_t(1315193829).toString("yyyy-MM-dd hh:mm:ss[:zzz]");
 	QPalette pe;
 	pe.setColor(QPalette::WindowText,textColor); 设置字体颜色到label上
 	ui->label->setPalette(pe);
+
+    QColor testcolor(255, 0, 0, 100);//设置透明颜色
+    qDebug() << testcolor.name() << testcolor.name(QColor::HexArgb);
+	//输出 #ff0000 #64ff0000
+	setStyleSheet("color:#ff6600;");   更改#ff6600为testcolor.name() 更加灵活
+    ui->label->setStyleSheet(QString("color:%1").arg(testcolor.name()));//设置样式表  直接修改背景色
+
+Qt中的QString和const char *之间转换，最好用toStdString().c_str(),支持中文直接显示
+	const char * ptr=mystr.toStdString().c_str();  必须是const char*
+
+用QFile读写文件的时候，推荐用QTextStream文件流的方式来读写文件，速度快很多，基本上会有30%的提升，文件越大性能区别越大。
+经过测试 有的文件第一种 速度更快
+	QFile file("E:\\jl\\02-qt\\build-widgettest-Desktop_Qt_5_14_0_MinGW_32_bit-Debug\\2023_01_03_19_03_51_id=1.csv");
+    qDebug()<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss zzz");
+    if (file.open(QFile::ReadOnly)) {
+    #if 1
+        while(!file.atEnd()) {
+            QString line = file.readLine();
+            ui->textEdit->append(line);
+        }
+    #else
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            ui->textEdit->append(line);
+        }
+    #endif
+        file.close();
+    }
+    qDebug()<<QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss zzz");
+
+
+setPixmap是最糟糕的贴图方式，一般只用来简单的不是很频繁的贴图，频繁的建议painter绘制，默认双缓冲，在高级点用opengl绘制，利用GPU。
+
+QString的replace函数会改变原字符串，他在返回替换后的新字符串的同时也会改变原字符串，我的乖乖！
+
+在不同的平台上文件路径的斜杠也是不一样的，比如linux系统一般都是 / 斜杠，而在windows上都是 \\ 两个反斜杠，
+Qt本身程序内部无论在win还是linux都支持 / 斜杠的路径，但是一些第三方库的话可能需要转换成对应系统的路径，这就需要用到斜杠转换，Qt当然内置类方法。
+	QString path = "C:/temp/test.txt";  以后原串都写成/ 即可
+	path = QDir::toNativeSeparators(path);
+	//输出 C:\\temp\\test.txt  在windows中会自动转换成\\
+	//输出 C:/temp/test.txt		在linux中会转换成/
+	
+
+测试下来发现只能执行signals或者slots标识的方法,Q_INVOKABLE 关键字修饰也可以被 invokeMethod 执行
+invokeMethod函数不仅支持槽函数还支持信号，而且这逼居然是线程安全的，可以在线程中放心使用，牛逼！
+
+	//头文件声明信号和槽函数
+	signals:
+		void sig_test(int type,double value);  sig函数不需要实现  可以直接调用，只是用来传递参数的
+	private slots:
+		void slot_test(int type, double value);
+	private:
+		Q_INVOKABLE void fun_test(int type, double value);
+
+	//构造函数关联信号槽---发sig_test信号就会自动调用slot_test，而且会将sig中的入参传给slot中作入参。
+	connect(this, SIGNAL(sig_test(int, double)), this, SLOT(slot_test(int, double)));
+
+	//单击按钮触发信号和槽，这里是同时举例信号槽都可以
+	void MainWindow::on_pushButton_clicked()
+	{
+		QMetaObject::invokeMethod(this, "sig_test", Q_ARG(int, 66), Q_ARG(double, 66.66));//执行sig函数，sig又将自己的入参传过去调用槽函数
+		//相当于  emit sig_test(66,88); 发信号
+		QMetaObject::invokeMethod(this, "slot_test", Q_ARG(int, 88), Q_ARG(double, 88.88));
+		QMetaObject::invokeMethod(this, "fun_test", Q_ARG(int, 99), Q_ARG(double, 99.99));
+	}
+
+	//会打印 66 66.66、88 88.88
+	void MainWindow::slot_test(int type, double value)
+	{
+		qDebug() << type << value;
+	}
+
+	//会打印 99 99.99
+	void MainWindow::fun_test(int type, double value)
+	{
+		qDebug() << type << value;
+	}
+	
+
+Qt5中的信号是public的，可以在需要的地方直接emit即可，而在Qt4中信号是protected的，不能直接使用，需要定义一个public函数来emit。
+
+Qt5.15版本开始官方不再提供安装包，只提供源码，可以自行编译或者在线安装，估计每次编译各种版本太麻烦，更多的是为了统计收集用户使用信息比如通过在线安装，后期可能会逐步加大商业化力度。
+
+
+在pro文件中可以利用此命令查看当前工程是否支持xxx模块，若不支持，则可以通过QT   +=  network来增加XX模块插件
+!qtHaveModule(webenginewidgets) {
+message("当前Qt库有找到 webenginewidgets 模块")
+}
+!qtHaveModule(webkit) {
+message("当前Qt库没有找到 webkit 模块")
+}
+contains(QT, network) {
+message("当前项目已经引入 network 模块")
+}
+contains(QT, widgets) {
+message("当前项目引入 widgets 模块")
+}
+
+
+在pro文件可以一次性禁用所有打印，修改pro文件需要重新构建项目 ，否则新修改内容不生效
+#禁用qdebug打印输出
+DEFINES += QT_NO_DEBUG_OUTPUT XXX YYY
+
+pro文件可以添加各种处理来使得配置更方便，比如指定输出文件路径等，这样就不会全部在一堆编译生成的临时文件中找来找去。
+
+#自定义define变量  可以在整个项目中使用
+#pro文件可以这样判断 contains(DEFINES, XXX) { message("pro中有定义XXX") }
+#代码文件可以这样判断 #ifdef XXX
+DEFINES     += XXX YYY
+
+#关闭编译警告提示 眼不见为净
+CONFIG      += warn_off
+
+#指定编译生成的文件到 temp目录 分门别类存储
+MOC_DIR     = temp/moc
+RCC_DIR     = temp/rcc
+UI_DIR      = temp/ui
+OBJECTS_DIR = temp/obj
+
+#指定编译生成的可执行文件到bin目录
+DESTDIR     = bin
+
+QString类内置了各种进制数据的转换，比如
+将数据转成10进制、16进制显示，
+或者将10进制、16进制数据转成字符串显示。这里很容易忽略的一点就是，很多人以为就是支持2进制、10进制、16进制之类的，
+其实不是的，里面实现了 2-36 之间的任意进制转换
+
+char data[2];
+data[0] = 0x10;
+data[1] = 25;
+
+//输出 2进制显示 "10000" "11001"
+qDebug() << "2进制显示" << QString::number(data[0], 2) << QString::number(data[1], 2);
+//输出 5进制显示 "31" "100"
+qDebug() << "5进制显示" << QString::number(data[0], 5) << QString::number(data[1], 5);
+//输出 10进制显示 "16" "25"
+qDebug() << "10进制显示" << QString::number(data[0]) << QString::number(data[1]);
+//输出 16进制显示 "10" "19"
+qDebug() << "16进制显示" << QString::number(data[0], 16) << QString::number(data[1], 16);
+
+
+
+
+QtSql模块封装了各种数据库操作，使得Qt操作各种数据库非常的简单，支持各种各样的数据库，最基础的ODBC方式也支持连接到各种数据库。有个很容易忽视的要点就是在连接sqlserver数据库的时候，你会发现第三方的数据库工具也没有配置数据库，但是可以连接成功，而在Qt中的常规数据库连接写法却不行，那是因为你代码写错了，要用另外一种写法。
+//连接sqlite数据库
+QSqlDatabase database = QSqlDatabase::addDatabase("QSQLITE");
+//只需要指定数据库文件的绝对路径即可
+database.setDatabaseName("d:/test.db");
+
+//连接mysql数据库
+QSqlDatabase database = QSqlDatabase::addDatabase("QMYSQL");
+database.setDatabaseName("test");
+database.setHostName("127.0.0.1");
+database.setPort(3306);
+database.setUserName("root");
+database.setPassword("root");
+
+//连接到sqlserver数据库
+//方式一通过odbc数据源，前提是必须配置好数据源。
+QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");
+database.setDatabaseName("数据源名称");
+database.setUserName("sa");
+database.setPassword("123456");
+
+//方式二通过驱动字符串，无需配置数据源。设置数据库名称就带了主机地址端口和用户信息所有后面这些设置不需要，强烈建议推荐此方法。
+QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");
+QStringList list;
+list << QString("DRIVER={%1}").arg("SQL SERVER");
+list << QString("SERVER=%1,%2").arg("127.0.0.1").arg(1433);
+list << QString("DATABASE=%1").arg("test");
+list << QString("UID=%1").arg("sa");
+list << QString("PWD=%1").arg("123456");
+database.setDatabaseName(list.join(";"));
+
+//连接到postgresql数据库
+QSqlDatabase database = QSqlDatabase::addDatabase("QPSQL");
+database.setDatabaseName("test");
+database.setHostName("127.0.0.1");
+database.setPort(5432);
+database.setUserName("postgres");
+database.setPassword("123456");
+
+//连接到oracle数据库
+QSqlDatabase database = QSqlDatabase::addDatabase("QOCI");
+database.setDatabaseName("test");
+database.setHostName("127.0.0.1");
+database.setPort(1521);
+database.setUserName("system");
+database.setPassword("123456");
+
+//连接到人大金仓kingbase数据库（内核就是postgresql）
+QSqlDatabase database = QSqlDatabase::addDatabase("QPSQL");
+database.setDatabaseName("test");
+database.setHostName("127.0.0.1");
+database.setPort(54321);
+database.setUserName("SYSTEM");
+database.setPassword("123456");
+
+//通过odbc数据源连接到各种数据库，前提是必须配置好数据源，只需要设置数据库名称为数据源的名称，填写用户名和密码就行，其他的主机地址和端口不需要。
+QSqlDatabase database = QSqlDatabase::addDatabase("QODBC");
+database.setDatabaseName("数据源名称");
+database.setUserName("system");
+database.setPassword("123456");
+
+
+如果信号槽关联函数 connect(obj, SIGNAL(), this, SLOT()); 执行多次则会重复关联（意味着会执行多次），
+而取消信号槽关联函数 disconnect(obj, SIGNAL(), this, SLOT()); 只需要执行一次就可以将之前关联的（哪怕是重复关联过）全部清除。
+很多初学者会遇到为什么点一下居然执行多次的原因就在这里，很可能代码中写了 on_objName_clicked(); 这种Qt内置自动生成关联的槽函数，然后自己又在代码中调用 connect 绑定了一次，导致重复绑定。
+提个建议：其实Qt可以过滤下如果是完全一样的绑定则认为是一个而不是多个。
+//为了保证永远只有一个关联可以在关联前面执行一次取消关联
+disconnect(obj, SIGNAL(), this, SLOT());
+connect(obj, SIGNAL(), this, SLOT());
+
+//经过群里大佬提示，原来connect第五个参数填 UniqueConnection 就可以避免这个问题，按照官方文档说明这个参数会过滤重复的信号。
+connect(obj, SIGNAL(), this, SLOT(), Qt::UniqueConnection);
+
+
+通过对Qt自带Examples的源码研究你会发现，越往后的版本，越喜欢用智能指针QScopedPointer来定义对象，
+这样有个好处就是用的地方只管new就行，一直new下去，不用担心资源释放问题，智能指针会给你在合适的时机释放，
+相当于可以少些一行代码 xxx->deleteLater(); ，而且避免不必要的麻烦，不然很多地方你要判断 if (!xxx) 看下对象是否ok。
+QWidget *widget;
+//用的地方先new
+widget = new QWidget;
+//用完释放对象
+widget->deleteLater();  
+    
+//智能指针写法
+QScopedPointer<QWidget> widget;
+//只管new尽管new不用管释放
+widget.reset(new QWidget);
+
+
+在编写类中有时候需要对变量进行赋值和取值，这时候一般用 setxxx、getxxx 之类的函数进行处理，而且往往里面就一行代码，这时候你可能会思考为何不直接将变量改成public暴露出来使用，还可以省两个函数几行代码。其实用set get这样处理主要还是为了拓展性，比如后期如果需要对赋值进行过滤处理，或者该变量只允许读写中的一个，如果之前是直接使用的变量外，则使用的地方都要去修改规则，反而变得很糟糕。 参考文章 https://blog.csdn.net/ChineseSoftware/article/details/122923485 。
+
+
+关于如何快速结束线程，调用terminate暴力结束容易出问题。
+一般来说在run中msleep休息的时间过久，容易导致要很长一段时间才能正确停止，此时可以考虑一个策略就是分割线程执行体，
+如果是函数体耗时可以在耗时的函数体中增加停止标志位的判断，使其快速跳出；
+如果是延时时间过久可以将延时时间拆分成多个小的时间轮片，每个小的休息间隔都判断停止标志位，这样也可以大大加快线程
+正常退出的速度而不用等待太久。
+while (!stopped) {
+        doTask();
+
+        //下面这个延时太久导致退出很慢
+        //msleep(3000);
+
+        //特意每次做个小延时每次都去判断标志位等可以大大加快关闭速度，一旦stopped为true了 ，此线程就会快速停止下来
+        int count = 0;
+        while (!stopped) {
+            msleep(100);
+            count++;
+            //如果到了30次=30*100=3000毫秒也跳出
+            if (count == 30) {
+                break;
+            }
+        }  
+    }     
+
+
+窗口关闭的时候会产生closeEvent事件，直接重写此事件即可在里面加入关闭的操作
+protected:
+    void closeEvent(QCloseEvent *);
+
+void MainWindow::closeEvent(QCloseEvent *)
+{
+    //先把子窗体释放
+    lab->deleteLater();
+}
+
+有一个场景经常遇到，那就是在符合某个条件下，延时一段时间去执行一段代码，如果短时间内触发多次又不需要频繁执行，只需要执行一次就行。如果选择用QTimer::singleShot无法终止已经触发的，这个时候就要主动实例化一个单次定时器，每次调用前都停止之前的（只要是还没执行都会取消），完美解决。
+//QTimer::singleShot(1000, thread, SLOT(xxx()));  一旦开启无法取消
+static QTimer *timer = NULL;  下面的方法每次执行都会停止之前的SingleShot，重新开始计时
+if (!timer) {
+    timer = new QTimer;
+    QObject::connect(timer, SIGNAL(timeout()), thread, SLOT(xxx()));
+    timer->setSingleShot(true);
+    timer->setInterval(1000);
+}
+timer->stop();
+timer->start();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1.qt核心：元对象系统，属性系统，对象模型，对象树，信号槽
+2.如果在当前类没找到对应的函数，去父类 爷爷类查找
+
+3.出现崩溃和段错误，80%都是因为要么越界，要么未初始化，死扣这两点，80%的问题解决了
+4.Qt5选用5.12.3，Qt4选用4.8.7，Qt6选用6.5.x。
+
+5.包含了Qt头文件之后再包含非Qt头文件，由于Qt（为编译器和预处理器）定义了许多符号，这使得避免名称冲突变得更容易，也更容易找到文件。
+
+6.一种好的编程实践是在代码中使用const实体而不是嵌入数字型常量（有时称他们为“幻数”）。
+如果以后需要修改他的值时，就可以获得这种灵活性。一般而言，将常量“孤立”出来，可提高程序的可维护性。
+//不推荐写法
+for (int i = 0; i < 100; ++i) {
+    ...
+}
+//推荐下面的写法
+const int count = 100;
+for (int i = 0; i < count; ++i) {
+    ...
+}
+7.只要有可能，就应当使用列表而不是数组，比如应该使用 QList 代替 int [] ，在c++中数组被看成是“邪恶的”
