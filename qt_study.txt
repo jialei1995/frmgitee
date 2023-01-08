@@ -1275,3 +1275,117 @@ for (int i = 0; i < count; ++i) {
     ...
 }
 7.只要有可能，就应当使用列表而不是数组，比如应该使用 QList 代替 int [] ，在c++中数组被看成是“邪恶的”
+
+
+
+
+
+
+
+
+qml：
+qml与qt quick的关系 就像C++与C++标准库的关系
+风车寻转：
+Window {
+	后台界面属性
+    visible: true
+    width: 500   //uiname.width   	//640  可以直接填数字，也可以直接根据Imag中图片的宽高去设置
+    height: 300  //uiname.height  	//480
+    title: qsTr("circle cirlce")
+
+	//加入图片 风车
+    Image {
+        //anchors.fill: parent;  //图片填充 界面
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
+        id: uiname
+        source: "../images/windcar.png"
+		
+		//描述 风车转的 属性 每次转500ms  转360°
+        Behavior on rotation{
+            NumberAnimation {
+                duration: 500   //单位ms  500ms内 转360°
+            }
+        }
+		
+		//放到这里只有点击风车 才会转
+//        MouseArea{
+//            anchors.fill: parent
+//            onClicked: uiname.rotation+=60
+//        }
+    }
+
+    Image {
+        //设置杆的位置
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        id: gan
+        source: "../images/gan.png"
+
+    }
+
+//    放到这里随便在屏幕中点击风车都会转
+    MouseArea{
+        anchors.fill: parent
+        onClicked: uiname.rotation+=360
+    }
+}
+
+
+demo2:
+Rectangle {
+    id:root  //一般根起个名字
+    visible: true
+    width: 500;height: 300
+    color:"#4a4a4a"
+
+    //往root添加 类型Image + 属性{}中的内容
+    Image {
+        id: fengche
+        source: "../images/windcar.png"
+        x:(root.width-width)/2;//居中显示，这里的root也可以写成parent root是父节点名称 parent表示当前fengche的父亲
+        y:(root.height-height)/2
+    }
+    //往root添加 类型Image + 属性{}中的内容
+    Text {
+        text: qsTr("大风车 转呀转")
+        color:"white"
+        //x:(root.width)/2-80;//居中显示
+        //y:(root.height)/2+80
+
+        //下面利用属性的方式对齐
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        width: root.width
+        height: root.height
+    }
+}
+
+demo3:
+Text {
+	id:thatlabel
+	//自定义属性 空格按了多少次 初始为0
+	property int spacePress: 0
+	text:"thatlabel "+spacePress+" times"
+	color:"white"
+	//文本改变调用
+	onTextChanged: function(text){console.log("text change to:",text)}
+
+	focus:true //只有focus为true 才能收到Keys的事件
+	Keys.onSpacePressed : {increment()}
+	这句一执行就解除了之前tet的绑定，并不是focus变成了false，只是=是赋值，会解除绑定
+	Keys.onEscapePressed: {thatlabel.text=""}  
+	function increment(){  //定义函数
+		spacePress++;
+	}
+}
+
+
+MouseArea{
+	width:parent.width
+	heigth:parent.height
+	onClicked: rec.visible=!rec.visible   鼠标在父窗口 被按下 则rec显示/隐藏
+}
+
+
+demo4：引用qml文件：
