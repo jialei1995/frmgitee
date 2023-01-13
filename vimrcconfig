@@ -254,6 +254,28 @@ vim--python插件：
 	pythin-mode
 	
 
-	
+使用别的vim插件也可以安装vim的其他插件：
+首先安装vundle，安装命令：
+git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+然后配置~/.vimrc
+set nocompatible              " be iMproved, required
+filetype off                  " required
+ 
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+ 
+Plugin 'VundleVim/Vundle.vim'
+ 
+call vundle#end()            " required
+filetype plugin indent on    " required
+ 
+Plugin 'morhetz/gruvbox'
+ 
+set bg=dark                     "设置背景为黑色
+colorscheme gruvbox             "设置主题为 gruvbox
+set guioptions=                 "去掉两边的scrollbar
+set guifont=Monaco:h17          "设置字体和字的大小
+
+保存配置:w并执行:PluginInstall安装gruvbox，安装完成后:source %生效.vimrc配置文件即可。	
 	
 	
