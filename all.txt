@@ -8078,3 +8078,9 @@ printf  等stdlib函数 不属于kernel层  都是应用层的库
 
 c# 中收到数据 uint16  怎么转成  int16去给数据带正负号？   res=(short)tmp;  直接转原数据即可
 
+
+
+Mac中vmware安装教程：
+https://www.vmware.com/cn/resources.html登录此链接，找产品下载，需要注册账号登录--需要切换右上角为中文才能进入中国的注册界面（美国的注册界面无法进入）
+解压密码：chaoxz.com网盘密码：l88e
+
