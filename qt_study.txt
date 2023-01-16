@@ -1228,6 +1228,7 @@ void MainWindow::closeEvent(QCloseEvent *)
 
 有一个场景经常遇到，那就是在符合某个条件下，延时一段时间去执行一段代码，如果短时间内触发多次又不需要频繁执行，只需要执行一次就行。如果选择用QTimer::singleShot无法终止已经触发的，这个时候就要主动实例化一个单次定时器，每次调用前都停止之前的（只要是还没执行都会取消），完美解决。
 //QTimer::singleShot(1000, thread, SLOT(xxx()));  一旦开启无法取消
+
 static QTimer *timer = NULL;  下面的方法每次执行都会停止之前的SingleShot，重新开始计时
 if (!timer) {
     timer = new QTimer;
@@ -1239,14 +1240,52 @@ timer->stop();
 timer->start();
 
 
+Qt中的事件过滤器相当于万能大法（终极秘密武器），尤其是对整个应用程序安装事件过滤器，则可以拿到所有的事件。
+比如可以拿到系统标题栏鼠标按下松开，对所有需要移动的无边框窗体统一拦截进行移动处理。
+个人建议不到万不得已不建议使用，有一定性能损耗，毕竟这个是从最初源头拦截事件，意味着所有的事件都会到这里过一遍。
+如果你在收到对应事件后还做了一定耗时的处理，很容易就卡主了UI主线程。
+installEventFilter(this);  先安装事件探测器
+重新事件处理函数
+bool Widget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::NonClientAreaMouseButtonPress) {
+        qDebug() << "系统标题栏按下";
+    } else if (event->type() == QEvent::NonClientAreaMouseButtonRelease) {
+        qDebug() << "系统标题栏松开";
+    }
+
+    if (event->type() == QEvent::MouseButtonPress) {
+        qDebug() << "shubiao按下";
+    } else if (event->type() == QEvent::MouseButtonRelease) {
+        qDebug() << "shubiao松开";
+    }
+
+    if (event->type() == QEvent::MouseMove) {
+        qDebug() << "鼠标呗移动";
+    }
+    
+    return QObject::eventFilter(watched, event);
+}
 
 
+关于c++中继承多态virtual和override的几点总结：
+1.子类可以直接使用基类中的protected下的变量和函数。
+2.基类函数没加virtual，子类有相同函数，实现的是覆盖。用基类指针调用时，调用到的是基类的函数；用子类指针调用时，调用到的是子类的函数。
+  基类函数加了virtual时，实现的时重写。用基类指针或子类指针调用时，调用到的都是子类的函数。
+3.函数加上override，强制要求子类相同函数需要是虚函数，而且必须重新实现，否则会编译报错。
+4.基类中的纯虚函数（virtual void play() = 0;）在基类中无需在cpp中实现，但是必须在子类实现，否则编译报错。
+5.继承多态最大的好处就是提炼共性，将通用的变量和方法信号等，全部放在基类，子类负责实现自己需要的特殊的部分即可。
 
 
+Qt内置了数据压缩和解压的功能，如果遇到图片、音频数据、文件等转base64传输这种，采用qCompress压缩后大概可以节省30%的数据传输量，压缩性能可观。前提是双方都是Qt程序，因为收到数据的时候还要用qUncompress解压出来，成对出现的。
+//发送的时候压缩下数据
+QByteArray buffer = "...";
+buffer = qCompress(buffer);
+socket->write(buffer);
 
-
-
-
+//收到数据后务必记得先解压再使用
+QByteArray data = socket->readAll();
+data = qUncompress(data);
 
 
 
@@ -1275,3 +1314,9 @@ for (int i = 0; i < count; ++i) {
     ...
 }
 7.只要有可能，就应当使用列表而不是数组，比如应该使用 QList 代替 int [] ，在c++中数组被看成是“邪恶的”
+
+
+qml 写法：
+查看官方提供的demo就是最完美的，qt-》欢迎--》示例--寻找想了解的控件用法 点进去看示例demo
+
+
