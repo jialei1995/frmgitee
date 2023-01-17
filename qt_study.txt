@@ -1431,5 +1431,926 @@ MouseArea{
 	onClicked: rec.visible=!rec.visible   鼠标在父窗口 被按下 则rec显示/隐藏
 }
 
+qml分为可见元素与非可视元素：
+item是所有可视元素的基类：坐标xy 宽高width heigth 布局：anchors 键：Keys focus 
+变换：scale rotate
+视觉：visible 
+状态：status 动画状态更改
 
-demo4：引用qml文件：
+Rectangle：扩展item 添加了填充颜色  边框颜色宽度设置  创建圆形图案
+
+color: Qt.rgba(Math.random(),Math.random(),Math.random())  设置随机颜色
+
+GradientStop{position: 0.0;color:'lightsteelblue'}  position 0.0表示顶部  1.0表示底部
+GradientStop{position: 1.0;color:'red'}
+
+
+Rectangle{
+	id:rect3
+	x:212;y:12
+	width: 76;height: 96
+	//渐变色
+	gradient: Gradient{
+		GradientStop{position: 0.0;color:'lightsteelblue'}
+		GradientStop{position: 1.0;color:'red'}
+	}
+	border.color: 'lightsteelblue'
+	border.width:  10
+	radius: 20
+}
+
+Text {
+	x:12;y:222
+	id: txtid
+	font.family: "Ubuntu"
+	font.pixelSize: 28
+	color: "red"
+	text:("text text text")
+	//以下两行限制 文本在40像素之内显示
+	width: 40
+	elide: Text.ElideMiddle
+    wrapMode: Text.WordWrap  //自动换行
+}
+
+Image{
+	x:112;y:12
+	id:img2
+	height: 72/2
+	source: "./img/upgrade.png"
+	fillMode: Image.PreserveAspectCrop //裁剪
+	//clip: true
+	//fillMode: Image.PreserveAspectFit //根据height缩放不裁剪
+}
+
+
+
+import QtQuick 2.15
+import QtQuick.Window 2.15
+
+Window {
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("Hello World")
+
+    //thislabel上支持全局变量的增加，tab切换，esc取消绑定
+    //thlabel支持减少 ，tab切换 不支持esc取消绑定 按esc没作用
+    property int spacePress:0
+    Text {
+        id: thislabel
+        text:"thislabel"+spacePress+"times"
+        onTextChanged: function(text){
+            console.log("text change to:",text,"focus is",focus,"thatlabel focus=",focus)
+        }
+        focus: true
+        Keys.onSpacePressed: {increase()}
+        Keys.onEscapePressed: (thislabel.text="")
+        function increase(){
+            spacePress++;
+        }
+        KeyNavigation.tab: thatlabel  //tab切换光标
+    }
+
+    Text {
+        x:15;y:15
+        id: thatlabel
+        text:"thatlabel"+spacePress+"times"
+        onTextChanged: function(text){
+            console.log("thatlabel text change to:",text,"focus is",focus)
+        }
+        Keys.onSpacePressed: {decrease()}
+        function decrease(){
+            spacePress--;
+        }
+        focus: false
+        KeyNavigation.tab: thislabel
+    }
+
+
+}
+
+
+新建类qml文件：添加类文件的时候首字母必须大写
+import QtQuick 2.15
+//封装自己设计的button
+Rectangle{
+    id:button
+    x:12;y:12
+    width: 116;height: 26
+    color:"blue"
+    Text {
+        text: qsTr("start")
+    }
+    MouseArea{
+        anchors.fill: parent
+        onClicked: {
+            txtname.text =" clicked"
+        }
+    }
+}
+
+
+在main.qml直接调用即可
+//添加类文件的时候首字母必须大写
+Button{
+}
+以上的button太局限，内部初始化内容是start 按键按下只能修改txtname id的内容，如果外面没有这个id，则报错
+
+
+//封装自己设计的button
+Rectangle{
+    id:button
+    x:12;y:12
+    width: 116;height: 26
+    color:"blue"
+    Text {
+        id:label
+        text: qsTr("start")
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            button.clicked() 外部按下按键时 发送信号
+        }
+    }
+    //新增button的内部属性 text 外界给此属性赋值，直接付给label.text
+    property alias text: label.text
+    signal clicked  新增信号 外界可以通过此信号访问到内部的onClicked
+}
+
+Button{
+    text: "kaishi"  通过给text属性赋值 给内部传参数
+    //chgtext: "is anxia"
+    onClicked: {
+        testid.text="anniu被点击"
+    }
+}
+
+Item {
+    id: root
+    //放到root中的属性信号可以被外部访问
+    property alias text: label.text
+    signal clicked
+    Rectangle{
+        id:button
+        x:12;y:12
+        width: 116;height: 26
+        color:"blue"
+        Text {
+            id:label
+            text: qsTr("start")
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                root.clicked()
+            }
+        }
+    }
+}
+
+
+//可点击图片制作
+import QtQuick 2.15
+import QtQuick.Window 2.15
+
+Window {
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("click World")
+
+    //放到代码最上面表示先绘制，这里表示点击空白处复位
+    MouseArea{
+        anchors.fill: parent
+        onClicked: {
+            qq1.x=10
+            qq2.rotation=0
+            qq3.rotation=0
+            qq3.scale=1
+        }
+    }
+    //为什么要创建ClickableImg  因为Image本身无onClicked属性
+    //但是我们自己作类 可以给他增加属性
+    ClickableImg{
+        id:qq1
+        x:10;y:10
+        source:"./img/QQ.png"
+        onClicked: {
+            qq1.x+=10
+        }
+    }
+
+    ClickableImg{
+        id:qq2
+        x:150;y:10
+        source:"./img/QQ.png"
+        onClicked: {
+            rotation+=10
+        }
+    }
+
+    ClickableImg{
+        id:qq3
+        x:250;y:10
+        source:"./img/QQ.png"
+        onClicked: {
+            rotation+=10
+            scale+=0.1
+	}
+}
+
+Image{   直接在文件中这样写无法使图片动起来 还是因为Image无法收到clicked信号
+        id:qq1
+        x:10;y:10
+        source:"./img/QQ.png"
+        MouseArea{
+            onClicked: {
+                qq1.x+=10
+            }
+        }
+    }
+}
+
+ClickableImg.qml
+Image {
+    id:root
+    signal clicked  //给类增加属性
+    MouseArea{
+        anchors.fill: parent
+        onClicked: {
+            root.clicked()
+        }
+    }
+}
+	
+定位器：用于定位的元素，提供row column grid flow
+
+在黑色方框中放3个其他颜色的方框 纵向排列
+DarkSquare{
+	id:root
+	width:200;height:200
+	Column{   
+		id:colset
+		anchors.centerIn: parent
+		spacing: 10  间距10像素
+		
+		RedSquare{}
+		GreenSquare{}
+		BlueSquare{}
+	}
+}
+
+Row{     横向排列
+	id:colset
+	anchors.centerIn: parent
+	spacing: 10  间距10像素
+	
+	RedSquare{}
+	GreenSquare{}
+	BlueSquare{}
+}
+
+Grid{     网格排列
+	id:colset
+	anchors.centerIn: parent
+	spacing: 10  间距10像素
+	rows:2;columns:3  网格2行3列 第一行就放前3个元素，第二行后3个元素
+					//columns 默认是4
+	
+	RedSquare{}
+	GreenSquare{}
+	BlueSquare{}
+	RedSquare{}
+	GreenSquare{}
+	BlueSquare{}
+}
+
+Flow{     自动网格排列
+	id:colset
+	anchors.fill: parent  如果居中显示就不回自动排列了
+	spacing: 10  间距10像素
+	//随着父窗口大小变换  自动调节合适的行列
+	RedSquare{}
+	GreenSquare{}
+	BlueSquare{}
+	RedSquare{}
+	GreenSquare{}
+	BlueSquare{}
+}
+
+Repeater的使用
+Window {
+    id:root
+    visible: true
+    width: 640
+    height: 480
+    title: qsTr("rect")
+    property var colorarray: ["red","green","blue"]
+    Grid{
+        anchors.centerIn: parent
+        anchors.margins: 8  边框
+        spacing: 4
+
+        Repeater{
+            model: 16  共16个元素
+            Rectangle{
+                property int colorindex: Math.floor(Math.random()*3)
+                color: root.colorarray[colorindex]  设置每个元素颜色
+                width: 56;height: 56
+            }
+        }
+    }
+
+}
+
+
+Repeater{
+	model: 16
+	Rectangle{
+		id:rect  id要放到Rectangle内部
+		property int  colorindex: Math.floor(Math.random()*3)
+		color: root.colorarray[colorindex]
+		width: 90;height: 90
+
+		Text {
+			anchors.centerIn: parent
+			text: "cell"+rect.Positioner.index  //定位当前rect的index 0-15共16个
+		}
+	}
+}
+
+Repeater{
+	model: 16
+	Rectangle{
+		id:rect
+		required property int index  高版本的qt带有required关键字 可以直接parent.index 访问索引。不需要:
+		property int  colorindex: Math.floor(Math.random()*3)
+
+		color: root.colorarray[colorindex]
+		width: 90;height: 90
+
+		Text {
+			anchors.centerIn: parent
+			text: "cell"+parent.index  //定位当前rect的index
+		}
+	}
+}
+
+布局 anchors
+MouseArea 为鼠标输入
+TextInput 捕捉键盘输入，约束输入的数据 validator  inputMask  echoMode
+TLineEditV1.qml
+Rectangle{
+	width: 100;height: 200
+	color: "red"
+	property alias text: input.text
+	property alias input: input
+	
+	TextInput{
+		id:input 
+		anchors.fill:parent
+		anchors.margins: 2
+	}
+}
+在其他qml文件调用    
+TLineEditV1{
+	text:"please input"
+	input.font.pixelsize:16
+	height:nput.font.pixelsize+10
+	input.color:"blue"
+}
+TextEdit 捕获键盘数据
+
+
+focus: true  必须得focus聚焦之后 当前按键按下的动作才能被捕捉
+Keys.onLeftPressed: square.x-=8
+Keys.onRightPressed: square.x+=8
+
+
+Keys.onPressed: function(event){
+	switch(event.key)
+	{
+		case Qt.Key_Plus:square.scale+=0.1;break;   shift+放大
+		case Qt.Key_Minus:square.scale-=0.1;break;  ctrl-缩小 奇怪
+	}
+}
+
+动画：在一定时间内，一系列属性的持续变化
+Item {
+    id: root
+    width: 500
+    height: 500
+    property bool isrun: false
+    Image {
+        id: feng
+        source: "./img/fengche.png"
+
+        //动画制作 PropertyAnimation 是通用的
+        //也可以用 PropertyAnimation on x{
+        NumberAnimation on x{
+            to:root.width-feng.width //刚开始x=0，x一直向右移动
+            duration:3000
+            running: root.isrun //为true开始running
+        }
+        //也可以用PropertyAnimation on rotation{
+        RotationAnimation on rotation{
+            to:1080 //3s内旋转1080度
+            duration:3000
+            running: root.isrun //为true开始running
+        }
+       // PropertyAnimation on opacity{
+        NumberAnimation on opacity{
+            to:0 //3s内 透明度由1变0
+            duration:3000
+            running: root.isrun //为true开始running
+        }
+
+
+        //按键按下开始running
+        MouseArea{
+            anchors.fill: parent
+            onClicked: root.isrun=true
+        }
+    }
+}
+
+Clickableimg.qml  可点击图片
+import QtQuick 2.0
+Item {
+    id:root
+    width: container.childrenRect.width
+    height: container.childrenRect.height
+    property alias text: label.text
+    property alias source: image.source
+    signal clicked
+
+    Column{
+        id:container
+
+        Image {//这里不写图片来源 在外调用的时候给
+            id: image
+        }
+        Text {
+            id: label
+            width: image.width/2
+            wrapMode:Text.WordWrap
+            horizontalAlignment:Text.AlignHCenter
+            color: "red"
+        }
+    }
+    MouseArea{
+        anchors.fill: parent
+        onClicked: root.clicked()  //root.clicked 必须带括号，否则无法发出信号
+    }
+}
+
+
+import QtQuick 2.6
+import QtQuick.Window 2.2
+
+Window{
+    id:root
+    width: 640
+    height: 480
+    color: "gray"
+
+    Clickableimg{
+        id:qq1
+        x:40;y:root.height-height
+        source: "./img/fengche.png"
+        text:"qq1"
+
+        //design animation for qq1
+        NumberAnimation on y{
+            to:40;duration: 3000
+        }
+    }
+
+    Clickableimg{
+        id:qq2
+        x:140;y:root.height-height
+        source: "./img/fengche.png"
+        text:"qq2"
+
+        //design animation for qq2
+        Behavior on y{
+            NumberAnimation{
+                duration: 3000
+            }
+        }
+        onClicked: y=40
+    }
+
+    Clickableimg{
+        id:qq3
+        x:240;y:root.height-height
+        source: "./img/fengche.png"
+        text:"qq3"
+        //design animation for qq3
+        onClicked: anim.restart()//每次点击 从from到to去运行
+
+        NumberAnimation{
+            id:anim
+            target: qq3
+            from: root.height-qq3.height
+            property: "y"
+            to:40;duration: 3000
+        }
+    }
+	
+	Clickableimg{
+        id:qq4
+        x:240;y:root.height-height
+        source: "./img/fengche.png"
+        text:"qq3"
+        NumberAnimation{
+            id:anim
+            target: qq4
+            from: root.height-qq4.height
+            property: "y"
+            to:40;duration: 3000
+            running: area.pressed  true移动false停止 只有光标在图片上并且被按下的时候才会移动，鼠标弹起来停止移动
+        }
+        MouseArea{
+            anchors.fill: parent
+            id:area
+        }
+    }
+}
+
+
+---------------------------动画制作
+import QtQuick 2.0
+Clickableimg.qml
+Item{
+    id:root
+    width: 100;height: 100
+    property alias title: label.text
+    property alias source:image.source //当前图片的源 来自外部传入的source
+    property var easingType;
+    signal clicked
+
+    Image {
+        id: image
+        anchors.fill: parent
+        source: "./img/"+title+".png"
+
+        Text {
+            id: label
+            text: qsTr("text")
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+        }
+    }
+
+    MouseArea{
+        anchors.fill: parent
+        onClicked: root.clicked()
+    }
+}
+
+import QtQuick 2.6
+import QtQuick.Window 2.2
+import QtQuick.Layouts 1.0
+Rectangle{
+    id:root
+    width: 640
+    height: 480
+    color: "gray"
+    //背景上面颜色深  下面浅
+    gradient:Gradient{
+        GradientStop{position: 0.0;color: root.color}
+        GradientStop{position: 1.0;color: Qt.lighter(root.color)}
+    }
+
+    ColumnLayout{
+        spacing: 20
+        Grid{
+            spacing: 10
+            columns: 5 //5列
+			//通过修改easingType 来修改运行动画
+            Clickableimg{
+                title:"fengche"  //匀速
+                easingType: Easing.Linear
+                onClicked: {  //按下图标后，修改animation.easing.type 与 box.togg
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            Clickableimg{  //先慢后快
+                title:"fengche"
+                easingType: Easing.InExpo
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //3
+            Clickableimg{  //先快后慢
+                title:"fengche"
+                easingType: Easing.OutExpo
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //4
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InExpo
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //5
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InExpo
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //6
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InExpo
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //7
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InCirc
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //8
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InOutBounce
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //9
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InOutBack
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+            //10
+            Clickableimg{
+                title:"fengche"
+                easingType: Easing.InOutSine
+                onClicked: {
+                    animation.easing.type=easingType
+                    box.togg=!box.togg
+                }
+            }
+        }
+        Rectangle{
+            id:box
+            y:20
+            width: 100;height: 100
+            property bool togg
+            x:togg?20:root.width  //togg变化x的值就会变化
+            Behavior on x {  //当前box就会朝着目标x位置运动
+                NumberAnimation{
+                 id:animation
+                 duration: 3000
+                }
+            }
+        }
+    }
+}
+
+-------------------分组动画
+Clickableimg.qml
+import QtQuick 2.0
+Item{
+    id:root
+    width: container.childrenRect.width;
+    height: container.childrenRect.height
+    property alias title: label.text
+    property alias source:image.source //当前图片的源 来自外部传入的source
+    property var easingType;
+    signal clicked
+
+    Column{
+        id:container
+        Image {
+            id: image
+        }
+        Text {
+            id: label
+            width: image.width
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            color: "red"
+        }
+    }
+    MouseArea{
+        anchors.fill: parent
+        onClicked: root.clicked()
+    }
+}
+
+
+import QtQuick 2.6
+import QtQuick.Window 2.2
+import QtQuick.Layouts 1.0
+Rectangle{
+    id:root
+    width: 640
+    height: 480
+    color: "gray"
+    property int duration: 3000
+    //背景上面颜色深  下面浅
+    gradient:Gradient{
+        GradientStop{position: 0.0;color: root.color}
+        GradientStop{position: 1.0;color: Qt.lighter(root.color)}
+    }
+
+    Image {  //背景图片
+        anchors.fill: parent
+        source: "./img/upgrade.png"
+    }
+
+    Clickableimg{
+        id:ufo
+        x:20;y:root.height-height
+        source: "./img/fengche.png"
+        onClicked: anim.restart()
+    }
+    //增加动画--顺序执行的动画-哪个放上面先执行哪个
+    //SequentialAnimation{
+    ParallelAnimation{ //x轴y轴并行执行 ，则会直接斜着飞
+        id:anim
+        //x方向的变化
+        NumberAnimation{
+            target: ufo  //对ufo对象执行
+            properties: "x"
+            from:20
+            to:500
+            duration: root.duration
+        }
+        //y方向的变化
+        NumberAnimation{
+            target: ufo  //对ufo对象执行
+            properties: "y"
+            from:root.height-ufo.height
+            to:20
+            duration: root.duration
+        }
+    }
+}
+
+
+----------------------------足球提起来的动画 先快后慢 弹起效果
+import QtQuick 2.6
+import QtQuick.Window 2.2
+import QtQuick.Layouts 1.0
+Rectangle{
+    id:root
+    width: 640
+    height: 480
+    color: "gray"
+    property int duration: 3000
+    //背景上面颜色深  下面浅
+    gradient:Gradient{
+        GradientStop{position: 0.0;color: root.color}
+        GradientStop{position: 1.0;color: Qt.lighter(root.color)}
+    }
+
+    Image {  //背景图片
+        anchors.fill: parent
+        source: "./img/upgrade.png"
+    }
+
+    Clickableimg{
+        id:ufo
+        x:20;y:root.height-height
+        source: "./img/fengche.png"
+        onClicked: anim.restart()
+    }
+
+    //动画设计
+    ParallelAnimation{ //并行的动画由3种动画组成
+        id:anim
+        //x方向的变化
+        NumberAnimation{
+            target: ufo  //对ufo对象执行
+            properties: "x"
+            from:20
+            to:500
+            duration: root.duration
+        }
+        //rotation方向的变化
+        NumberAnimation{
+            target: ufo  //对ufo对象执行
+            properties: "rotation"
+            from:0
+            to:360
+            duration: root.duration
+        }
+        SequentialAnimation{  //y轴上的变化是先上后下
+            //y方向的变化 先上后下
+            NumberAnimation{
+                target: ufo  //对ufo对象执行
+                properties: "y"
+                from:400
+                to:0
+                duration: root.duration*0.4
+                easing.type:Easing.OutCirc
+            }
+            NumberAnimation{
+                target: ufo  //对ufo对象执行
+                properties: "y"
+                from:0
+                to:400
+                duration: root.duration*0.6
+                easing.type:Easing.OutBounce
+            }
+        }
+    }
+}
+
+------------------状态和转化
+import QtQuick 2.6
+import QtQuick.Window 2.2
+import QtQuick.Layouts 1.0
+Rectangle{
+    id:root
+    width: 150
+    height: 260
+
+    property color black:"black"
+    property color red:"red"
+    property color green:"green"
+
+    Rectangle{  //背景
+        anchors.fill: parent
+        color: "#333333"
+    }
+    state:"stop"
+    states:[
+        State {
+            name: "stop"
+            PropertyChanges {target: light1; color:root.red}
+            PropertyChanges {target: light2; color:root.black}
+        },
+        State {
+            name: "go"
+            PropertyChanges {target: light2; color:root.green}
+            PropertyChanges {target: light1; color:root.black}
+        }
+    ]
+    //慢慢转变
+    transitions: [
+        Transition {
+            //from: "stop";to: "go"
+            from:"*";to:"*"
+            //light1 的颜色发生转变的时候 慢慢变化
+            ColorAnimation {
+                target: light1;properties: "color";
+                duration: 1000
+            }
+            //light2 的颜色发生转变的时候 慢慢变化
+            ColorAnimation {
+                target: light2;properties: "color";
+                duration: 1000
+            }
+        }
+    ]
+    Rectangle{
+        id:light1
+        x:25;y:15
+        width: 100;height: width
+        radius: width/2
+        color: root.black
+    }
+
+    Rectangle{
+        id:light2
+        x:25;y:135
+        width: 100;height: width
+        radius: width/2
+        color: root.black
+    }
+
+    MouseArea{
+        anchors.fill: parent
+        onClicked: parent.state=(parent.state=="stop")?"go":"stop"
+    }
+}

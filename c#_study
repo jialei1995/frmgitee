@@ -504,11 +504,18 @@ string str = System.Text.Encoding.ASCII.GetString ( byteArray );
 这种委托的调用： 委托变量.invoke(3,4);
 
 App.config文件的使用  vs
-修改的时候只能在xml文件中修改
-<appsetting>
-	<app key="ServerIP" value="127.0.0.1"></add>
-	<app key="user" value="cc"></add>
-</appsetting>
+修改的时候只能在xml文件中修改  需要引用程序集：System.Configuration;
+命名空间using System.Configuration;
+
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <startup> 
+        <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.6"/>
+    </startup>
+	<appSettings>
+		<add key="baud" value="500"/>
+	</appSettings>
+</configuration>
 
 string serverIP = ConfigurationManager.AppSettings["ServerIP"];程序中获取配置文件中的值
 string user = ConfigurationManager.AppSettings["user"];程序中获取配置文件中的值
