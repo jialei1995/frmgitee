@@ -176,7 +176,7 @@ io：
 			怎么区别读取错了还是读到文件尾（feof）  int feof（FILE*s）；到尾返回非零，没到尾返回0
 	全缓存的函数：fread fwrite
 	无缓存的：stderr  ex:fputs("hello linux",stderr);还是会显示到屏幕上，虽然没有换行符	
-	stdin与stdout是 行缓存的。		
+	stdin与stdout是 行缓存的。	  
 
 	以a+方式打开文件：即使进行fseek重定位到开头，写进去的东西还是会放到文件末尾。？？？不知道why
 	以w+方式打开文件：可以重新定位，但是写进去的东西会把之前的覆盖，还是不能实现将1个文件中的内容倒着写到另1个文件中。		
@@ -282,7 +282,8 @@ io：
 								3.signal（14，SIG_DFL）;默认方式处理此信号
 			IPC对象：终端命令：ipcs -m/-q/-s  查看内核ipc对象
 					ipcrm -m id 删除
-					通过宏IPC_PRIATE创建的key始终为0  IPC_PRIATE；shmget（IPC_PRIVATE，128,0777）,这种只能实现有亲缘关系的通信
+					通过宏IPC_PRIATE创建的key始终为0  
+					shmget（IPC_PRIVATE，128,0777）,这种只能实现有亲缘关系的通信
 
 					通过ftok创建的key再去shmget（key，128,IPC_CREAT|0777）;  这种可以实现无亲缘关系的通信。
 
@@ -299,12 +300,6 @@ io：
 							IPC_SET
 							IPC_RMID
 						buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
-=======
-										cmd:IPC_STAT
-											IPC_SET
-											IPC_RMID
-										buf:当cmd为stat或者set时，用于保存要设置的属性。cmd为IPC_RMID时不需要这个参数
-				
 
 字符串定义的时候可以直接赋值。char a[] = 'sadas';
 				或者struct node mynode={
@@ -482,8 +477,7 @@ system（“ls”）；可以在程序中执行命令。
 		
 		
 	线程：pthread_self()获取线程号
-		线程是在进程中创建的，如果main进程结束，线程也会end。可以调用pthread_exit阻塞线程
-		使进程等线程结束再结束。
+		线程是在进程中创建的，如果main进程结束，线程也会end。
 
 		阻塞等待pthread_join （tid，void **ret）；
 		传出参数给空的ret，返回后ret里面放的pthread_exit（ret）
@@ -656,14 +650,14 @@ SYSTEM-V IPC 通讯机制：
 	IPC一旦创建一支存在，除非主动删除（显式删除）
 	每个IPC对象有一个关联的key（key为0表示是私有的）。。1个key可以有很多id
 	命令：ipcs 查看当前ipc对象
-		  ipcrm 删除ipc对象
-	共享内存：读取数据后内容仍在其中。内存创建后一直存在内核，直到删除。所以我们用完要释放。
+		  ipcrm 删除ipc对象。
 			key_t key;		0-127					./a.c  'a'
 			key = ftok(".",100);//生成key。路径+文件名+工程名‘m’也可以
 
 			创建共享内存  只用ipc_private创建出来的key默认为000
 							FLAG
-	创建新的，或者获取已有的共享内存。如果key没有任何共享内存，则创建（开辟），如果有对应的，说明别的进程已经创建好了，可以直接获取。
+创建新的，或者获取已有的共享内存。如果key没有任何共享内存，则创建（开辟），
+如果有对应的，说明别的进程已经创建好了，可以直接获取。
 
 			返回映射后的地址=shmat(shmid,NULL,0) 	映射      有了地址可以写memcopy。fgets。scanf
 						null系统分配		0表示可读可写SHM_RDONLY只读		读：puts（地址）
@@ -672,7 +666,9 @@ SYSTEM-V IPC 通讯机制：
 								IPC_STAT IPC_SET IPC_RMID			这时工享内存没人用就会自动删除了候只是添加删除标记，等
 								获取属性存到buf 设置将buf设置到属性 删除共享内存ID用不着buf，传null
 	得到地址后可以调用含有地址的读写函数。往当前内核的地址空间写东西。
-多个进程也可以映射到同一块实际物理地址空间，实现数据共享，只不过需要加保护措施，否则A进程写数据，B进程也写，就乱了。可以利用信号量保护。
+	
+	多个进程也可以映射到同一块实际物理地址空间，实现数据共享，只不过需要加保护措施，
+	否则A进程写数据，B进程也写，就乱了。可以利用信号量保护。
 		多个进程使用共享内存通信时，创建者只需要1个，谁先运行谁创建，其他进程直接获取共享使用，实现通信。
 		读进程，会一直读，因为没有信号灯集去控制
 		     while(1)
@@ -1064,11 +1060,9 @@ epoll原理概述
 执行epoll_wait时立刻返回准备就绪链表里的数据即可。
 
 两种模式的区别：
-
 LT模式下，只要一个句柄上的事件一次没有处理完，会在以后调用epoll_wait时重复返回这个句柄，而ET模式仅在第一次返回。
 
 两种模式的实现：
-
 当一个socket句柄上有事件时，内核会把该句柄插入上面所说的准备就绪list链表，这时我们调用epoll_wait，会把准备就绪的socket拷
 贝到用户态内存，然后清空准备就绪list链表，最后，epoll_wait检查这些socket，如果是LT模式，并且这些socket上确实有未处理的事
 件时，又把该句柄放回到刚刚清空的准备就绪链表。所以，LT模式的句柄，只要它上面还有事件，epoll_wait每次都会返回。
@@ -1176,18 +1170,17 @@ SQLite Expert：图形化查看工具
 	时钟周期：1s/频率	例如：1s/1Ghz == 1ns  1s大约能执行10^9个指令								
 	thumb指令集：16位--arm指令集：32位																下面的例子会影响
 	汇编指令： 操作码（后缀s码）+目的寄存器+源寄存器+立即数	跟了s码才会影响cpsr的nzcv，不然不会影响：adds r0，r1，#ff
-	*指令执行前判断cpsr条件码--指令执行后判断s码影响cpsr																								
+	*指令执行前判断cpsr条件码--指令执行后判断s码影响cpsr
 	相等跳转，检查cpsr		beq aaa。。。先判断是否相等才跳转（条件码）
 	存储器速度：
-		寄存器->cache（sRAM随机静态存储器）->内存（DRAM动态随机存储器:DDRAM-SDRAM）->硬盘（Flash：norflash-bios，bootloader）
+	寄存器->cache（sRAM随机静态存储器）->内存(DRAM动态随机存储器:DDRAM-SDRAM)->硬盘(Flash：norflash-bios，bootloader)
 	->网盘
 	DDR:(SDRAM)同步动态内存（sychonize）是随机访问存储器：访问那个点数据的事件都一样。怎么做到的呢
 	硬盘是顺序访问存储器：开头访问快，后面访问得等磁盘转过去才能访问。
 		芯片里面一般不放大电容电阻，体积太大
 		DRAM:动态内存（保存一位用1个电容）
 		SRAM:静态内存（保存一位用4-6个晶体管）
-	
-	
+
 	BootLoader：不属于操作系统，用.s与.c编写。因为刚开始有异常向量表，.c不能写
 		boot阶段：
 		关闭看门狗、中断。。。WTCON寄存器某位。。CPSR 的I/F位中断
@@ -1197,7 +1190,8 @@ SQLite Expert：图形化查看工具
 		初始化硬盘nandflash
 		loader阶段：
 		从Emmc/Flash的kernel搬运到到指定内存中，（自搬移）跳转到kernel所在地址。
-	BootLoader启动方式： 自启动模式，设置自启动参数。bootargs bootcmd
+	BootLoader启动方式： 自启动模式，设置自启动参数。bootcmd：
+			setenv bootargs root=/dev/nfs nfsroot=192.168.1.101:/source/rootfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.1.250
 						交互模式：开发板与pc通过串口调试，网口tftp下载pc的内核，rootfs，然后自己用指令启动
 	
 	uboot启动分析：
@@ -1229,7 +1223,6 @@ c阶段：
 			调到。main （大部分硬件初始化）
 
 keil:debug时  左侧的Internal:里面可以看到程序运行的消耗时间
-
 
 电脑几核：
 	cpu可以直接访问内存（存当前正在执行的程序与data），但不能直接访问外存。
@@ -1289,7 +1282,7 @@ keil:debug时  左侧的Internal:里面可以看到程序运行的消耗时间
 			-->
 				2现在改变状态为user态，直接执行swi（也可以随便给r0-r12寄存器赋值，等会中断完看能不能复原）就跳转到了swi的处理函数
 			-->3刚进入这个模式，板子状态会恢复为svc模式，lr保存刚才的pc下条指针，spsr保存刚才cpsr的值，
-				在swihandler中先压栈将现在的r0-r12，lr压栈；分析是那号中断（swi有很多跳转号的），switch case对比一下往哪个子函数跳
+				'-r12，lr压栈；分析是那号中断（swi有很多跳转号的），switch case对比一下往哪个子函数跳
 				，然后bleq fun（这里才真正步入了中断子函数，因为要回来所以bl）；
 			-->4在中断fun中随便写几条命令改变r0-r12值，然后回去（mov pc lr）
 			-->5现在又回到了swihandler，我们可以出栈了，中断子函数都完事了。把刚才压进去的lr直接出栈给pc就行了
@@ -1859,16 +1852,9 @@ linux内核移植：
 	● sound：ALSA、OSS 音频设备的驱动核心代码和常用设备驱动。
 	● usr：实现用于打包和压缩的cpio 等。
 
-	
-	主目录Makefile：
-		setenv bootargs root=/dev/nfs nfsroot=192.168.1.101:/source/rootfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.1.250
-	
-	md 0x20008000 查看该内存地址的数据
-	先得tftp 20008000 1.txt将数据拉到这里
-	uboot--go 020008000只能启动裸机pc指针指导这里直接就能运行
+	go 020008000只能启动裸机pc指针指导这里直接就能运行
 	uimage = zimage+头4m
 
-		 
 系统移植：
 		裸机编程与系统编程的区别：
 		裸机：1.运行速度快，直接操作硬件管脚（有可能损坏硬件）。映射到内存
@@ -1913,7 +1899,7 @@ linux内核移植：
 				demo：ip相关   		bootags:告诉内核使用哪里的文件系统 root = /dev/ram  哪里的nfs
 										init=/linuxrc--->应用程序的启动脚本。第一个用户进程
 										
-1.BootLoader：☆☆☆☆☆☆它不属于操作系统，bl1+bl2+uboot.bin = uboot-fs4412.bin
+1.BootLoader：它不属于操作系统，bl1+bl2+uboot.bin = uboot-fs4412.bin
 			我们选用u-boot（这个是在源代码基础上改改再加上三星提供的bl0+bl1加密规则就可以移植到自己的系统中）
  		4 实验：制作SD卡--->u-boot-fs4412.bin 制作带uboot的sd卡
 				sudo dd iflag=dsync oflag=dsync if=/home/farsight/u-boot-fs4412.bin of=/dev/sdb seek=1
@@ -1952,7 +1938,7 @@ linux内核移植：
 		加载引导内核到内存	3、网卡移植
 							4、FLASH移植（EMMC）  1.1初始化EMMC    1.2添加相关命令（movi write。。）
 		PC端：配置tftp服务（传电脑的-要移植的东西-到板子的内存，然后板子可以烧到emmc，以后就不用接电脑了）					
-			配置nfs服务：实现象windows与linux的文件挂载功能的挂载，（板子挂载到linux，在linux运行程序就是在板子运行）
+			配置nfs服务：实现象windows与linux的文件挂载功能的挂载，共享文件
 *************************************内核编译***************************************8
 		•解压内核
 		•修改内核顶层目录下的Makefile
@@ -1967,7 +1953,6 @@ linux内核移植：
 		arch/arm/boot目录下生成一个uImage文件（如果编译过程中提示缺少mkimage工具，uboot源码中的tools/mkimage拷贝
 		到ubuntu的/usr/bin目录下）******************************
 		弄设备树
-
 
 		2.	修改drivers/char/Kconfig  drive目录中的每个文件夹都有Kconfig文件，写的代码最终会显示到对应的menuconfig中
 			在menu "Character devices"下面
@@ -2002,8 +1987,8 @@ linux内核移植：
 	调试：
 		选择将linux的某个文件夹挂载到demo。这样就会同步demo与linux中的数据，可以通过操作linux来操作demo
 	
-		tftp客户端：tftp 20008000 a.txt	//将a.txt数据搬移到内存空间		
-		md 20008000 显示这里的数据存的什么
+		tftp客户端：tftp 20008000 a.txt	//先将a.txt数据搬移到内存空间		
+		md 20008000 显示这里的数据存的什么  u-boot 中才有这个命令
 		md.b  30008000 40 看内存中的数据  只查看40字节
 		memory display
 
@@ -2028,8 +2013,6 @@ linux内核移植：
 			 macos的mount： sudo mount -o resvport 192.168.1.104:/media  /mnt
 			 有时候挂载的时候会卡死，需要 
 			 mount -t nfs -o nolock,vers=3  不锁定
-
-
 
 		/etc/rc.d/init.d/xxx  各种服务的启动脚本都在这里放着
 		/etc/rc.local    开机后自动执行的脚本，可以自己写个啥进去，每次开机自动就执行了(例如mount)
@@ -2249,9 +2232,11 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 
 		多个.c的模块怎么写：
 				更改makefile：在obj-m:=hello.o  下一行+
-				还只能是objs：hello-objs := hello.o hehe.o  注意不能这么写，两个hello.o产生了递归了。生成的hello.ko卸载不了了
-									可以写成 hehe1.o hehe2.o
-			
+				还只能是objs：hello-objs := hello.o hehe.o 
+				注意不能这么写，两个hello.o产生了递归了。生成的hello.ko卸载不了了 
+				可以写成 hehe1.o hehe2.o
+				hello-objs  就是要生成的ko的名字  hehe1 hehe2是依赖的中间文件
+				
 	模块导出：产生依赖A---->B  b中使用了a的函数与变量***（删除的时候先卸载b.ko才能卸载a.ko）
 			1.编写a.c时再变量后面加一行EXPORT_SYMBOL(变量名)；
 					函数名后面加一行EXPORT_SYMBOL(函数名)；	
@@ -2274,7 +2259,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 		设备：虚拟设备/dev/xxx  可以mknod创建虚拟的设备
 			静态申请设备号：自己指定要注册的主设备号，次设备号
 			int register_chrdev_region(from, count, char *name)
-   			注册的第一个设备号（注意这个不是主设备号） 可以传MKDEV(ma,mi)，count=1就行，表示只注册一个设备号
+   			注册的第一个设备号（注意这个不是主设备号，是总设备号） 可以传MKDEV(ma,mi)，count=1就行，表示只注册一个设备号
 			void unregister_chrdev_region(dev_t from, unsigned count)
 			cat /proc/device   查看当前os中的设备号。 
 
@@ -2311,10 +2296,10 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 			MAJOR（设备号）；提取主设备号 --高12bit    区分哪类驱动（串口）
 			MINOR（设备号），提取次设备号 --低20bit    区分具体哪个驱动设备（串口1，2，3）
 
-	写设备驱动程序首先要申请设备号，----这是注册设备号呢-------设备号注册之后才可以制作设备文件（根据设备号）
-											之后操作设备都依靠的是设备文件
+	写设备驱动程序首先要申请设备号，----这是注册设备号呢-------
+	设备号注册之后才可以制作设备文件（根据设备号） ---对应的命令 mknode
+				之后操作设备都依靠的是设备文件
 
-	
 	内核内的模块添加：
 		1.写驱动程序
 		2.Kconfig 就是配置内核选项的文件--  .config文件中是配置过能看到的文件怎么配置的
@@ -2330,7 +2315,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 		号有哪些operations，就定下来了。此时用户怎么使用这个驱动呢？
 		得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。
 一个设备文件对应一个具体的设备，设备号与设备文件通
-过mknode的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
+过 mknode 的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
 			4.void cdev_del(&cdev);					注销cdev结构体
 
 			pcls = class_create(THIS_MODULE,"hello");//类 创建成功再创建设备文件--->对应/sys/class/classname
@@ -2597,7 +2582,7 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 	1.驱动编写完成insmod后要cat /proc/devices 看一下对应的dev号
 	2.然后mknod  /dev/dev中的驱动名  +   c  +刚才看的dev号（主设备号）+ 驱动文件中的从设备号     //创建设备文件
 	驱动中的设备号与应用程序中的要一致。
-	写应用程序之前要申请设备号，应用程序操作此设备号。（是mknode申请的吗？）
+	写应用程序之前要申请设备号，应用程序操作此设备号。
 
 	struct file与之前学的FILE *f 完全不是1个东西;struct file描述一个已经open的文件，一旦文件被open，就会产生一个file结构体去描述他，
 特点：打开文件时就会被创建，close时就会被删除，这个结构体可以传递给每个对该文件进行操作的函数做入参。
@@ -6850,11 +6835,9 @@ EMMC启动命令：bootcmd=movi read kernel 0x41000000;movi read dtb 0x42000000;
 ----------------2-------
 网络的方式启动： 下载内核 dtb到内存对应位置  然后启动
 bootcmd=tftp 41000000 uImage-0522;tftp 42000000 exynos4412-fs4412-0522.dtb;bootm 41000000 42000000
-
-
 mytest=tftp 41000000 uImage-0522;tftp 42000000 exynos4412-fs4412-0522.dtb;bootm 41000000 42000000
 
-二、执行 boot命令，会自动找环境变量为 bootcmd的变量，执行启动
+二、执行 boot命令，会自动找环境变量为 bootcmd 的变量，执行启动
     自己run mytest--也可以成功启动内核
 
 
