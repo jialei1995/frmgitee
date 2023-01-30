@@ -1,0 +1,192 @@
+不包含main.c的qml项目创建的时候 其他项目->qt quick ui property去创建
+
+包含main.c的qml项目创建方法，Application->qt quick application 
+以后编译选择 cmake --趋势
+
+main.qml
+import QtQuick 2.15
+import QtQuick.Window 2.15
+import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1 as Platform
+ApplicationWindow {
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("bioa World")
+
+    background: Rectangle{
+        color: "white"
+    }
+
+    Image {
+        id: image
+        source: "./images/QQ.png"
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+    }
+}
+
+
+----------------ui界面菜单 栏简单设置
+import QtQuick 2.15
+import QtQuick.Window 2.15
+import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1 as Platform
+
+ApplicationWindow {
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("bioa World")
+
+    background: Rectangle{
+        color: "white"
+    }
+
+    Image {
+        id: image
+        source: "./images/QQ.png"
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+    }
+
+    //click button -->open fileOpenDialog-->change Image.source
+    header:ToolBar{
+        Flow{
+            anchors.fill: parent
+            ToolButton{
+                text:"open"
+                icon.source: "./images/biao.ico"
+                onClicked: fileOpenDialog.open()
+            }
+        }
+    }
+
+    Platform.FileDialog{
+        id:fileOpenDialog
+        title:"chose pic"
+        nameFilters: [
+            "Images files(*.png *.jpeg)",
+            "all files(*.*)"
+        ]
+        onAccepted: {
+            image.source=fileOpenDialog.file
+        }
+    }
+    //menu set small spell+big spell
+    menuBar:MenuBar{
+        Menu{
+            title: "&File"
+            MenuItem{
+                text:"&Open..."
+                onTriggered:fileOpenDialog.open()
+            }
+        }
+        Menu{
+            title: "&Help"
+            MenuItem{
+                text:"&About..."
+                onTriggered:aboutDialog.open()
+            }
+        }
+    }
+
+    Dialog{
+        id:aboutDialog
+        anchors.centerIn:parent
+        title:"about"
+        Label{
+            text:"this is ...."
+        }
+        standardButtons: Platform.StandardButton.Ok
+    }
+}
+
+
+------------------------手机端app 类型的显示风格
+import QtQuick 2.15
+import QtQuick.Window 2.15
+import QtQuick.Controls 2.15
+import Qt.labs.platform 1.1 as Platform
+import QtQuick.Controls.Material 2.15
+ApplicationWindow {
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("bioa World")
+
+    background: Rectangle{
+        color: "white"
+    }
+
+    Image {
+        id: image
+        source: "./images/QQ.png"
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+    }
+
+
+    Platform.FileDialog{
+        id:fileOpenDialog
+        title:"chose pic"
+        nameFilters: [
+            "Images files(*.png *.jpeg)",
+            "all files(*.*)"
+        ]
+        onAccepted: {
+            image.source=fileOpenDialog.file
+        }
+    }
+
+    header:ToolBar{
+        Material.background: Material.Orange
+        ToolButton{
+            icon.source: "./images/biao"
+            onClicked: draw.open()
+        }
+        Label{
+            anchors.centerIn: parent
+            text:"Image View"
+            font.pixelSize: 20
+        }
+    }
+    Drawer{
+        id:draw
+        width: parent.width*2/3
+        height: parent.height
+
+        ListView{
+            anchors.fill:parent
+            model: ListModel{
+                ListElement{
+                    text:"open..."
+                    triggered:function(){fileOpenDialog.open()}
+                }
+                ListElement{
+                    text:"about..."
+                    triggered:function(){aboutDialog.open()}
+                }
+            }
+            delegate: ItemDelegate{
+                text:model.text
+                highlighted: ListView.isCurrentItem
+                onClicked: {draw.close();model.triggered()}
+            }
+        }
+    }
+
+    Dialog{
+        id:aboutDialog
+        anchors.centerIn:parent
+        title:"about"
+        Label{
+            text:"this is ...."
+        }
+        standardButtons: Platform.StandardButton.Ok
+    }
+}
+
