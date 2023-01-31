@@ -137,3 +137,7 @@ wizZard		向导
 2023年：
 transparent：透明的
 backup：备份
+dashboard:仪表板
+Indicator：指示信号
+
+Elapesed time：运行时间

@@ -21,6 +21,18 @@
 	在while（）	并且循环里面定义的变量在循环外不能访问，它已经释放了。
 	每轮循环完成后定义的变量就会被析构，下一轮重新定义的。
 	但是python的循环中的变量在while之外可以访问。
+	
+	man 手册9章分别对应的内容
+    Executable programs or shell commands       // 命令
+    System calls (functions provided by the kernel)  // 系统调用，比如 man 2 open
+    Library calls (functions within program libraries)  // 函数库调用
+    Special files (usually found in /dev)             // 特殊文件, 比如 man 4 tty 
+    File formats and conventions eg /etc/passwd  // 文件格式和约定, 比如man 5 passwd
+    Games  // 游戏
+    Miscellaneous (including macro packages and conventions), e.g. man(7), groff(7) //杂项
+    System administration commands (usually only for root) // 系统管理命令
+    Kernel routines [Non standard]  // 内核例程
+
 C++:
 	空类定义一个空对象：这个空对象的大小是1.为了区分不同空对象占内存的位置。分配1个字节去占用内存空间
 	静态成员变量必须要在类外初始化，不然会报错。它不会占对象的空间。存储在静态区。
@@ -1233,7 +1245,13 @@ keil:debug时  左侧的Internal:里面可以看到程序运行的消耗时间
 		cpsr：当前程序状态寄存器
 		spsr：备份当前程序状态寄存器[中断时自动调用],不进中断没用
 		3级指令流水线：最高效
-	
+		
+	寻找一个寄存器地址的时候,先确定基地址--在 memory map章节查找 ,再找本寄存器偏移 即可找到对应的唯一地址
+	gpio的使用:
+	1.使能gpio模块
+	2.确定工作模式
+	3.设置方向  读  写
+	4.若是写 ,写1/0 若是读 读管脚电平
 	
 串口裸机驱动：
 		串口为啥1byte1byte的发，因为可以减小收发双方时间基准不一样长时间通信有可能数据差出1bit，后面的所有数据就会出错。
@@ -1901,7 +1919,7 @@ linux内核移植：
 										
 1.BootLoader：它不属于操作系统，bl1+bl2+uboot.bin = uboot-fs4412.bin
 			我们选用u-boot（这个是在源代码基础上改改再加上三星提供的bl0+bl1加密规则就可以移植到自己的系统中）
- 		4 实验：制作SD卡--->u-boot-fs4412.bin 制作带uboot的sd卡
+ 		4 实验：制作SD卡--->u-boot-fs4412.bin 制作带uboot的sd卡 --sd卡插到笔记本去烧写
 				sudo dd iflag=dsync oflag=dsync if=/home/farsight/u-boot-fs4412.bin of=/dev/sdb seek=1
 					1.指定产品BOARD	编译为u-boot.bin 
 						不能直接烧，要添加三星的加密方式，修改makefile
@@ -2178,7 +2196,7 @@ obj-y += xxx.o  表示要编译当前目录中的xxx.c文件
 obj-y += yyy/   表示要编译当前目录下的yyy子目录
 
 	makefile的生成方式：
-	1.利用cmake命令与Cmakelists.txt（txt文件比较简单）
+	1.利用cmake命令与 Cmakelists.txt（txt文件比较简单）
 	2.automake工具，即-./configure 生成makefile
 	
 		%.o:%.c:
@@ -2249,7 +2267,7 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 			把相关的Module.symvers模块 copy 到/lib/modules/3.123-gerneric  下 
 			把ko拷贝到/lib/modules/3.123-gerneric的update目录下就能直接通过modprobe探测到了
 			sudo depmod -a     建立模块之间的关系 
-			sudo modprobe hehe  这个随便在哪里执行都可以安装模块2了
+			sudo modprobe hehe  这个随便在哪里执行都可以安装模块2了  解决依赖关系
 
 		设备文件：
 			设备号：  设备号是一个纽带， 链接驱动程序 和  用户空间的设备文件，
@@ -2314,8 +2332,9 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 			3.int cdev_add(&cdev，设备号，设备个数)； 将设备号与设备关联起来的字符设备注册到内核，由内核统一管理，某个设备
 		号有哪些operations，就定下来了。此时用户怎么使用这个驱动呢？
 		得通过一个设备文件，可以sudo mknode /dev/haha0 c 250 0来创建字符设备。
-一个设备文件对应一个具体的设备，设备号与设备文件通
-过 mknode 的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。	
+			一个设备文件对应一个具体的设备，设备号与设备文件通
+			过 mknode 的时候关联起来，对文件的操作就是对设备号所对的字符设备的操作。
+			
 			4.void cdev_del(&cdev);					注销cdev结构体
 
 			pcls = class_create(THIS_MODULE,"hello");//类 创建成功再创建设备文件--->对应/sys/class/classname
@@ -2339,8 +2358,6 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 			}
 		mknod:建立设备文件与设备号之间的联系
 		void cdev_init(&cdev,&ops操作集);因为传进去了cdev，所以ops可以操作cdev，这里就是在说cdev能进行哪些opration。
-
-		sudo insmod hello.ko 如果出现not permit？？？********* sudo insmod ./hello.ko
 
 		read与write操作硬件的时候：
 		read:copy_to_user
@@ -3009,6 +3026,12 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		iounmap(ledcon);iounmap接触映射
 
 ***********************************************驱动中断************************************************
+中断上下文切换：
+将用户态的15个reg 与 cpsr存起来---然后进入内核态  pc指向内核态代码
+恢复现场：从栈中把reg值全吐出来（一个进程只有一个栈，切换的时候数据全存到栈里面了）
+
+进程上下文切换，进程间切换，每个进程都有自己的栈数据网哪里存呀？
+
 	内核中的定时器：
 		jiffies：自系统开机就开始计数+1+1+1+1，可以根据os自启动以来的jiffies数计算开机以来运行时间jiffies/HZ（单位秒）
 			HZ：决定每s产生多少次定时器中断
@@ -4242,6 +4265,7 @@ ctrl+r:输入最近输过的linux指令，os会默认匹配之前使用过的cmd
 在test.sh中用sh 1.sh调用1.sh脚本，则1.sh中的$0就是1.sh****
 			sh会新建bash，不继承之前的变量。
 行过滤工具
+	查找某个时间内的所有记录:grep -n "Jan 29" *.log   /var/log 目中中执行
 	grep [选项] ‘关键字’  文件名——》查找文件名中包含关键字的行，并打印出来
 	选项可加可不加就是-v -f -m 。。。
 	想要高亮显示：grep --color=auto 'root' passwd在passwd文件中找root关键字
@@ -5518,7 +5542,7 @@ lvm是建立于磁盘与分区之上，FS之下的一个逻辑层。
 逻辑卷（LV）：建立在卷组里面，卷组中未分配的空间都可以用于建立新的逻辑卷，最大的好处就是可以动态扩容或缩小，不像物理
 硬盘，多大就多大。LVM可以由1或多个VG组成，1个VG也可以创建1或多个LVM。
 LE：逻辑区域，是逻辑分区中的可分配的最小单元 === PE，物理区域
-          fdisk           pvcreate        vgcreate      lvcreate        mkfs
+             fdisk           pvcreate        vgcreate      lvcreate        mkfs
 /dev/sda介质------>物理分区--------->物理卷--------->卷组---------->逻辑卷------>逻辑分区去挂载
 命令：
 创建物理卷：pvcreate /dev/sda1  sda1就是个物理卷，
@@ -5531,6 +5555,7 @@ LE：逻辑区域，是逻辑分区中的可分配的最小单元 === PE，物�
 在lv中创建文件系统fs：mkfs -t ext2  /dev/lv的path  我们的根文件系统就挂载在这里
 创建好fs之后挂载：mount /dev/openeuler/root  /  挂载后即可使用，为了开机自动挂载修改/etc/fstab文件
     			mount /dev/lvpath1  /home
+				
 根目录空间不够了：如果此时vg还有剩余的PE，可以：
 lvextend  -l+1122(空闲PE，可通过vgdiaplay查询)  /dev/openeuler/root   扩了硬件
 ext2online /    同时扩容fs，扩fs   扩fs的命令有可能是下面的
@@ -5562,8 +5587,6 @@ sr0-------光驱
 4.挂载--设置自动挂载（fstab文件）
 	mount /dev/sdb1 /home/jl/newdisk   挂载成功
 最后记得mount -a 启动自动挂载
-Elapesed time：运行时间
-
 
 ### 系统移植
 
@@ -5988,6 +6011,7 @@ todo要逐个评估
 函数式宏：缺乏类型检验-难打断点，不能调试--
 
 find  . -name \*.py -print | xargs ptags.py
+find . -type f -name "*.log" | xargs grep "xxx"
 find . -type f -exec ls -l {}\;
 find . -type f -exec mv {} {}.bak \;
 
@@ -6097,10 +6121,13 @@ scp重复拷贝同一文件名到det的相同目录会覆盖之前的文件。
 fsck.ext4 -y /dev/mapper/root  会修复文件系统，按照ext4格式
 不用指定ext4也可以，os会自动分辨当前分区类型。
 df -h  查看磁盘空间
+df -hT 查看文件系统类型
+df -i 查看磁盘的inode使用情况，inode用完的话就不可以再创建文件了
+
+du 统计目录大小
 du -h --max-depth=n 查看几层目录结构的文件占用
 du -h -d x 同上行
 du -sh .
-df -i 查看磁盘的inode使用情况，inode用完的话就不可以再创建文件了
 
 
 lsscsi：查看挂载到不同scsi控制器的磁盘信息(1个SCSI控制器上可以挂多个磁盘)
@@ -6274,7 +6301,7 @@ linux启动分析：
 4.1号进程+基础服务
 5.切到真实的root，重启systemd+服务
 
-fdisk -l / parted -l :查看挂载点的fs类型
+fdisk -l  或 parted -l :查看挂载点的fs类型
 zcat initramfs.img |cpio -div  解压initramfs
 lsinitrd initramfs.img 只查看其中的内容，不解压
 ls (hd0,gpt2)/ 双击tab，如果能看到vmlinux与efi，说明这就是启动分区
@@ -6520,6 +6547,41 @@ us:用户空间消耗的CPU时间     若sy为us的2倍说明CPU不够了，应�
 sy：内核空间消耗的CPU百分比
 wa:IOWAIT 百分比，较高时说明iowait严重，磁盘出现瓶颈
 id:空闲时间占用百分比。为100说明CPU空闲，为0说明CPU忙死了
+
+vmstat运行于平均模式，显示从系统启动以来所有统计数据的均值
+
+vmstat -s:
+root@tengxuncloud:~# vmstat -s
+      2030104 K total memory
+       210068 K used memory
+       911872 K active memory
+       763040 K inactive memory
+        91396 K free memory
+       115268 K buffer memory
+      1613372 K swap cache
+            0 K total swap
+            0 K used swap
+            0 K free swap
+     10745584 non-nice user cpu ticks
+       251876 nice user cpu ticks
+      7668720 system cpu ticks
+   4295303343 idle cpu ticks
+      1747314 IO-wait cpu ticks
+            0 IRQ cpu ticks
+       229522 softirq cpu ticks
+            0 stolen cpu ticks
+     10740478 pages paged in
+    419803845 pages paged out
+            0 pages swapped in
+            0 pages swapped out
+   3248202828 interrupts
+   1414853164 CPU context switches
+   1653554237 boot time
+     53873819 forks
+CPU ticks：显示的是自系统启动的CPU时间，这里的“tick”是一个时间单位
+	 forks：大体上表示的是从系统启动开始已经创建的新进程的数量
+vmstat提供了关于linux系统性能的众多信息。在调查系统问题时，它是核心工具之一。
+
 ------却动态库导致二进制无法执行
 拷贝.so到/root/mylib目录
 添加次路径至:/etc/ld.so.conf
@@ -6824,8 +6886,7 @@ win+x：打开具有管理员权限的cmd行
 括号自动对齐：
 option->file option->auto indent：取消indent open brace/indent close brace
 
-----------u-boot
-命令：print--打印环境变量
+
 ------------------------怎么从boot中启动开发板---1---
 一、配置环境变量
 movi read 从emmc中读数据 读到内存
@@ -6841,8 +6902,17 @@ mytest=tftp 41000000 uImage-0522;tftp 42000000 exynos4412-fs4412-0522.dtb;bootm 
     自己run mytest--也可以成功启动内核
 
 
+int ioctl(int fd, unsigned long request, ...);
+函数说明：
+① fd 表示文件描述符；
+② request表示与驱动程序交互的命令，用不同的命令控制驱动程序输出我们需要的数据；
+③ … 表示可变参数arg，根据request命令，设备驱动程序返回输出的数据。
+④ 返回值：打开成功返回文件描述符，失败将返回-1。
+
+ioctl的作用非常强大、灵活。不同的驱动程序内部会实现不同的ioctl，APP可以使用各种ioctl跟驱动程序交互：
+可以传数据给驱动程序，也可以从驱动程序中读出数据。
+
 ioctl---控制设备文件--对于普通文件 只需要读写功能就够了
-int ioctl(int fd, unsigned long request, ...)
 对于设备文件（鼠标）--需要实现移动，按键按下 单击  双击 等多个操作，则需要不同的实现--不同的命令--底层需要操作不同的寄存器去实现
 如果底层只是个简单的eeprom，只需要实现read write完全够用了
 --------------------------------------------------
@@ -6867,7 +6937,7 @@ make xx_defaultconfig----生成.config文件
 make
 
 制作完成的uboot会生成uboot.bin文件
-这个uboot.bin 需要烧写到emmc或sd卡
+这个uboot.bin 需要烧写到emmc或sd卡  然后板子启动的时候选择从哪里启动即可  uboot不用直接烧到mcu中--sd卡插到笔记本上
 
 echo 0 > /sys/block/mmcblk1boot0/force_ro  本来emmc中的这部分是只读的，现在改成可写
 dd if=u-boot.bin  of=/dev/mmcblk1boot0  bs=512 seek=2  写入emmc，uboot.bin
@@ -6915,7 +6985,7 @@ console=tty时，/dev/console就是前台程序的虚拟终端
 3.实现对应的read/write/open函数
 4.把fileoperations结构体告诉内核：注册驱动程序
 5.谁来注册驱动？得有个入口函数：安装驱动时会调用此函数
-	入口函数中调用register_chrdev(); 注册驱动
+	入口函数中调用 register_chrdev(); 注册驱动
 6.出口函数实现
 	出口函数中调用unregister_chrdev();卸载驱动
 				  class_destroy(); 
@@ -6928,8 +6998,8 @@ console=tty时，/dev/console就是前台程序的虚拟终端
 本文件的makefile:
 KERN_DIR = /下载的内核代码makefile所在目录
 all:
-	make -C $(KERNELDIR) M=`pwd`  modules //编译模块就是make modules
-	$(CROSS_COMPILE)gcc -o hello_drv_test hello_drv_test.c CROSS_COMPILE在linux目录中已经配置，会传下来的
+	make -C $(KERNELDIR) M=`pwd`  modules //进入kernel目录,利用makefile编译 pwd 目录的 modules 模块-编译驱动程序
+	$(CROSS_COMPILE)gcc -o hello_drv_test hello_drv_test.c  CROSS_COMPILE在linux最上层的makefile中已经配置，会传下来的--这个编译的应用程序
 clean:
 	make -C $(KERNELDIR) M=`pwd`  modules clean
 
@@ -7000,7 +7070,19 @@ linux中无需继承start/stop/iic_read/iic_write函数，内部可以直接调�
 	i2cdetect 0:查看0号iic控制器接了几个从设备，接的从设备有没有驱动。对应的地址就是从机地址
 		UU：表示此设备存在并且内核已经集成对应的设备的驱动程序
 		其他：表示有此设备，但是内核没驱动程序
-		
+	
+	root@tengxuncloud:~# i2cdetect -r -y 0
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+	00:          -- -- -- -- -- -- -- -- -- -- -- -- --
+	10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	70: -- -- -- -- -- -- -- --
+
+	
 	使用smubs协议：  0x1e表示从机地址
 	i2cset -f -y 0 0x1e 0(写) 0x4(data)
 		-f：对于UU的设备，内核不允许通过其他方式操作从机，需要-f强制执行
@@ -7412,48 +7494,6 @@ ctrl+shift+h  写出要替换的文字后：ctrl+alt+enter/直接点击replace a
 shift+f12
 ctrl+shift+f 来进行全局文本搜索
 
-vscode字体设置：
-{
-    "editor.fontSize": 16,
-    "terminal.integrated.shell.windows": "C:\\windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-    "files.autoSave": "onFocusChange",
-    "workbench.iconTheme": "eq-material-theme-icons-darker",
-    "editor.tabSize": 2,
-    "workbench.startupEditor": "newUntitledFile",
-    "workbench.statusBar.feedback.visible": false,
-    "vsicons.dontShowNewVersionMessage": true,
-    "vetur.validation.template": false,
-    "window.menuBarVisibility": "default",
-    "workbench.sideBar.location": "left",
-    "files.trimTrailingWhitespace": true,
-    "telemetry.enableTelemetry": false,
-    "files.insertFinalNewline": true,
-    "files.associations": {
-        "*.vue": "vue"
-    },
-    "editor.minimap.showSlider": "always",
-    "window.zoomLevel": 1,
-    "extensions.ignoreRecommendations": true,
-    "editor.fontFamily": "Operator Mono, Dank Mono, Fira Code Light",
-    "editor.cursorBlinking": "smooth",
-    "editor.cursorStyle": "line",
-    "editor.fontLigatures": true,
-    "explorer.confirmDragAndDrop": false,
-    "explorer.openEditors.visible": 0,
-    "editor.minimap.enabled": false,
-    "workbench.colorTheme": "Winter is Coming (Dark)",
-    "emmet.includeLanguages": {
-        "vue-html": "html",
-        "javascript": "javascriptreact"
-    },
-    "emmet.triggerExpansionOnTab": true,
-    "files.exclude": {
-        "node_modules": true,
-        "**/.map": true,
-    },
-    "editor.renderControlCharacters": false,
-    "winopacity.opacity": 230,
-}
 -------书签---------
 todo-tree插件：为代办事件添加标签，方便寻找
 需要在settings json中增加：在需要增加标签的地方写入"//TODO", "//FIXME", "tag", "done", "note"注释即可方便查询
@@ -8067,3 +8107,48 @@ Mac中vmware安装教程：
 https://www.vmware.com/cn/resources.html登录此链接，找产品下载，需要注册账号登录--需要切换右上角为中文才能进入中国的注册界面（美国的注册界面无法进入）
 解压密码：chaoxz.com网盘密码：l88e
 
+
+
+U盘插入linux中 会打印部分log,从log可知:usb插入后对应的位置为 /dev/sda 
+有的U盘 有分区,则会多出来/dev/sda1对应U盘第一个分区   /dev/sda2对应U盘的第二个分区
+有些U盘 无分区,则只有/dev/sda  既对应整个U盘,也对应U盘的第一个分区 
+
+要想查看U盘中的数据,必须先挂载此 U盘的某个分区--不能直接一起挂载嘛?好像不能
+先查看U盘分区类型:
+fdisk -l /dev/sda --可知 /dev/sda1分区是FAT32类型,则可以挂载此分区,通过--> mount -t vfat /dev/sda1 /mnt --挂载后可以查看
+
+
+
+copy文件的另一种写法: 用mmap 一个文件的所有内容映射到内存，然后直接读写内存即可读写文件
+      struct stat stat;  ---获取老文件大小
+      char *buf;   --将老文件中的内容 映射到此地址,buf不用分配空间
+
+	  /* 2. 打开老文件 */
+      fd_old = open(argv[1], O_RDONLY);
+      /* 3. 确定老文件的大小,有多大就读多大的数据 */
+      if (fstat(fd_old, &stat) == -1)
+      {
+              printf("can not get stat of file %s\n", argv[1]);
+              return -1;
+      }
+
+      /* 4. 映射老文件 */
+      buf = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd_old, 0);
+      if (buf == MAP_FAILED)
+      {
+              printf("can not mmap file %s\n", argv[1]);
+              return -1;
+      }
+
+      /* 5. 创建新文件 */
+      fd_new = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+      /* 6. 写新文件,老文件有多大就写多大 */
+      if (write(fd_new, buf, stat.st_size) != stat.st_size)
+      {
+              printf("can not write %s\n", argv[2]);
+              return -1;
+      }
+
+
+ASCII 编码太少了-->进化成了ASNI编码(还有bug)-->再进化unicode编码(都是向下兼容的)---只是扩大了字符集合 可以表示更多的数
