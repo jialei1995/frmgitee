@@ -2901,20 +2901,61 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 	***一个设备节点可以包含整个板子的所有寄存器，不用建立很多节点
 	
 	dts语法：
+	常用属性：
 		#address-cells 表示address要用几个32bit的数值去表示（32-64bit的CPU此值不同）
 		#size-cells  要用几个32bit的数值去表示大小
 		label:uart@0x1234{};    node的lable若存在，需要更改此node的属性，可以直接：
-			
+		address-cells与	size-cells影响子节点中的reg属性
+		{
+			#address-cells=<1>
+			#size-cells=<1>
+			memory{
+				reg=<0x8000000 0x2000000>  因为address-cell是1，
+				则0x8000000就表示地址  因为size-cell 为1，则0x200000就表示大小
+
+			}
+
+			#address-cells=<2>  64位系统地址就需要2字节表示
+			#size-cells=<2>
+			memory{
+				//对于不同的设备 reg表示不同的意思
+				reg=<0x8000000 0x2000000 0x1234 0x5678>  因为address-cell是2，
+				则0x8000000 0x20000000就表示地址  因为size-cell 为2，则0x12345678就表示大小
+				
+			}
+		}
+
+		led{
+			compatible="koA","koB","koC"  表示当前设备树支持驱动 A B C
+		}
+
+		//公版dtsi 被板子AB 都include ，但是A中支持uart  B不支持 则可以在后面更改对应的status
+		status="disable" 或 "ok" 或 ""
+
 		可以在根节点之外修改此节点属性
 1.		&lable{----可以新增节点属性，也可以修改之前的节点属性
 			var='value';
 			status='enable'/'disable';可以使能或禁掉某个节点
 			compatible='A','B','C';此设备兼容A,B,C3种驱动，优先级A,B,C
 		};
+		'
+			/{
+				uart0:uart@fe00100{
+					compatile="ms1665"
+					reg=<0xfe00100 0x100>
+				};
+			}
+			//因为上面有label，所以可以直接修改uart@fe00100 这个节点是虚拟的
+			&uart0{
+				status="disable"
+			}
+			
+		'
 2.		若lable不存在，需要更改此node的属性，可以直接：
 		&[/uart@0x1234]{-----------/uart表示根节点下的uart节点，
 			var='value';
 		};
+
 		/ {
 				100ask_led@0 {
 					name=val;  val有3种取值
@@ -2966,6 +3007,9 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		};
 	};
 	dtsi:被别的dts包含的头文件，里面放的是公有的内容
+
+	/sys/firmware/devicetree/base  里面就可以查看设备树中的各个节点，boot的时候用哪个dtb启动，
+	则此目录中的结构就是哪个dtb文件的内容
 	--------------------------------------------------
 	怎么加载dtb中的数据呢？
 	
@@ -3024,7 +3068,12 @@ int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 		映射ioremap的时候ledcon = ioremap(pDevice->resource[0].start, 4);
 		完成寄存器的映射			pDevice->num_resources是带过来的资源总数
 		iounmap(ledcon);iounmap接触映射
-
+		
+	dts 被编译成dtb 后内核利用此dtb启动后，会将dtb中的节点转化成device_node节点，部分device_node
+	  又会转化成platform_device节点 供驱动绑定识别
+	  那些会被转化呢？ 查看docs文档设备树章节
+	  	根节点 含有compatible属性的子节点
+	
 ***********************************************驱动中断************************************************
 中断上下文切换：
 将用户态的15个reg 与 cpsr存起来---然后进入内核态  pc指向内核态代码
