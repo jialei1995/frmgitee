@@ -203,8 +203,49 @@ io：
 	stdin与stdout是 行缓存的。	  
 
 	以a+方式打开文件：即使进行fseek重定位到开头，写进去的东西还是会放到文件末尾。？？？不知道why
-	以w+方式打开文件：可以重新定位，但是写进去的东西会把之前的覆盖，还是不能实现将1个文件中的内容倒着写到另1个文件中。		
-
+	以w+方式打开文件：可以重新定位，但是写进去的东西会把之前的覆盖，还是不能实现将1个文件中的内容倒着写到另1个文件中。	
+		实现方法：
+			        char  ptr[200];
+					FILE *fp=fopen("test.txt","r");
+					FILE *fpnew=fopen("testnew.txt","w");
+					int ret;
+					int ch=0;
+					int offset=0;  先将指针指到最后
+					while((ret=fseek(fp,offset,SEEK_END)) ==0)  可以偏移成功--fseek失败则退出
+					{
+							ch=fgetc(fp);  读取当前位置数据
+							offset--;      指针向前偏移
+							fputc(ch,fpnew);  将源文件指针位置的数据 放到新文件中
+					}
+					fclose(fp);
+					fclose(fpnew);
+	
+	实现方法：r+ 打开，直接重定位指针，读一下往前偏移下，读的数据存入另一个文件  
+	怎么实现 往源文件加一行数字，读源文件，到某行的时候新加一行，后面接着读----数据存入新文件，最后改文件名即可
+	
+	{
+		    char  ptr[200];
+			FILE *fp=fopen("test.txt","r");
+			FILE *fpnew=fopen("testnew.txt","w");
+			char *ret;
+			int row=1;
+			while((ret=fgets(ptr, 100, fp))!=NULL)
+			{
+				if(row==4)  到了第四行，先插入第四行的数据  在将第五行的数据写进去
+				{
+					fputs("4\n",fpnew);
+					fputs(ptr,fpnew);
+					break;
+				}else
+				{
+					fputs(ptr,fpnew);
+				}
+				row++;
+			}
+			fclose(fp);
+			fclose(fpnew);
+	}
+	
 
 	重定向：设置输入不从键盘输入，输出不在屏幕显示（例：ls > /dev/pts/5）		tty  /dev/pts/x 另一个窗口，每次新建都会加1个
 	平时打开一个文件，系统就会分配1个对应的文件描述符（从2往后排）
@@ -460,6 +501,17 @@ system（“ls”）；可以在程序中执行命令。
 	char * arg[] = {"ls","-a","/etc",NULL}		#看的是/etc下的文件
 	execv("/bin/ls",arg)
 	execvp("ls",arg)
+	
+	int main()  如下--当前进程执行execl后 ，后面的printf就不会被打印了，此程序执行的变成了ps -au 
+	{
+			if(execl("/bin/ps","ps","-au",NULL)<0)
+					 perror("execl error!");
+			//此行永远不会被打印
+			printf("this message will never be printed!\n");
+	}
+
+	
+	
 	进程回收 wait（&status） 成功返回子进程进程号，失败返回eof。wait会阻塞等子进程退出它才退，
 不然就一直等儿子，子进程的exit（10），父进程的status里面就会存10.
 	也可以wait（null）表示释放pcb就好，不接收返回值。
@@ -667,6 +719,61 @@ signal函数:
 	默认：如果是系统默认的话，那就会终止这个进程
 	忽略 ：信号来了我们不处理，装作没看到   SIGKILL  SIGSTOP 不能忽略
 	捕获并处理 ：当信号来了，执行我们自己写的代码（捕获信号这个动作是需要我们完成的）  SIGKILL SIGSTOP 不能捕获 
+	
+	
+	
+	demo：
+	创建子进程代表售票员，父进程代表司机 ，同步过程如下：
+	售票员捕捉 SIGINT(代表开车)，发 SIGUSR1 给司机，司机打印(“let’s gogogo”) 
+	售票员捕捉 SIGQUIT(代表停车)，发 SIGUSR2 给司机，司机打印(“stop the bus”) 
+	司机捕捉 SIGTSTP(代表车到总站)，发 SIGUSR1 给售票员，售票员打印(“please get off the bus”) 
+	int main(int argc, char *argv[])
+	{ 
+	 pid = fork();
+
+	 if (pid > 0) /* parent driver 父进程代表司机*/
+	 { 
+		 signal(SIGTSTP, driver_handler);  //父进程收到信号的处理
+		 signal(SIGINT, SIG_IGN);  //收到此信号  ingore
+		 signal(SIGQUIT, SIG_IGN); //收到此信号  ingore
+		 signal(SIGUSR1, driver_handler);
+		 signal(SIGUSR2, driver_handler);
+		 while (1) pause(); 
+	 }
+	 else /* child saler 子进程代表售票员*/
+	 { 
+		 signal(SIGINT, saler_handler);
+		 signal(SIGQUIT, saler_handler);
+		 signal(SIGTSTP, SIG_IGN); //收到此信号  ingore
+		 signal(SIGUSR1, saler_handler);
+		 signal(SIGUSR2, SIG_IGN); //收到此信号  ingore
+		 while (1) pause(); 
+	 } 
+	 return 0;
+	} 
+	void driver_handler(int signo)
+	{ 
+		 if (signo == SIGUSR1)
+			printf("Let's gogogo!\n");
+		 if (signo == SIGUSR2)
+			printf("Stop the bus!\n");
+		 if (signo == SIGTSTP)
+			kill(pid, SIGUSR1);   //在父进程中 fork返回的id就是子进程id号  可以直接通过pid给子进程发数据
+	} 
+	void saler_handler(int signo)
+	{ 
+		 pid_t ppid = getppid(); //子进程想给父进程发数据  需获取父进程id 才可以发
+		 if (signo == SIGINT)
+			kill(ppid, SIGUSR1);
+		 if (signo == SIGQUIT)
+			kill(ppid, SIGUSR2);
+		 if (signo == SIGUSR1)
+		 { 
+			 printf("please get off the bus\n");
+			 kill(ppid, SIGKILL);  //子进程去kill 父进程  自己也退出
+			 exit(0);
+		 } 
+	} 
 	 
 ————————————————
 SYSTEM-V IPC 通讯机制：
@@ -897,8 +1004,12 @@ SYSTEM-V IPC 通讯机制：
 		（2）改变子进程工作目录，chdir（“/”）	changedir（改变当前进程的工作目录）	 	
 		（3）设置文件权限 umask（0） 				1是标准输出
 		（4）关闭所有文件描述符 close 循环 关闭0,1,2,3，---关闭1之后就不能打印了
+		getdtablesize--获取当前进程占用的文件描述符数量
+		for (fd = 0, fdtablesize = getdtablesize(); fd < fdtablesize; fd++)
+			close(fd);
 		（5）进入需要的循环while（1）			避免浪费资源，0,1,2开着没啥用	
-
+				
+		
 进程组的概念：只有父进程的进程组是自己，子进程的进程组是父进程。
 		kill -9 -pgid   一次杀死所有进程组的进程,'-'pgid    （区别父进程与进程组的概念）
 
@@ -3590,8 +3701,8 @@ fp = open(“test.txt”,'w') 直接打开一个文件，如果文件不存在�
 w 以写方式打开，会覆盖之前的内容 文件不存在就新建
 a 以追加模式打开 (从 EOF 开始, 必要时创建新文件)
 r+ 以读写模式打开---直接写从头写 直接读从头读
-w+ 以读写模式打开 (参见 w )
-a+ 以读写模式打开 (参见 a ) 打开后直接读什么都读不到，直接写会写到尾部
+w+ 以读写模式打开 (参见 w )  从头写，覆盖之前内容
+a+ 以读写模式打开 (参见 a )  打开后直接读什么都读不到，直接写会写到尾部
 rb 以二进制读模式打开
 wb 以二进制写模式打开 (参见 w )
 ab 以二进制追加模式打开 (参见 a )
@@ -4661,6 +4772,7 @@ set +e 之后的命令出错不退出
 				set：查看当前用户的本地变量与环境变量 
 		全局变量：/etc/bashrc  所有用户都生效   建议（函数与别名都放这里面）
 				/etc/profile  系统与所有用户都生效
+				~/.bashrc    当前用户生效
   重要：系统变量：$? -> 上条命令执行结果是0 说明上条命令运行成功了  ping 11.1.1.1也可以
 						ls  --> echo $? 结果==0
 						lll -> echo $? 结果127说明上条命令出错了非0就是出错
@@ -5700,13 +5812,22 @@ sr0-------光驱
 最后记得mount -a 启动自动挂载
 
 ### 系统移植
-
-- tftp 410000 uImage          movi write kernel 410000   先拉倒内存，再去写到emmc
+将内核 文件系统 dtb存在emmc 以后就可以从emmc启动板子
+- tftp 410000 uImage          movi write kernel 410000  
 - tftp  410000 exynos.dtb    movi write dtb  4100000 
 - tftp  410000  ramdisk.img    movi write  rootfs 4100000 
 - emmc分几块：kernel  dtb   rootfs  还有3个好像
+搬动拨码开关为从emmc启动  设置从emmc启动的启动参数
 - setenv bootcmd movi read kernel 410000;movi read dtb 420000;movi read rootfs 430000;bootm 41000 430000  42000;先
 加载内核，接下来fs，（没fs你在哪里存放设备树呀），最后设备树
+
+
+设置网络启动：
+# setenv serverip 192.168.9.120 
+# setenv ipaddr 192.168.9.233 
+# setenv bootcmd tftp 41000000 uImage\;tftp 42000000 exynos4412-fs4412.dtb\;bootm 
+41000000 - 42000000 
+#setenv bootargs root=/dev/nfs nfsroot=192.168.9.120:/source/rootfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.9.233 
 
 ```c
 make mrproper    是清除，比make clean清除的更干净一些
@@ -5916,6 +6037,30 @@ Module  size  used
 A       10    B,C,D  可以知道B,C,D依赖A
 /proc/mounts  当前挂载的所有fs
 /proc/filesystem: 系统支持的fs列表
+其他信息
+cat /proc/cpuinfo - CPU
+cat /proc/interrupts - 中断 
+cat /proc/ioports - 设备 IO 端口 
+cat /proc/meminfo - 内存信息(i.e. mem used, free, swap size) 
+cat /proc/partitions - 所有设备的所有分区 
+cat /proc/pci - PCI 设备的信息 
+cat /proc/swaps - 所有 Swap 分区的信息 
+cat /proc/version - Linux 的版本号
+
+可以通过修改 proc 修改内核中预定的一些变量
+文件句柄的最大数量：
+echo 65535 > /proc/sys/fs/file-max 
+
+修改网络TTL
+echo 128> /proc/sys/net/ipv4/ip_default_ttl
+
+修改系统中最大的进程数量
+echo 65535 > /proc/sys/kernel/pid_max
+
+修改普通用户的最大 RTC 频率
+echo 128 >/proc/sys/dev/rtc/max-user-freq
+
+
 ```
 
 ### 截屏软件（超级好用）
@@ -5992,7 +6137,7 @@ exp:
 	route add -net 1.1.1.1  netmask 255.255.0.0 [eth0 | gw 2.2.2.2]
 	route add default via x.x.x.x  eth0
 	
-当前进程的所有环境变量：env（ker:value）
+
 
 vsftpd：ftpserver软件
 1.更改配置文件/etc/vsftpd.conf  anonymos表示启动匿名登录
@@ -6779,7 +6924,7 @@ netstat 可以查看本机的所有连接，这个不会被屏蔽
 cat /proc/net/tcp:
 	localaddr  remaddr
 	源ip+port  目的ip+port
-cat /proc/pid/environ  查看进程中的环境变量，二进制所在目录..其他环境变量目录啥的
+cat /proc/pid/environ  查看进程中的环境变量，二进制所在目录
 
 -----------------------python获取当前os系列，版本1
 python -c "import platform;print(platform.dist())" 
@@ -8274,3 +8419,215 @@ copy文件的另一种写法: 用mmap 一个文件的所有内容映射到内存
 
 
 ASCII 编码太少了-->进化成了ASNI编码(还有bug)-->再进化unicode编码(都是向下兼容的)---只是扩大了字符集合 可以表示更多的数
+
+
+系统移植： 
+u-boot 移植：
+1.修改马克file
+	ifeq (arm,$(ARCH))
+	CROSS_COMPILE ?= arm-none-linux-gnueabi-   既交叉编译工具链 开头部分
+	#endif
+2.查看cpu是否支持  	U-boot 已支持，见 arch/arm/cpu/armv7/exynos/
+3.指定产品board--找一个最类似的board进行修改--这里参考的 board/samsung/origen/
+	$ cp -rf board/samsung/origen/ board/samsung/fs4412---拷贝一份源代码
+	
+	$ mv board/samsung/fs4412/origen.c  board/samsung/fs4412/fs4412.c--修改源程序中的origen.c为fs4412.c 
+	$ vim board/samsung/fs4412/Makefile  修改新增的board的 makefile 		修改 origen.o 为 fs4412.o
+	
+	$ cp include/configs/origen.h include/configs/fs4412.h     修改.h文件
+	$ vim include/configs/fs4412.h
+	修改 origen 为fs4412
+	#define CONFIG_SYS_PROMPT "ORIGEN #"
+	为 	#define CONFIG_SYS_PROMPT "fs4412 #"
+	修改 	#define CONFIG_IDENT_STRING for ORIGEN
+	为 	    #define CONFIG_IDENT_STRING for fs4412
+	
+	#vim boards.cfg
+	参考
+	origen arm armv7 origen samsung exynos
+	并在后面新增
+	fs4412 arm armv7 fs4412 samsung exynos
+	
+	编译u-boot：$ make distclean   $ make fs4412_config  $ make 能编译成功  但是该文件还不能在我们板子上运行，
+	我们需要对 u-boot 源代码进行相应的修改
+	
+	怎么实现u-boot的串口输出：
+	修改board/samsung/fs4412/lowlevel_init.S
+	添加临时栈：--设置栈
+		在lowlevel_init: 后添加：ldr sp,=0x02060000 @use iRom stack in bl2、
+	关闭看门狗：
+		beq wakeup_reset：添加
+			#if 1 /*for close watchdog */
+			/* PS-Hold high */
+			ldr r0, =0x1002330c
+			ldr r1, [r0]
+			orr r1, r1, #0x300
+			str r1, [r0]
+			ldr r0, =0x11000c08
+			ldr r1, =0x0
+			str r1, [r0]
+			/* Clear MASK_WDT_RESET_REQUEST */
+			ldr r0, =0x1002040c
+			ldr r1, =0x00
+			str r1, [r0]
+			#endif
+	添加串口初始化部分代码：
+		在 uart_asm_init: 的
+		str r1, [r0, #EXYNOS4_GPIO_A1_CON_OFFSET]
+		后添加
+		ldr r0, =0x10030000
+		ldr r1, =0x666666
+		ldr r2, =CLK_SRC_PERIL0_OFFSET
+		str r1, [r0, r2]
+		ldr r1, =0x777777
+		ldr r2, =CLK_DIV_PERIL0_OFFSET
+		str r1, [r0, r2]
+		注释掉 trustzone 初始化
+		注释掉
+		bl uart_asm_init
+		下的
+		bl tzpc_init
+	重新编译 u-boot 后即可看到串口输出信息。
+	
+	添加网卡初始化部分代码：
+	在 board/samsung/fs4412/fs4412.c  新增网卡初始化部分代码
+	emmc 初始化： 
+		支持movi指令--cp 给的movi.c arch/arm/cpu/armv7/exynos/  修改makefile支持编译movi
+		board/samsung/fs4412/fs4412.c 中新增 emmc 部分的初始化
+		
+内核的配置编译：
+	$ vim Makefile
+	修改：
+	ARCH 	?= $(SUBARCH)
+	CROSS_COMPILE ?= $(CONFIG_CROSS_COMPILE:"%"=%)
+	为：
+	ARCH 	?= arm
+	CROSS_COMPILE ?= arm-none-linux-gnueabi-
+	
+	 make exynos_defconfig   + make menuconfig
+	 make uImage
+	通过上述操作我们能够在 arch/arm/boot 目录下生成一个 uImage 文件，这就是经过
+	压缩的内核镜像。
+	如果编译过程中提示缺少 mkimage 工具，需将第二天编译的 uboot 源码中的
+	tools/mkimage 拷贝到 ubuntu 的/usr/bin 目录下
+	
+	修改设备树文件：
+	cp arch/arm/boot/dts/exynos4412-origen.dts arch/arm/boot/dts/exynos4412-fs4412.dts
+	添加新文件后需修改 Makefile 才能编译
+		$ vim arch/arm/boot/dts/Makefile
+		在
+		exynos4412-origen.dtb \
+		下添加如下内容 		exynos4412-fs4412.dtb \  在boot所在目录直接编译设备树文件即可
+	USB卡/SD卡/网卡的移植：
+		1.需要修改设备树文件 新增网卡节点
+		2.menuconfig中配置-支持网卡
+
+驱动移植：led驱动 移植进内核
+	1.拷贝fs4412_led_drv.c 拷贝到 drivers/char目录
+	2.修改drivers/char/Kconfig
+		在 menu "Character devices"下面
+		添加如下内容：
+		config FS4412_LED
+		tristate "FS4412 LED Device Support"
+			depends on ARCH_EXYNOS4
+		help
+		support led device on FS4412 develop board
+	3.修改 drivers/char/Makefile
+		在文件最后添加如下代码
+		obj-$(CONFIG_FS4412_LED) += fs4412_led_drv.o
+	4.make menuconfig时在Device Drivers->Character devices->FS4412 LED Device Support 前面按y 编译进内核
+	编译内核后 ，重启板子  用写好的测试程序去测试  看灯是否会开关
+编译 LED 驱动为模块
+	make menuconfig时在Device Drivers->Character devices->FS4412 LED Device Support 前面按m编译 为模块
+	make uImage 编译无led的内核
+	make modules 编译config设为M的模块
+	cp drivers/char/fs4412_led_drv.ko 到单板，测试驱动能否适配
+	
+	
+文件系统移植：
+	1.下载busybox，进入目录
+	2.make menuconfig
+		Busybox Settings --->
+			Build Options --->
+			[*] Build BusyBox as a static binary (no shared libs)
+			[ ] Force NOMMU build
+			[ ] Build with Large File Support (for accessing files > 2 GB)
+			(arm-cortex_a8-linux-gnueabi-) Cross Compiler prefix
+			() Additional CFLAGS
+	3.make  编译
+	4.make install  默认安装位置为：源码目录下的_install目录
+	5.在 _install 目录中创建别的目录 dev etc mnt proc var tmp sys root
+	6.拷贝工具链中的目录至 _install 目录
+		cp /home/linux/toolchain/gcc-4.6.4/arm-arm1176jzfssf-linux-gnueabi/lib/ . -a
+	7.为了确保lib目录不超过8M
+		rm lib/*.a  ；arm-none-linux-gnueabi-strip lib/* ；du -mh lib/
+	8.在etc 下添加启动文件 inittab
+		#this is run first except when booting in single-user mode.
+		::sysinit:/etc/init.d/rcS
+		# /bin/sh invocations on selected ttys
+		# start an "askfirst" shell on the console (whatever that may be)
+		::askfirst:-/bin/sh
+		# stuff to do when restarting the init process
+		::restart:/sbin/init
+		# stuff to do before rebooting
+		::ctrlaltdel:/sbin/reboot
+
+	9.添加文件 fstab
+		#device    mount-point   type     options   dump   fsck  order
+		proc       /proc 		 proc     defaults   0      0
+		tmpfs      /tmp  		 tmpfs    defaults   0      0
+		sysfs      /sys  		 sysfs    defaults   0      0
+		tmpfs      /dev  		 tmpfs    defaults   0      0
+		这里我们挂载的文件系统有三个 proc、sysfs 和 tmpfs。在内核中 proc 和 sysfs 默认都支持，
+		而 tmpfs 是没有支持的，我们需要添加 tmpfs 的支持--
+		修改内核的menuconfig
+		make menuconfig
+			File systems --->
+				Pseudo filesystems --->
+					[*] Virtual memory file system support (former shm fs)
+					[*] Tmpfs POSIX Access Control Lists
+					
+	10.在 etc 下创建 init.d 目录，并在 init.d 下创建 rcS 文件，rcS 文件内容为：
+		#!/bin/sh
+		# This is the first script called by init process
+		/bin/mount -a
+		echo /sbin/mdev > /proc/sys/kernel/hotplug
+		/sbin/mdev -s
+		
+		为 rcS 添加可执行权限：		$ chmod +x init.d/rcS
+	
+	11.在 etc 下添加 profile 文件，文件内容为：
+		#!/bin/sh
+		export HOSTNAME=farsight
+		export USER=root
+		export HOME=root
+		export PS1="[$USER@$HOSTNAME \W]\# "
+		PATH=/bin:/sbin:/usr/bin:/usr/sbin
+		LD_LIBRARY_PATH=/lib:/usr/lib:$LD_LIBRARY_PATH
+		export PATH LD_LIBRARY_PATH
+	12.新制作的文件系统尺寸若超出 8M，删除不需要的库文件
+
+制作ramdisk文件：
+	1.dd if=/dev/zero of=ramdisk bs=1k count=8192 ( ramdisk为8M)  制作8M的镜像
+	2.mkfs.ext2 -F ramdisk			格式化 
+	3.sudo mkdir /mnt/initrd ; sudo mount -t ext2 ramdisk /mnt/initrd   挂载镜像到 /mnt/initrd
+	
+	4.将我们的文件系统复制到 ramdisk 中 ，将测试好的文件系统里的内容全部拷贝到 /mnt/initrd 目录下面
+		cp /source/rootfs/* /mnt/initrd –a
+	5. 卸载ramdisk  umount /mnt/initrd
+	6.压缩 ramdisk 为 ramdisk.gz    gzip --best -c ramdisk > ramdisk.gz
+	7.格式化为 uboot 识别的格式，完成后可以直接使用
+		mkimage -n "ramdisk" -A arm -O linux -T ramdisk -C gzip -d ramdisk.gz ramdisk.img
+	8.需要配置内核支持 RAMDISK 作为启动文件系统
+		make menuconfig
+			File systems --->
+				<*> Second extended fs support
+			Device Drivers
+				SCSI device support --->
+					<*> SCSI disk support
+			Block devices --->
+				<*>RAM block device support
+				(16)Default number of RAM disks
+				(8192) Default RAM disk size (kbytes) (修改为8M )
+			General setup --->
+				[*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
