@@ -1380,7 +1380,7 @@ keil:debug时  左侧的Internal:里面可以看到程序运行的消耗时间
 		串口为啥1byte1byte的发，因为可以减小收发双方时间基准不一样长时间通信有可能数据差出1bit，后面的所有数据就会出错。
 		减小累计误差
 		arm-none-linux-gnueabi-ld  start.o -Tmap.lds -o led.elf
-		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S/strip all 
+		arm-none-linux-gnueabi-objcopy  -O binary -S led.elf led.bin 大写-O -S
 ··		【1】只要把指定pin的con设为输出，data寄存器设为高电平就ok了
 		异步通信：数据传送是以字符为单位的，字符间的传送是完全异步的，字符中位于位之间同步（字符间异步 字符内部各位同步）
 				不知道数据多会发，多会收，让你发就发，别人发就收
@@ -2056,8 +2056,8 @@ linux内核移植：
 						不能直接烧，要添加三星的加密方式，修改makefile
 						不能直接make，要用脚本./build这个是写好的带加密方式的编译
 
-					在start.s中 lowlevel设置临时栈，关闭看门狗
-					初始化串口、（不配置串口不能打印）
+						在start.s中 lowlevel设置临时栈，关闭看门狗
+						初始化串口、（不配置串口不能打印）
 					
 					3.网卡
 					4.emmc、（*******【】）（movi write 命令都不能用）   
@@ -2079,9 +2079,6 @@ linux内核移植：
 					内核解压后 uart初始化之前 printascii
 					uart初始化之后printk
 					
-			3.rootfs：自己制作或者选用别人的改改。
-
-
 		uboot制作过程步骤：	1、确认第一条指令有运行到（点灯法）
 		每步都在初始化硬件	2、实现串口输出
 		加载引导内核到内存	3、网卡移植
@@ -2142,8 +2139,8 @@ linux内核移植：
 		nm xxx：符号标签	显示代码与地址的对应关系表
 		nm -D a.out:显示符号表
 		strip xxx：剔除xxx中 代码与地址的对应关系表，剔除了nm 命令就查不到了
-		strings xxx：查看此二进制文件中 的字符串  就是printf对应的打印信息
-		objdump -d xxx：查看二进制文件的汇编代码与对应的地址之间的关系
+		strings xxx：查看此二进制文件中 可打印 的字符串  就是printf对应的打印信息
+		objdump -d xxx：反汇编 显示目标文件的汇编
 		readelf -s a.out 显示符号表，上层的printf在底层被转换成什么函数执行的
 		readelf -d 查看当前二进制所需的库，ldd也可以看
 		readelf -h xx.a/xx.so/a.out   查看此二进制的运行架构
@@ -4095,6 +4092,9 @@ markdown文件：
 代码说明：'> '加注释内容
 退出当前行的行首的引用：按向下翻页键
 可以将文件导出为html，可以以网页打开。
+
+左侧大纲 子标题隐藏：
+文件 --》偏好设置 --》外观 --》 侧边栏 --》勾选侧边栏的大纲视图允许折叠和展开
 
 **********************总复习********************
 针对指针判空：if(p == NULL) 或 if(p == 0) 其实NULL 就是0
