@@ -134,3 +134,44 @@ func main(){
 import 1.不能直接从绝对路径开始，默认从$GOPATH的src目录去查找的
 2.需要把包放到src目录中。直接放到$GOPATH目录也不行
 3.export GOPATH=$GOPATH:/root/go_code
+4.建议将文件夹名与文件名与包名一致，便于访问
+5.可以给包名取别名去访问,取别名后原来的包名就不能用了
+{
+  import(
+    util "go_code/utilstool"  util就是utilstool的别名
+  )
+}
+6.同一包下，不能有重复的函数名，会报重复定义。也不能有相同的全局变量名
+7.如果需要将包编译成可执行文件，需要声明为main（package main），如果写的文件是个库，包名可以自定义
+8.编译-在$GOPATH 执行-go build -o bin/mytest.exe go_code/project/main
+9.编译main包的时候，import别的包会生成对应的.a 库文件，存放到pkg目录
+
+不同包里面的同一个函数名，会执行对应的函数。
+
+如果希望忽略函数的返回值，可以在对应位置用_ 符号表示占位忽略。
+_,sub=getsumAndsub(3,6)
+
+使用函数的注意事项：
+```go
+1.形参，返回值都可以是多个
+2.形参，返回值 类型可以是值类型，也可以是引用类型
+3.函数名首字母大写，则该函数可以被本包文件或其他包文件使用-（类似public）
+4.数组作为形参传参是值传递，函数内修改，不会修改原来的值 **
+5.go函数不支持重载--
+{
+  c++ 可以通过 函数名一样 但形参不同，达到函数重载的功能。
+  go 不支持重载
+}
+6.函数可以是一种数据类型，可以给该类型赋值，通过变量实现对函数的调用
+{
+  a:=getsum
+  fmt.Println("sum=",a(1,2))  可以直接调用源getsum函数
+  fmt.Printf("a的类型是%T",a)  func  函数类型
+}
+7.函数可以作为形参传入
+{  第一个形参就是函数类型的入参
+  func myfun(funname func(int,int)int,num1 int,num2 int){
+    return funname(num1,num2)
+  }
+}
+```
