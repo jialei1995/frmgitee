@@ -1412,3 +1412,5 @@ int [] getElement(int cnt)
 c# 中的Uint32  不能存0xff ff ff ff会溢出
 只有uint  long 才能装下0xff ff ff ff  long里面是包含正负符号的  uint 是无符号的
 坑死人了，c语言uint32就能存下 c#存不下导致函数处理数据 异常，还不会退出来提示。太他妈坑了
+
+textbox 文本框输入自动变成中文字体--调整textbox属性中的行为->ImeMode为NoControl  以后输入的中文也会转化成 英文字符
