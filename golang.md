@@ -444,3 +444,56 @@ cap(slice)--打印切片容量--随着元素增加动态变化
 5.slice的第0个元素地址==intarr第1个元素地址
 6.其他slice的操作类似array
 
+### slice的使用
+```go
+//必须make后才能使用，make入参表示类型，长度5，容量10
+//无make  不分配空间 不能使用
+var slice []float64 = make([]float64,5,10)
+之后就可以赋值使用了
+
+
+其他方式使用slice,这种相当于把数组给slice，不用make
+var slice[] int=[] int{1,3,5}
+
+slice := arr[:]  直接将数组整个赋值给切片
+
+切片可以继续切片：
+slice2 := slice[1:4]
+
+追加：
+slice3 ：= append(slice,1,2,3)   相当于创建了一个数组把新数组添加到新slice，并不会修改原来的slice
+
+一般用的时候直接-slice := append(slice,1,2,3)
+
+copy(slice4,slice3) 使用copy拷贝后，两个slice独立互不影响。
+遍历：
+{
+  for i:=0;i<len(slice);i++{
+
+  }
+}
+{
+  for i,val := range slice{
+    i val
+  }
+}
+```
+
+```go
+var a[] int=[]int{1,2,3,4,5}
+var slice=make([]int,2)
+slice[0]=8
+slice[1]=9
+fmt.Println(slice)
+copy(slice,a)
+fmt.Println(slice)
+拷贝不会出错，slice中的数据会发生变化
+[8 9] 源数据
+[1 2] 拷贝后
+```
+
+```go
+func test (slice[] int){
+  在函数中作的修改会影响函数外面的slice，因为是引用传递
+}
+```
