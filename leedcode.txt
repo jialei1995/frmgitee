@@ -1474,3 +1474,27 @@ void InorderTraversal(BinTree BT)
 
 
 由两种遍历序列确定二叉树的时候必须有中序序列才可以。
+
+
+### 剑指 Offer 50. 第一个只出现一次的字符
+
+#include<map>
+class Solution {
+public:
+    char firstUniqChar(string s) {
+        map<int, int> frequency;
+        for (char ch: s) {
+            ++frequency[ch];//先遍历str将每个字母的数量记下来
+        }
+        for (int i = 0; i < s.size(); ++i) {//按照str中字母的顺序去遍历map
+            if (frequency[s[i]] == 1) {
+                return s[i];
+            }
+        }
+		for(char m :s)
+        {
+            if(frequency[m]==1)   return m;
+        }
+		return ' ';
+	}
+};

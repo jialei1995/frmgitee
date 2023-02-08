@@ -432,6 +432,34 @@ func main(){
     ...
   }
 }
+### 作为函数入参
+```go
+func testArr01(arr []int) { 
+  //形参未指定大小，与切片传入一样
+	arr[0]++
+}
+func testArr02(arr [5]int) { //形参指定大小
+	arr[0]++
+}
+func testArr03(arr *[5]int) { //使用指针方式，也就是引用传递，会改变数组值
+	arr[0]++
+}
+func main() {
+	var arr = [5]int{0, 2, 3, 17, 50}
+	testArr01(arr[:]) //切片方式传递（常用）
+	for i := 0; i < len(arr); i++ {
+		fmt.Printf("%d ", arr[i])
+	}
+	testArr02(arr) //数组名方式传递,此时传递的是副本，并不会改变原数组
+	for i := 0; i < len(arr); i++ {
+		fmt.Printf("%d ", arr[i])
+	}
+	testArr03(&arr) //指针方式传递，会改变原数组
+	for i := 0; i < len(arr); i++ {
+		fmt.Printf("%d ", arr[i])
+	}
+}
+```
 
 ## slice
 1.切片是数组的引用
@@ -497,3 +525,20 @@ func test (slice[] int){
   在函数中作的修改会影响函数外面的slice，因为是引用传递
 }
 ```
+
+```go
+//写一个程序返回斐波那契 切片
+//返回数组还不好实现，数组大小得用常量初始化，切片可以用变量
+func fbnq(n int)([] uint64){
+  //创建切片 长度为n
+  fbnqslice := make([] uint64,n)
+  fbnqslice[0]=1
+  fbnqslice[1]=1
+  for i:=2;i<n;i++{
+    fbnqslice[i]=fbnqslice[i-1]+fbnqslice[i-2]
+  }
+  return fbnqslice
+}
+```
+
+## string
