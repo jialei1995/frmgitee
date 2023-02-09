@@ -213,4 +213,55 @@ init X：在当前级别基础上继续运行，更新至X运行级别
 + chroot后挂载光盘覆盖安装内核
 + 修改/etc/fatab 确保自动挂载正确
 + 若grub文件丢失，会自动进入grub-shell中，自己配置去启动--并不是大问题
-#### 删除整个boot分区 或者 umount /boot
+#### 删除整个boot分区 ---低版本恢复
+1. 怎么删除？
+    1. umount /boot 
+    2. df 查看boot在那个磁盘中 
+    3. 假设是/dev/sda1  dd if=/dev/zero of=/dev/sda1 bs=1M
+    一定注意 是sda1 如果是sda 则整个磁盘就被破坏掉了
+2. 现象
+    直接黑屏，连 进入grub的菜单选择都出不来
+3. 解决办法
+    1. 在虚拟中挂载CD/DVD iso文件（linux中改xml文件，win中在VMware硬件-CD/DVD 中使用iso挂载）--重新启动
+    2. 选择boot-》cdrom-》进入菜单界面选rescue install system
+    3. 设置语言....最后chroot /mnt/sysimage--全是界面操作选择YES即可
+    4. rescue会自动发现 当前镜像中的根分区 并且会将根挂载到 /mnt/sysimage中
+    5. 选择shell start shell选项 继续yes
+    6. df 可以查看到 之前的系统的根被挂载到了 /mnt/sysimage上
+----
+以上可以当前系统的根是好的，后面继续挂载boot 
+
+    7. mount /dev/sda1 /mnt/sysimage/boot 提示此分区无文件系统，说明根分区是坏的
+    8. 直接mkfs.ext4 /dev/sda1 重建boot分区
+    9. 有了文件系统后 再去挂载 mount /dev/sda1 /mnt/sysimage/boot
+    10. chroot /mnt/sysimage  把当前的根切换到操作系统的根（后面重新安装kernel包的时候会自动往当前系统的boot中加载东西） 不chroot到真实的系统 安装的时候就不是安装到了我们的根系统，而是安装到了 rescue中
+    11. mount /dev/cdrom /media  挂载光盘 光盘中有各种安装包
+    12. rpm -ivh /media/Package/kernel.rpm --force 强制安装内核生成内核，生成镜像文件系统文件。但是不会生成grub，后面还需要安装grub
+    13. grub-install  /dev/sda1  安装grub到启动分区中--这里只是将grub对应的文件拷贝过来 grub还是无法使用，还需要进一步配置
+    14. 直接执行grub  进入grub-shell
+    15. 设置启动分区  root(hd0,0);
+        setup (hd0) 安装使grub生效
+        setup (hd0,0)  这个也可以运行，但是会跳过安装stage1_5 无法启动，因为安装grub后的运行就是会进入stage1_5 --上面说过
+    16. 修改/dev/fstab  因为boot之前是uuid写的，现在得改成/dev/sda1
+    17. /boot/grub/中还得有个grub.conf文件  抄别的电脑一份
+    18. exit 退出chroot  进入rescue 中。reboot重启系统
+
+#### 删除整个boot分区 ---高版本恢复
+1. 怎么删除？
+    1. umount /boot 
+    2. df 查看boot在那个磁盘中 
+    3. 假设是/dev/sda1  dd if=/dev/zero of=/dev/sda1 bs=1M
+    一定注意 是sda1 如果是sda 则整个磁盘就被破坏掉了
+2. 现象
+    重启直接进入grub rescue> 
+3. 解决办法
+    1. 在虚拟中挂载CD/DVD iso文件（linux中改xml文件，win中在VMware硬件-CD/DVD 中使用iso挂载）--重新启动
+    2. 选择boot-》cdrom-》进入菜单界面选rescue install system
+    3. 选择shell start shell选项 继续yes
+    4. df 可以查看到 之前的系统的根被挂载到了 /mnt/sysimage上
+    5. mkfs.xfs /dev/sda1  继续修复启动分区文件系统
+    6. 后面的操作与老版本一样  不同点如下
+    7. grub2-install 会提示成功  grub-install 不会提示成功
+    8. 会安装一堆mod
+    9. 可以直接通过/etc/default/grub 开关文件 生成cfg文件，老版本还得自己去写这个文件；grub2-mkconfig -o /boot/grub2/grub.cfg
+    10. exit  从chroot退出来  reboot重启
