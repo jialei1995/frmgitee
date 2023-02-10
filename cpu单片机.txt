@@ -3649,3 +3649,8 @@ for(int i=0;i<100;i++)
 	can_send();   只有第一次的数据能发出来  后面的i从1--99的can数据都发不出来  因为代码执行很快只有几us
 				前一帧can还没发送出去  下一帧又要发  所以需要延时等待一下  
 }
+
+
+
+No space in execution regions with .ANY selector matching (.data).
+分配的全局变量所占空间太大  sram不够用了
