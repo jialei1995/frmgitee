@@ -8631,3 +8631,31 @@ u-boot 移植：
 				(8192) Default RAM disk size (kbytes) (修改为8M )
 			General setup --->
 				[*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
+
+
+
+Ubuntu18 linux中apt命令下载失败，报错E:Read error - read (21: Is a directory), E:The package lists or status file could not be parsed or opened.
+因为自己把/var/lib/dpkg 中的很多内容删了
+
+解决办法：在别的ubuntu中把 /var/lib/dpkg/status 拷贝到有问题的虚拟机 中 ，重新apt update就能成功
+
+
+Ssh也无法正常启动 config文件都是空的？怎么解决：太麻烦了
+/usr/sbin/sshd -t  看一下是否报错 百度搜一下 把异常解决掉 再去start
+
+Start operation timed out. Terminating.Failed to start openbsd secure shell server
+1。systemctl stop ssh.service    //关闭由systemctl控制的ssh启动
+2.rm /lib/systemd/system/ssh.service      //删除ssh的服务配置文件
+3.systemctl daemon-reload         //重载systemctl服务
+4.不用systemctl 启动 用service ssh start去启动
+
+sshd: no hostkeys available -- exiting  启动不起来，
+1.直接stop后
+2.ssh-keygen -A  重新生成 hostkeys
+3.再次start 
+
+
+
+
+
+
