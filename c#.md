@@ -775,6 +775,14 @@ timer++;
 
 ## 控件
 
+### pictureBox
+创建对应的对象x
+x.Image = Image.FromFile() 文件路径 ，则对应的图片会自动显示到picturebox中
+
+Directory.GetFiles(文件加路径);获取文件加中所有文件的全路径名
+
+
+
 ### TextBox
 TextBox： 单行  多行  输入信息或者获取信息
 MultiLine：是否多行
@@ -1050,6 +1058,34 @@ new Action<int>((rucan) =>				//int是入参类型，rucan是函数的虚入参
 {
 	label1.Text = "当前在" + rucan + "页面";
 })
+    
+invoke与begininvoke
+在多线程编程中，我们经常要在工作线程中去更新界面显示，而在多线程中直接调用界面控件的方法是错误的做法，
+Invoke 和 BeginInvoke 就是为了解决这个问题而出现的，使你在多线程中安全的更新界面显示。
+正确的做法是将工作线程中涉及更新界面的代码封装为一个方法，通过 Invoke 或者 BeginInvoke 去调用，
+两者的区别就是一个导致工作线程等待，而另外一个则不会。
+使用方法：
+//定义一个委托 ，像是一个数据类型一样的东西。是函数的数据类型：入参是string返回值是void的函数类型
+public delegate void MyInvoke(string str); delegate就是委托
+//更新界面的方法
+private void UpdateTextBox(string str);
+{
+this.TextBox1.Text=str; //更新
+}
+//启动一个线程
+Thread thread=new Thread(new ThreadStart(DoWork));
+thread.Start();
+private void DoWork() //线程函数中不直接操作控件，而是通过委托变量mi去操作
+{
+//比如将界面的TextBox内容设置一下
+MyInvoke mi=new MyInvoke(UpdateTextBox); //定义此委托变量mi的时候需要传进去一个函数（此函数就是入参string，返回值void）
+this.BeginInvoke(mi,new object[]{"我是一个文本框"}); //需要传入委托变量与入参，入参是new出来的string。
+}
+Thread thread=new Thread(
+	()=>{			//=>   goseto   ()内是入参
+		dosth();
+	}
+);
 ```
 
 
@@ -1078,7 +1114,7 @@ Enum.parse();  Enum.TryParse(); 类型转换 将str转换成enum类型
 
 #### 捕获错误：
 try	{convert.toint32(xx)}
-catch {提示输入错误}
+catch (Exception ex){提示输入错误}
 如果try里面的程序能成功执行则不会跳到catch，如果try里面不能成功执行则会跳到catch
 
 #### 获取当前sys时间：
@@ -1115,22 +1151,17 @@ SoundPlayer 创建对象sp
 sp.SoundLocation=@"wav格式的音乐路径";
 sp.Play()  播放音乐
 
-------------获得焦点
+
+
+获得焦点
 label.Focus();让文本框获得焦点
 
-------------自动换行
+自动换行
 btnword.WordWrap = true/false;  设置文本框中的内容是否自动换行
 MessageBox.Show(str);  打印提示
 
 int.Parse(string):将str转换为int
 
------pictureBox
-创建对应的对象x
-x.Image = Image.FromFile() 文件路径 ，则对应的图片会自动显示到picturebox中
-
-Directory.GetFiles(文件加路径);获取文件加中所有文件的全路径名
-
----
 
 直接下载网页为html格式，下载后会附带当前网页的所有图片出来，在一个文件夹中。
 
@@ -1213,7 +1244,7 @@ public sealed class Teacher:Person{}  可以继承于别的类，但是不能被
 
 选中图片或文字，直接按住ctrl挪动鼠标，就可以复制，不需要ctrl+c+v
 
-----不可见控件
+#### 不可见控件
 timer
 
 serialport 控件如果放到页面1，则页面2无法访问，最好将页面1中的控件赋值给静态类中，更好的做法是声明变量，则在页面2的cs文件中可以直接访问
@@ -1227,34 +1258,6 @@ str= convert.tostring(data,16).toupper();  转换成byte才能继续转换成str
 
 发生le.exe退出，需要将当前文件夹中的licence文件删除再去运行，不然licence的存在有问题。
 
----invoke与begininvoke
-在多线程编程中，我们经常要在工作线程中去更新界面显示，而在多线程中直接调用界面控件的方法是错误的做法，
-Invoke 和 BeginInvoke 就是为了解决这个问题而出现的，使你在多线程中安全的更新界面显示。
-正确的做法是将工作线程中涉及更新界面的代码封装为一个方法，通过 Invoke 或者 BeginInvoke 去调用，
-两者的区别就是一个导致工作线程等待，而另外一个则不会。
-使用方法：
-//定义一个委托 ，像是一个数据类型一样的东西。是函数的数据类型：入参是string返回值是void的函数类型
-public delegate void MyInvoke(string str); delegate就是委托
-//更新界面的方法
-private void UpdateTextBox(string str);
-{
-this.TextBox1.Text=str; //更新
-}
-//启动一个线程
-Thread thread=new Thread(new ThreadStart(DoWork));
-thread.Start();
-private void DoWork() //线程函数中不直接操作控件，而是通过委托变量mi去操作
-{
-//比如将界面的TextBox内容设置一下
-MyInvoke mi=new MyInvoke(UpdateTextBox); //定义此委托变量mi的时候需要传进去一个函数（此函数就是入参string，返回值void）
-this.BeginInvoke(mi,new object[]{"我是一个文本框"}); //需要传入委托变量与入参，入参是new出来的string。
-}
-Thread thread=new Thread(
-	()=>{			//=>   goseto   ()内是入参
-		dosth();
-	}
-);
-
 疑问：C#中界面一中的uart与界面2中的uart之前的关系是什么，为啥有2个界面都创建了port_DataReceivedds中断函数
 界面1中的中断函数只处理了crc校验，与vol的显示
 界面2中的uart中断中进行了复杂的uart协议的处理
@@ -1265,23 +1268,7 @@ form1.cs中的117行crc校验，后面的数据不是应该-4的<<，-3的不左
 
 (Uart.RcvBuf.ReDataBuf[Uart.RcvBuf.ReDataBuf.Length - 3] << 8 | Uart.RcvBuf.ReDataBuf[Uart.RcvBuf.ReDataBuf.Length - 4]).ToString("X"))
 
-FORM2.CS中a2的回复直接开始回复bin数据了？？不是先是长度+帧数量吗？
-pc         bms
-a0--------》
-<<----------a1
------------>>a2
-<<----------a2
------------>>a3
-<<----------a3
-...
------------>>a4
-<<----------a4
-
-sByte是C#中的带符号的byte（signed char）。Byte本身是unsigned char
-
 byte[] firmWareBuf = new byte[] { };数组具体有多长，看你放进去多少数据，他是会变化的。
-
-
 
 C#:
 ctrl+k+d   自动对齐，注意k弹起来再按d ctrl是一直按下的
@@ -1660,3 +1647,7 @@ string []  var = {}   初始化一维数组
 ------------------------------------
 
 不知道变量类型，可以先用var类型来接受，等会再改成对应的类型
+
+
+
+想在Form1中用Form3中的变量，在Form3中需要 public static byte g_lecuId = 1; 声明当前变量为Public  static  变量，之后在别的类中直接Form3.var 就可以调用，整个程序运行中此变量的值都在  直到程序结束
