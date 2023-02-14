@@ -1,5 +1,5 @@
-
 ### linux 5大块
+
 + 文件管理
 + 进程管理
 + 设备管理
@@ -7,35 +7,36 @@
 + 网络管理
 
 ### 分析printf的底层
+
 1. 在用户空间 printf 执行
-通过write 显示器 进入内核空间
-'write(1,"hello\n",128)'  print的底层
-内核空间 操作显示器的相关寄存器 写数据至硬件
-行缓存，若没有换行符，则
-
-2. touch 命令的底层就是 
-'open("name",O_CREAT|O_RDWR,0777)'
-0777表示希望创建的这个文件的权限 
-由于umask的掩码是0022
-所以最终创建的文件权限为：0755
-想要创建文件的时候不受掩码的影响，可以设置umask 为0000  'umask 0000'
-
+   通过write 显示器 进入内核空间
+   'write(1,"hello\n",128)'  print的底层
+   内核空间 操作显示器的相关寄存器 写数据至硬件
+   行缓存，若没有换行符，则
+2. touch 命令的底层就是
+   'open("name",O_CREAT|O_RDWR,0777)'
+   0777表示希望创建的这个文件的权限
+   由于umask的掩码是0022
+   所以最终创建的文件权限为：0755
+   想要创建文件的时候不受掩码的影响，可以设置umask 为0000  'umask 0000'
 3. inode号：
-    + 每个创建的文件就会对应1个inode号，文件不一样inode 就不一样
-4. open 的flag
-    + O_APPEND：追加方式打开，原内容保留
-    + O_TRUNC:打开的时候会把已经存在的内容删除
-    + O_EXCL: 使用的时候与O_CREAT一起用
-    O_CREAT|O_EXCL 若文件已存在 则打开报错；若文件不存在，则可以正确的创建并打开
 
+   + 每个创建的文件就会对应1个inode号，文件不一样inode 就不一样
+4. open 的flag
+
+   + O_APPEND：追加方式打开，原内容保留
+   + O_TRUNC:打开的时候会把已经存在的内容删除
+   + O_EXCL: 使用的时候与O_CREAT一起用
+     O_CREAT|O_EXCL 若文件已存在 则打开报错；若文件不存在，则可以正确的创建并打开
 5. 文件io read write是无缓存的，调用之后就会直接发生io操作，写入文件
-标准io库函数，带缓存，所以copy文件的时候 会减少io操作  速度更快
+   标准io库函数，带缓存，所以copy文件的时候 会减少io操作  速度更快
 
 printf 如果没有\n，不能直接打印出来，因为是标准输出流是 行缓存的，不遇到\n 不更新
 
 fflush(stdout);  刷新 FILE 指针
 
 ### 读写缓存
+
 对于文件io 没缓存
 对于标准io 分三种
 全缓存 行缓存 无缓存
@@ -55,6 +56,7 @@ fgetc 读到文件结尾或读错 返回EOF
 feof  专门用来判断是否读到文件结尾
 
 ### 目录操作
+
 struct dirent* mystr=malloc(sizeof(struct dirent));
 DIR*mydir=opendir("testdir");
 //一个循环遍历目录中的一个子节点信息
@@ -79,8 +81,8 @@ telldir   类似ftell 返回位置指针
 seekdir   类似fseek 设置位置指针
 closedir   关闭目录
 
-
 ### 指针是否需要申请空间呢？
+
 如果函数返回值是个结构体指针，则接收的指针不需要申请空间直接接收就好
 struct deient *mystr = readdir(mydir);
 因为在readdir内部实现中已经为这个指针指向的区域分配空间了。
@@ -90,8 +92,8 @@ struct deient *mystr = readdir(mydir);
 如果可以把指针指向某个地方，则就可以通过prt->去访问该指向的区域的数据。
 因为该指向的区域肯定也已经分配空间了，不然该区域就不可能有数据
 
-
 ### goto实现 判断错误循环
+
 start:
     ret=dosth();
     if(ret==null)
@@ -101,6 +103,7 @@ start:
     printf("do something ok");
 
 ## 进程线程
+
 A fork出来的进程B  两个进程的唯一区别  pid不一样
 
 用户空间不可能实现进程间通信
@@ -115,31 +118,39 @@ A fork出来的进程B  两个进程的唯一区别  pid不一样
 信号通道：信号的发送接收处理
 ipc对象：共享内存、消息队列、信号灯
 socket  本地通信
+
 ### 管道
+
 其实是个队列缓存 buf
 写端 进行入队；读端 进行出队
+
 1. 管道特点：
-    + 管道中的数据，读完就删除了
-    + 若管道是空的，读数据时会阻塞-----S+ 状态
-    + 管道创建于内存中，进程结束 则管道就会被释放
-    + 假设管道1000，write 1500字节，写满同样会发生写阻塞-----S+ 状态
-    + 管道大小为60000 多一点
+   + 管道中的数据，读完就删除了
+   + 若管道是空的，读数据时会阻塞-----S+ 状态
+   + 管道创建于内存中，进程结束 则管道就会被释放
+   + 假设管道1000，write 1500字节，写满同样会发生写阻塞-----S+ 状态
+   + 管道大小为60000 多一点
+
 #### 无名管道
+
 1. pipe 只能用于有亲缘关系的进程间通信
-因为pipe只调用1次 产生的fd[0] fd[1]必须在一个程序中使用
-只要有亲缘关系 都能访问到fd,别的进程重新pipe 产生的是别的fd
-创建成功返回两个文件描述符
+   因为pipe只调用1次 产生的fd[0] fd[1]必须在一个程序中使用
+   只要有亲缘关系 都能访问到fd,别的进程重新pipe 产生的是别的fd
+   创建成功返回两个文件描述符
 2. fd[0]=3  fd[1]=4;//因为每个进程打开就会默认创建0 1 2共三个文件描述符
 
 #### 有名管道
+
 mkfifo("./myfifo",0777);
 不占用磁盘空间，只有文件节点的文件类型：
+
 1. 有名管道 --通信用的
 2. 字符设备 --设备，是在外面挂载的
 3. 块设备   --设备，挂载在系统外
 4. 套接字   --通信用的
 
 ### 信号通道
+
 kill -l 查看内核 可以发送多少种信号
 kill 是系统调用，虽然是用户空间调用的cmd,其实底层是内核空间发的信号
 怎么用code实现kill 9 pid
@@ -168,11 +179,13 @@ waitpid(pid,NULL,0); 以阻塞方式回收，等子进程退出 自己再回收�
 即使子进程exit退出，若父进程不回收子进程资源，子进程仍会变成僵尸进程，直到父进程退出 ，子进程交给1号进程去回收
 
 #### signal
+
 signal(signum,sig_handle) 是信号注册函数，signum:信号类型
 sig_handle:信号处理函数
 
 signal(14,SIG_IGN);  忽略对14号信号的处理，不执行默认的终止进程的操作
 signal(14,SIG_DFL);  设置为默认的处理方式
+
 ```c
 优雅的解决子进程的回收，否则子进程退出不回收会产生僵尸
 void huishou(int signum)
@@ -200,25 +213,28 @@ int main()
 ```
 
 ### 共享内存
+
 ipcs -m/-q/-s  查看 共享内存、消息队列、信号灯
 ipcrm -m/-q/-s id 删除 对应ipc类型对象id
 数据一旦写入，永远存在（除非自己删除）
 管道，写入后，读一下就没了
-1. 创建共享内存
-    int shm_get(key,size,flag) 0777
-    key:IPC_PRIVATE(即0) 或 ftok的返回值
-    IPC_PRIVATE只能实现有亲缘关系的进程间通信，ftok创建的key才能实现无亲缘关系的进程间通信
-    返回:共享内存标识ID-文件描述符
 
-    通过key值创建的时候需要IPC_CREATE 
-    shm_get(key,size,IPC_CREATE|0777);
-    通过IPC_PRIVATE创建的时候不需要CREATE
+1. 创建共享内存
+   int shm_get(key,size,flag) 0777
+   key:IPC_PRIVATE(即0) 或 ftok的返回值
+   IPC_PRIVATE只能实现有亲缘关系的进程间通信，ftok创建的key才能实现无亲缘关系的进程间通信
+   返回:共享内存标识ID-文件描述符
+
+   通过key值创建的时候需要IPC_CREATE
+   shm_get(key,size,IPC_CREATE|0777);
+   通过IPC_PRIVATE创建的时候不需要CREATE
 2. 删除内核空间申请的共享内存
-    shmctl(shmid,IPC_RMID,NULL);
+   shmctl(shmid,IPC_RMID,NULL);
 3. shmat(shmid,void *shmaddr, shmflg) 把内核空间申请的地址映射到用户空间，shmaddr传NULL
 4. shmdt(const void *shmaddr);删除用户空间映射的指针
 
 #### 父子进程读写共享内存demo--单向通讯
+
 ```c
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -274,9 +290,10 @@ int main()
 
 ```
 
-
 #### 非亲缘关系的进程间通信
+
 怎么让两个进程知道对方进程的pid，通过发信号 同步消息
+
 ```c
 writer.c
 void myfun(int signum)
@@ -311,7 +328,6 @@ int main()
 }
 ```
 
-
 ```c
 read.c
 void myfun(int signum)
@@ -344,10 +360,12 @@ int main()
 ```
 
 #### 优化 非亲缘关系的进程通信
+
 struct  MemBuf{
     int pid;
     char buf[124];//因为映射的共128字节  id占4字节
 }; 优化后不需要多次的int string转换
+
 ```c
 writer.c
 int main()
@@ -373,7 +391,6 @@ int main()
 }
 ```
 
-
 ```c
 read.c
 int main()
@@ -397,33 +414,33 @@ int main()
 }
 ```
 
-
-
 ### 消息队列
+
 + msgget 共享内存需要指定映射大小，消息队列可以随时插入，不需要指定大小
 + 读完队头的数据就没了，再读就读的下一个数据
-+ msgctl 
-    + (msgid,IPC_RMID,NULL)  删除消息队列
-    + 获取 修改 消息队列属性
++ msgctl
+  + (msgid,IPC_RMID,NULL)  删除消息队列
+  + 获取 修改 消息队列属性
 + msgsnd 队列的入队
-    + (msgid,struct msgbuf*,size,flags)必须传结构体，通过mtype区分消息
-        + size:消息正文的长度 
-        + flags:IPC_NOWAIT 非阻塞，消息没发完立即返回
-                     0：阻塞  直到数据发完才返回
-        + struct msgbuf{
-            long mtype; //消息类型
-            char mtext[N]; //消息正文
-        }
-        + return  成功0 出错-1
+  + (msgid,struct msgbuf*,size,flags)必须传结构体，通过mtype区分消息
+    + size:消息正文的长度
+    + flags:IPC_NOWAIT 非阻塞，消息没发完立即返回
+      0：阻塞  直到数据发完才返回
+    + struct msgbuf{
+      long mtype; //消息类型
+      char mtext[N]; //消息正文
+      }
+    + return  成功0 出错-1
 + msgrcv 队列的出队
-    + (msgid,void*buf,size,type,flag)
-        + buf: 读到哪里去
-        + 想读多少个
-        + type: 读哪种类型数据
-        + flag：阻塞 不阻塞
-        + 返回值：实际读到的正文长度
+  + (msgid,void*buf,size,type,flag)
+    + buf: 读到哪里去
+    + 想读多少个
+    + type: 读哪种类型数据
+    + flag：阻塞 不阻塞
+    + 返回值：实际读到的正文长度
 
 #### code
+
 ```c
 struct  MsgBuf{
     long type;
@@ -578,19 +595,121 @@ int main()
 ```
 
 ### 信号灯--信号量的集合
+
 + 与posix信号量的区别：
-    + 信号量是一种数字量，可以占有sem_wait，释放sem_post
-    + 是信号量的集合（含有多种信号量）
+  + 信号量是一种数字量，可以占有sem_wait，释放sem_post
+  + 是信号量的集合（含有多种信号量）
+
 1. 函数
-    + semget(key,nsems,flag)
-        + key:IPC_PRIVATE 只能用于有亲缘关系的进程间
-              ftok 创建的key 可以用于任何进程间
-        + nsems:包含的信号种类 
-        + 对信号灯集合的访问权限
-    + semctl(semid,semnum,IPC_RMID,NULL);
-        + 当cmd为IPC_RMID时，semnum与最后的属性都没用
-        + 当cmd为SETVAL 时可以通过semnum设置信号灯种类
+   + semget(key,nsems,flag)
+     + key:IPC_PRIVATE 只能用于有亲缘关系的进程间
+       ftok 创建的key 可以用于任何进程间
+     + nsems:包含的信号种类
+     + 对信号灯集合的访问权限
+   + semctl(semid,semnum,IPC_RMID,NULL);
+     + 当cmd为IPC_RMID时，semnum与最后的属性都没用
+     + 当cmd为SETVAL 时可以通过semnum设置信号灯种类
 2. 用posix 信号量实现多线程同步
+
 ```c
+sem_t sem;
+void * fun(void* str)
+{
+	int i=0;
+	sem_wait(&sem);//获得信号量之前程序 子线程阻塞等待
+	for(i=0;i<5;i++)
+	{
+		printf("in %s thread,i=%d\n",(char*)str,i);
+		sleep(1);
+	}
+}
+int main()
+{
+    int i;
+	char str[]="hello linux";
+	pthread_t tid;
+	//secnod para:0-thread 1-process
+	//third para:sem init val
+	sem_init(&sem,0,0);  //初始化为0，主线程post后信号量变成1 则子线程可以占有
+	int ret=pthread_create(&tid,NULL,fun,(void*)str);
+
+	for(i=0;i<10;i++)
+	{
+		sleep(1);
+		printf("in main i=%d\n",i);
+	}
+	sem_post(&sem);
+	while(1);
+}
+```
+
+用信号灯集替换上面的posix 信号量怎么实现？
+
+```c
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <string.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/ipc.h>   
+#include <sys/sem.h>
+#include <semaphore.h>
+//sem_t sem;
+int semid;//define 信号灯集合 
+
+union semun {
+    int  val;    //* Value for SETVAL 
+    struct semid_ds *buf;    // Buffer for IPC_STAT, IPC_SET */
+    unsigned short  *array;  // Array for GETALL, SETALL */
+    struct seminfo  *__buf;  // Buffer for IPC_INFO (Linux-specific) */
+};
+
+struct sembuf mysembuf;
+void * fun(void* str)
+{
+	int i=0;
+//	sem_wait(&sem);
+	mysembuf.sem_op=-1;//p 操作 消耗
+	semop(semid,&mysembuf,1);//1表示 只操作1个信号
+	for(i=0;i<5;i++)
+	{
+		printf("in %s thread,i=%d\n",(char*)str,i);
+		sleep(1);
+	}
+}
+int main()
+{
+    int i;
+	char str[]="hello linux";
+	pthread_t tid;
+    union semun mysemun;//定义某个信号的属性
+
+	//secnod para:0-thread 1-process
+	//third para:sem init val
+	//sem_init(&sem,0,1);  
+	semid=semget(IPC_PRIVATE,3,0777);
+	mysemun.val=0;
+	//semget了3个信号量，这里只初始化第0个信号量，设置值为0
+	semctl(semid,0,SETVAL,mysemun);
+
+	mysembuf.sem_num=0;//要操作第0号信号量
+	mysembuf.sem_flg=0;//设为阻塞操作
+	int ret=pthread_create(&tid,NULL,fun,(void*)str);
+
+	for(i=0;i<10;i++)
+	{
+		sleep(1);
+		printf("in main i=%d\n",i);
+	}
+	//sem_post(&sem);
+	mysembuf.sem_op=1;
+	semop(semid,&mysembuf,1);//v 操作
+	while(1);
+}
 
 ```
