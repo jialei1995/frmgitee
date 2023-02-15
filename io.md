@@ -102,7 +102,7 @@ start:
     }
     printf("do something ok");
 
-## 进程线程
+## 进程
 
 A fork出来的进程B  两个进程的唯一区别  pid不一样
 
@@ -663,7 +663,7 @@ int main()
 int semid;//define 信号灯集合 
 
 union semun {
-    int  val;    //* Value for SETVAL 
+    int  val;                //* Value for SETVAL 
     struct semid_ds *buf;    // Buffer for IPC_STAT, IPC_SET */
     unsigned short  *array;  // Array for GETALL, SETALL */
     struct seminfo  *__buf;  // Buffer for IPC_INFO (Linux-specific) */
@@ -697,7 +697,7 @@ int main()
 	//semget了3个信号量，这里只初始化第0个信号量，设置值为0
 	semctl(semid,0,SETVAL,mysemun);
 
-	mysembuf.sem_num=0;//要操作第0号信号量
+	mysembuf.sem_num=0;//要操作第0号信号量--看sem_op是增加还是减少
 	mysembuf.sem_flg=0;//设为阻塞操作
 	int ret=pthread_create(&tid,NULL,fun,(void*)str);
 
@@ -711,5 +711,182 @@ int main()
 	semop(semid,&mysembuf,1);//v 操作
 	while(1);
 }
+
+```
+
+## 线程
+目的：合理利用资源，提高cpu的效率
+并发:时间片切换，让多个任务 切换着运行
+并行:多个cpu 每个cpu管理一个任务，真正意义的 多个任务同时运行
+同步:任务彼此有依赖，不应该同时发生。同步就是阻止同时发生，使任务按照顺序执行
+异步:强调任务的独立性
+
+多线程不一定多个处理器
+
+线程id只是在创建它的进程中有效，一旦当前进程结束，则线程id就会被销毁。
+
+### 函数
+```c
+pthread_self(); get thread id
+
+```
+
+### 主线程
++ main函数内的线程就是主线程
++ 主线程的特殊性在于:一旦main返回，则进程结束，进程内的所有线程都会结束；
+    为了让主线程等待别的线程都结束自己再退出，可以在主线程中调用`pthread_exit()`去结束主线程
++ 主线程接收参数的方式通过(int argc,char*argv[]),其他线程只能由一个参数(void*)
++ 主线程在默认堆栈运行，这个堆栈可以增长到足够的长度，普通线程的堆栈是受限的，一旦溢出就会报错
+
+### demo
+```c
+void * fun(void* str)
+{
+//解析线程的入参的时候，先得((struct Stu*)ptr) 将指针包起来强制转换类型后，再去->访问成员。否则无法访问
+printf("in  thread,id=%d,name=%s\n",((struct Stu*)str)->id,((struc    t Stu*)str)->name);
+}
+pthread_create(&tid,NULL,fun,(void*)&stu);
+```
+
+### 线程回收
++ 线程pthread_create的时候 可以传入分离属性；
++ 分离属性：并不会影响线程的运行，仅仅通知当前系统，该线程结束的时候资源可以回收
++ 没有分离属性的线程，终止时使用的资源不回被回收，创建线程时默认是非分离的
++ 线程结束的时候，自己分配的动态内存，mmap，ipc对象，可以由其他线程或自己去释放，若要其他线程去释放，需要自己解锁互斥量---否则自己锁着，别人没法帮你释放
+
+###
++ 线程中调用exit，_exit ,_Exit 会导致整个程序退出  是危险的
++ 正确的退出方式
+    + return 退出，返回值就是线程的退出码
+    + 线程可以被同一进程中的其他线程取消
+    + 调用pthread_exit(void*ret)  ret就是线程的退出码
+
+### pthread_exit 与 return的区别
+
+
+### 连接线程 pthread_join(pthread_t thread, void **retval)
++ 调用pthread_join的线程会一直阻塞，直到指定的线程pid 调用pthread_exit，return，或被取消
++ 如果指定的线程被取消，则retval被置为PTHREAD_CANCLED
++ 调用此函数会使 指定的线程处于分离态，如果指定线程已经处于分离态，则调用会失败(自己测试并没有失败)
++ pthread_detach 可以分离一个线程，线程也可以自己分离自己
+```c
+void * fun1(void* str)
+{
+    printf("in thread,id=%d\n",pthread_self());
+    return (void*)1;
+}
+void * fun2(void* str)
+{
+    printf("in thread2,id=%d\n",pthread_self());
+    int ret = pthread_detach(pthread_self());
+    if(ret!=0)
+    {printf("thread2 detach fail\n"); }
+    //sleep(1); pthread_exit(3); 一样
+    return (void*)3;
+}
+int main()
+{
+    pthread_t tid1,tid2;
+    pthread_create(&tid1,NULL,fun1,NULL);
+    pthread_create(&tid2,NULL,fun2,NULL);
+    void * ret1;    void * ret2;
+    printf("join1 ret=%d\n",pthread_join(tid1,&ret1));
+    printf("thread 1 return %d\n",(int*)ret1);
+    printf("join2 ret=%d\n",pthread_join(tid2,&ret2));
+    printf("thread 2 return %d\n",(int*)ret2);
+}
+打印：
+join1 ret=0
+thread 1 return 1
+in thread2,id=-2088839424
+join2 ret=0
+thread 2 return 3
+```
+
+### 线程取消
++ pthread_cancel (pid) 向指定的线程id 发取消信号，信号发送成功 并不意味目标tid 被取消
++ 设置当前线程对取消信号的反应
+    pthread_setcancelstate(int state,int *oldstate)
+    state:PTHREAD_CANCEL_ENABLE(收到信号取消) PTHREAD_CANCEL_DISABLE(收到信号忽略)
+    oldstate如果不为NULL，则存入原来的cancel状态以便恢复
++ 立即取消/延时取消
+    pthread_setcanceltype(type,*oldtype)
+    type:PTHREAD_CANCEL_DEFERRED(延时至下个取消点再退出)  PTHREAD_CANCEL_ASYNCHRONOUS(立即退出)
+    oldtype如果不为NULL，则存入原来的cancel取消状态以便恢复
+
++ 取消点是什么
+    man pthreads 搜索： Cancellation points
+    很多系统调用都是取消点 一般用这个 pthread_testcancel()  没啥意义就是作为取消点的
+
+```c
+void * fun2(void* str)
+{
+    printf("in thread2,id=%d\n",pthread_self());
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);//设置可以被取消
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);
+    sleep(3);
+    pthread_exit((void*)4);
+}
+int main()
+{
+    pthread_t tid2;
+    pthread_create(&tid2,NULL,fun2,NULL);
+    void * ret2;
+    int cancelret=pthread_cancel(tid2);
+    pthread_join(tid2,&ret2);
+    printf("cancelret=%d\n",cancelret);
+    printf("thread 2 exit code %d\n",(int*)ret2);
+}
+
+in thread2,id=-1529141504
+cancelret=0
+join ret=0
+thread 2 exit code -1  PTHREAD_CANCELED
+```
+
+```c
+void *thread_fun(void*agr)
+{
+    int setstate;
+    setstate=pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+    if(setstate!=0)printf("set cancel disable failed\n");
+    printf("set disable ok\n");
+    sleep(4);
+    printf("can run to here\n");
+    //pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);  若加入立即取消，则后面都打印不出来了
+    setstate=pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);//默认线程是延时取消属性
+    
+    if(setstate!=0)printf("set cancel enable failed\n");
+    printf("first cencel point\n");//printf 函数 本身就是取消点 到了取消点，执行完就退出
+    printf("second cencel point\n");//printf 本身就是取消点
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid;
+    int err;
+    err=pthread_create(&tid,NULL,thread_fun,NULL);
+    if(err!=0)printf("create thread failed\n");
+    sleep(2);
+    int cval=pthread_cancel(tid);
+    if(cval!=0)printf("cancel tid fail\n");
+
+    void*jexitcode;
+    int jret=pthread_join(tid,&jexitcode);
+    if(jret!=0)printf("join err\n");
+    printf("join exit code=%d\n",(int)jexitcode);
+    return 0;
+}
+set disable ok
+can run to here
+first cencel point
+join exit code=-1
+```
+
+### 线程发信号
+pthread_kill(tid,sig)   向指定的id发信号，若线程内代码不处理，则按照信号默认处理影响整个进程
+sigaction  实现收到信号的处理，sig不是0  都要处理
+sig=0   保留信号，并没有发信号，用来判断线程是否活着
+```c
 
 ```
