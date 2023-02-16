@@ -8654,6 +8654,14 @@ sshd: no hostkeys available -- exiting  启动不起来，
 2.ssh-keygen -A  重新生成 hostkeys
 3.再次start 
 
+鸿蒙：类似 windows Android ios 一样 
+按照windows 	理解鸿蒙
+windows  		rtos
+bios 	 		boot 
+windows  		rtos内核
+盘符     		根文件系统
+app      		app
+
 
 
 

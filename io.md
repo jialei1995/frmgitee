@@ -884,9 +884,335 @@ join exit code=-1
 ```
 
 ### 线程发信号
-pthread_kill(tid,sig)   向指定的id发信号，若线程内代码不处理，则按照信号默认处理影响整个进程
+`pthread_kill(tid,sig) `  向指定的id发信号，若线程内代码不处理，则按照信号默认处理影响整个进程
 sigaction  实现收到信号的处理，sig不是0  都要处理
 sig=0   保留信号，并没有发信号，用来判断线程是否活着
+
 ```c
+void *thread_fun(void*agr)
+{
+    printf("woshi thread\n");
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid;
+    int err;
+    err=pthread_create(&tid,NULL,thread_fun,NULL);
+    if(err!=0)printf("create thread failed\n");
+	
+    sleep(1);//延时一下再去 kill 子线程，它已经退出了 则kill失败，返回 ESRCH，子线程不存在
+    int s=pthread_kill(tid,0);//判断子线程是否还活着
+    if(s!=0)
+    {
+        printf("pthread_kill fail\n");
+    }
+
+    void*jexitcode;
+    int jret=pthread_join(tid,&jexitcode);
+    if(jret!=0)printf("join err\n");
+    printf("join exit code=%d\n",(int*)jexitcode);
+    return 0;
+}
+
+
+//子线程不退出
+void *thread_fun(void*agr)
+{
+    sleep(1);
+    printf("woshi thread\n");
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid;
+    int err;
+    err=pthread_create(&tid,NULL,thread_fun,NULL);
+    if(err!=0)printf("create thread failed\n");
+	
+    int s=pthread_kill(tid,SIGQUIT);//SITQUIT杀死子线程，子线程在阻塞，所以能杀死---一旦执行成功，整个进程都会退出，后面的打印也无法执行了
+    if(s!=0)
+    {
+        printf("pthread_kill fail\n");
+    }
+
+    void*jexitcode;
+    int jret=pthread_join(tid,&jexitcode);
+    if(jret!=0)printf("join err\n");
+    printf("join exit code=%d\n",(int*)jexitcode);
+    return 0;
+}
 
 ```
+
+#### 信号的处理
+
+`int sigaction(int signum, const struct sigaction *act,  struct sigaction *oldact);`
+
+给特定信号设置处理函数，通过参数act
+
+`act.sa_mask`  信号屏蔽字
+
+`act.sa_handler`  信号集处理程序
+
+``
+
+```c
+int sigemptyset(sigset_t *set);  清空信号集
+int sigfillset(sigset_t *set);   将所有信号加入信号集
+int sigaddset(sigset_t *set, int signum);  增加一个信号到信号集
+int sigdelset(sigset_t *set, int signum);  删除一个信号到信号集
+
+多线程的信号屏蔽,参考进程的信号屏蔽(sigprocmask)
+int pthread_sigmask(int how, const sigset_t *set, sigset_t *oldset); `int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+```
+
+
+
+demo
+
+```c
+void sig_handler1(int arg)
+{
+    printf("thread1 sig_handler\n");
+    return ;
+}
+
+void sig_handler2(int arg)
+{
+    printf("thread2 sig_handler\n");
+    return ;
+}
+
+void *thread_fun1(void*arg)
+{
+    printf("new thread1\n");
+    struct sigaction act;
+    memset(&act,0,sizeof(act));
+    sleep(1);
+    sigaddset(&act.sa_mask,SIGQUIT);//增加对信号SIGQUIT的处理-怎么处理后面设置
+    act.sa_handler=sig_handler1;//调用这个处理函数
+    sigaction(SIGQUIT,&act,NULL);//注册 使设置生效 按照最后执行的sigaction处理
+    //设置屏蔽掩码--屏蔽该线程对信号的的处理
+    pthread_sigmask(SIG_BLOCK,&act.sa_mask,NULL);
+    sleep(3);
+}
+
+void *thread_fun2(void*arg)
+{
+    printf("new thread2\n");
+    struct sigaction act;
+    memset(&act,0,sizeof(act));
+    sigaddset(&act.sa_mask,SIGQUIT);//增加对信号SIGQUIT的处理-怎么处理后面设置
+    act.sa_handler=sig_handler2;//调用这个处理函数
+    sigaction(SIGQUIT,&act,NULL);//注册 使设置生效
+    //设置屏蔽掩码
+    //pthread_sigmask(SIG_BLOCK,&act.sa_mask,NULL);
+    sleep(3);
+}
+
+int main()
+{
+    pthread_t tid1,tid2;
+    int err,s;
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    if(err!=0)
+    {
+        printf("create thread1 fial\n");
+    }
+    err=pthread_create(&tid2,NULL,thread_fun2,NULL);
+    if(err!=0)
+    {
+        printf("create thread2 fial\n");
+    }
+    sleep(2);//等待线程 设置 属性完成
+    s=pthread_kill(tid1,SIGQUIT);
+    if(s!=0)
+    {
+        printf("send kill to thread1 fail\n");
+    }
+    s=pthread_kill(tid2,SIGQUIT);
+    if(s!=0)
+    {
+        printf("send kill to thread2 fail\n");
+    }
+
+    pthread_join(tid1,NULL);
+    pthread_join(tid2,NULL);
+    return 0;
+}
+
+所有线程中对信号的处理了按照sigaction最后执行时传入的哪个act，则处理函数就跳到对应sig_handler之中
+所以即使屏蔽了线程1的信号处理，线程1就不会处理SIGQUIT信号，只要sigaction最后在线程1中注册，则线程2，还是会调用到sig_handler1中.
+```
+
+
+
+#### 线程的清理函数
+
+`pthread_cleanup_push(handler,void*args)` //注册处理程序 args是清理函数的入参
+
+`pthread_cleanup_pop(int execute)`//清理处理程序
+
+ 这两个函数要成对出现，否则编译无法通过
+
+执行以下操作时才会调用清理函数：
+
++ 线程调用pthread_exit 退出  && pop非零
++ 响应线程取消请求
++ 用非零参数调用`pthread_cleanup_pop`
+
+
+
+demo
+
+```c
+证明用`pthread_cleanup_pop`退出时必须为非0 才能调用，并且只能调用一次，先执行后push进去的回调函数
+push与pop必须成对出现
+void clean1(void* arg)
+{
+        printf("call clean1 %d\n",(int*)arg);
+}
+void clean2(void* arg)
+{
+        printf("call clean2 %d\n",(int*)arg);
+}
+void clean3(void* arg)
+{
+        printf("call clean3 %d\n",(int*)arg);
+}
+void clean4(void* arg)
+{
+        printf("call clean4 %d\n",(int*)arg);
+}
+void *thread_fun1(void*arg)
+{
+        pthread_cleanup_push(clean1,(void*)0);
+        pthread_cleanup_push(clean2,(void*)1);
+
+        pthread_cleanup_pop(1);
+        pthread_cleanup_pop(0);
+        return(void*)1;
+}
+void *thread_fun2(void*arg)
+{
+        pthread_cleanup_push(clean3,(void*)0);
+        pthread_cleanup_push(clean4,(void*)1);
+
+        pthread_cleanup_pop(0);
+        pthread_cleanup_pop(0);
+        return(void*)2;
+}
+
+
+int main()
+{
+    pthread_t tid1,tid2;
+    int err,s;
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    if(err!=0)
+    {
+        printf("create thread1 fial\n");
+    }
+    err=pthread_create(&tid2,NULL,thread_fun2,NULL);
+    if(err!=0)
+    {
+        printf("create thread2 fial\n");
+    }
+    sleep(2);//等待线程 设置 属性完成
+    pthread_join(tid1,NULL);
+    pthread_join(tid2,NULL);
+    return 0;
+}
+
+```
+
+### 线程同步
+
+多个线程同时访问同一个变量，变量值不确定，不受程序控制
+
+#### 互斥量`mutex`
+
+##### 初始化
+
++ 动态分配的锁，用pthread_mutex_init()  初始化锁
++ 静态分配的锁，直接设为PTHREAD_MUTEX_INITIALIZER 即可
++ 动态分配的锁，释放内存之前要pthread_mutex_destroy
+
+静态初始化：`pthread_mutex_t  mymutex=PTHREAD_MUTEX_INITIALIZER `
+
+动态初始化：``pthread_mutex_t   mymutex`
+
+​                    `pthread_mutex_init(&mymutex,NULL)`    属性不用设为空
+
+##### 加锁解锁
+
+`pthread_mutex_lock(*mutex)`
+
+成功返回0，失败错误码。若已经被锁住，会导致阻塞
+
+`pthread_mutex_trylock(*mutex)`
+
+成功返回0，失败错误码。若已经被锁住，不回阻塞
+
+解锁：
+
+pthread_mutex_unlock   获得锁的线程才能解锁
+
+#### 读写锁
+
+与mutex类似，有更高的并行性，mutex 同一时刻只允许一个线程对其加锁。对于1个全局变量的读取，完全可以多个线程同时操作--只是访问
+
+pthread_rwlock_t  rwlock
+
+读写锁有3种状态：读模式下加锁  写模式下加锁 ，不加锁。
+
+一次只有1个线程能占用写模式下的读写锁。但是多个线程可以同时占用读模式的读写锁
+
++ 写加锁时，被解锁之前，任何对这个锁进行加锁的线程都会被阻塞
++ 读加锁时，所有试图对其加锁的线程都会获得访问权。
++ 读加锁时，如果线程希望以写模式对其加锁，会阻塞之后的读模式的请求，避免锁长期占用，而写锁达不到请求---所有线程读完了，写锁就能占用了
++ 适合对数据结构读次数>写次数的程序。读加锁时，是以共享的方式锁住的，写模式加锁时，是以独占的模式锁住的
+
+##### 初始化
+
+`pthread_rwlock_init(*rwloc,*attr)`   使用之前必须初始化
+
+`pthread_rwlock_destroy(*rwlock)`       使用之后必须销毁
+
+##### 加锁解锁
+
+`pthread_rwlock_rdlock`     读模式加锁
+
+`pthread_rwlock_tryrdlock`        
+
+`pthread_rwlock_wrlock`     写模式加锁
+
+`pthread_rwlock_trywrlock`     
+
+不管读锁还是写锁 ，锁住之后 处理完数据都要unlock
+
+解锁：
+
+`pthread_rwlock_unlock`     
+
+
+
+#### 条件变量
+
+解决的问题：
+
+一条生产线有一个仓库，生产者生产或消费者消费时 都需要独占仓库。如果生产者发现仓库慢了，自己不能生产，阻塞线程，无法释放锁。消费者又无法 进入仓库消耗，造成死锁。
+
+需要一种机制：互斥量被锁住后发现当前线程无法完成自己的操作释放互斥量，让其他线程工作
+
+1、轮询，不停的查询需要的条件---------消耗cpu
+
+2、让系统帮你查询条件，使用条件变量`pthread_cond_t`
+
+##### 初始化
+
++ 静态：`pthread_cond_t cond=PTHREAD_COND_INITIALZER`
++ 动态：`pthread_cond_init(*cond,*attr)`
++ 销毁：pthread_cond_destroy(*cond)
+
