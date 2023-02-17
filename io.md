@@ -1200,6 +1200,8 @@ pthread_rwlock_t  rwlock
 
 #### 条件变量
 
+实际运用中 互斥锁经常需要 配合条件变量去使用
+
 解决的问题：
 
 一条生产线有一个仓库，生产者生产或消费者消费时 都需要独占仓库。如果生产者发现仓库慢了，自己不能生产，阻塞线程，无法释放锁。消费者又无法 进入仓库消耗，造成死锁。
@@ -1215,4 +1217,552 @@ pthread_rwlock_t  rwlock
 + 静态：`pthread_cond_t cond=PTHREAD_COND_INITIALZER`
 + 动态：`pthread_cond_init(*cond,*attr)`
 + 销毁：pthread_cond_destroy(*cond)
+
+#### demo
+
+```c
+#define BUFFER_SIZE     5		//库存大小，最多能存5个产品
+#define PRODUCT_CNT             30//总共生产的总数，生产完就停止
+struct Product_cons{
+    int buffer[BUFFER_SIZE];    //仓库
+    pthread_mutex_t lock;               //互斥锁
+    int readpos,writepos;               //读写位置
+    pthread_cond_t notempty;            //条件变量  非空
+    pthread_cond_t notfull;             //条件变量  非满
+}cangku;
+
+void init(struct Product_cons*p)//init cangku
+{
+    pthread_mutex_init(&(p->lock),NULL);
+    pthread_cond_init(&(p->notempty),NULL);
+    pthread_cond_init(&(p->notfull),NULL);
+    p->readpos=0;p->writepos=0;
+}
+
+void finish(struct Product_cons*p)//销毁 cangku
+{
+    pthread_mutex_destroy(&(p->lock));
+    pthread_cond_destroy(&(p->notempty));
+    pthread_cond_destroy(&(p->notfull));
+    p->readpos=0;p->writepos=0;
+}
+
+void put(struct Product_cons*p,int data)//生产一个产品到仓库中
+{
+    pthread_mutex_lock(&p->lock);
+    if((p->writepos+1)%BUFFER_SIZE == p->readpos)//仓库满了
+    {
+        printf("product wait for not full\n");
+        pthread_cond_wait(&p->notfull,&p->lock);//这里就会释放锁 ，等条件满足了 再去运行
+    }
+    //仓库非满  往下执行
+    p->buffer[p->writepos]=data;
+    p->writepos++;
+    if(p->writepos >= BUFFER_SIZE)
+        p->writepos=0;
+    pthread_cond_signal(&p->notempty);//发信号 当前是非空的状态
+    pthread_mutex_unlock(&p->lock);
+}
+
+int  get(struct Product_cons*p)//使用一个产品
+{
+    int data;
+    pthread_mutex_lock(&p->lock);
+    if(p->readpos == p->writepos)//仓库是空的 没法消费
+    {
+        printf("consumer wait for not empty\n");
+        pthread_cond_wait(&p->notempty,&p->lock);
+    }
+    //仓库里面有东西可以消费
+    data=p->buffer[p->readpos];
+    p->readpos++;
+    if(p->readpos >= BUFFER_SIZE)
+        p->readpos=0;
+    pthread_cond_signal(&p->notfull);//发信号 当前是非满的状态
+    pthread_mutex_unlock(&p->lock);
+        return data;
+}
+
+//子线程---生产
+void*  product(void*data)
+{
+    int n;
+    for(n=0;n<=PRODUCT_CNT;n++)
+    {
+        sleep(1);
+        printf("product the %d product...\n",n);
+        put(&cangku,n);
+        printf("put the %d ok\n",n);
+    }
+    return NULL;
+}
+
+//子线程----消费
+void* consume(void*data)
+{
+        int num=0;
+    while(1)
+    {
+        sleep(2);
+        printf("consume ...\n");
+        num=get(&cangku);
+        printf("get the %d product success\n",num);
+        num++;
+        if(num==PRODUCT_CNT)
+            break;
+    }
+    printf("consume stop\n");
+    return NULL;
+}
+
+int main()
+{
+    pthread_t th1,th2;
+    void*retval;
+    pthread_create(&th1,NULL,product,NULL);
+    pthread_create(&th2,NULL,consume,NULL);
+
+    pthread_join(th1,&retval);//阻塞回收线程
+    pthread_join(th2,&retval);
+
+    finish(&cangku);//销毁锁 条件变量
+    return 0;
+}
+
+```
+
+```tex
+product the 0 product...
+put the 0 ok
+consume ...
+get the 0 product success
+product the 1 product...
+put the 1 ok
+product the 2 product...
+put the 2 ok
+consume ...
+get the 1 product success
+product the 3 product...
+put the 3 ok
+product the 4 product...
+put the 4 ok
+consume ...
+get the 2 product success
+product the 5 product...
+put the 5 ok
+//生产第6号的时候发现仓库是慢的  ，需要等仓库不满的时候 才能去生产  这里阻塞
+product the 6 product...
+product wait for not full----阻塞
+consume ...
+put the 6 ok
+get the 3 product success
+product the 7 product...
+product wait for not full
+consume ...
+put the 7 ok
+get the 4 product success
+product the 8 product...
+product wait for not full
+consume ...
+put the 8 ok
+get the 5 product success
+product the 9 product...
+product wait for not full
+consume ...
+put the 9 ok
+get the 6 product success
+product the 10 product...
+product wait for not full
+consume ...
+put the 10 ok
+get the 7 product success
+product the 11 product...
+product wait for not full
+consume ...
+put the 11 ok
+get the 8 product success
+product the 12 product...
+product wait for not full
+consume ...
+put the 12 ok
+get the 9 product success
+product the 13 product...
+product wait for not full
+consume ...
+put the 13 ok
+get the 10 product success
+product the 14 product...
+product wait for not full
+consume ...
+get the 11 product success
+put the 14 ok
+product the 15 product...
+product wait for not full
+consume ...
+get the 12 product success
+put the 15 ok
+product the 16 product...
+product wait for not full
+consume ...
+get the 13 product success
+put the 16 ok
+product the 17 product...
+product wait for not full
+consume ...
+get the 14 product success
+put the 17 ok
+product the 18 product...
+product wait for not full
+consume ...
+get the 15 product success
+put the 18 ok
+product the 19 product...
+product wait for not full
+consume ...
+get the 16 product success
+put the 19 ok
+product the 20 product...
+product wait for not full
+consume ...
+get the 17 product success
+put the 20 ok
+product the 21 product...
+product wait for not full
+consume ...
+get the 18 product success
+put the 21 ok
+product the 22 product...
+product wait for not full
+consume ...
+get the 19 product success
+put the 22 ok
+product the 23 product...
+product wait for not full
+consume ...
+put the 23 ok
+get the 20 product success
+product the 24 product...
+product wait for not full
+consume ...
+get the 21 product success
+put the 24 ok
+product the 25 product...
+product wait for not full
+consume ...
+get the 22 product success
+put the 25 ok
+product the 26 product...
+product wait for not full
+consume ...
+get the 23 product success
+put the 26 ok
+product the 27 product...
+product wait for not full
+consume ...
+get the 24 product success
+put the 27 ok
+product the 28 product...
+product wait for not full
+consume ...
+get the 25 product success
+put the 28 ok
+product the 29 product...
+product wait for not full
+consume ...
+get the 26 product success
+put the 29 ok
+product the 30 product...
+product wait for not full
+consume ...
+get the 27 product success
+put the 30 ok
+consume ...
+get the 28 product success
+consume ...
+get the 29 product success
+consume stop
+
+```
+
+
+
+### 线程的高级属性
+
+#### 一次性初始化
+
+`mutex cond rwlock`等等变量不能直接使用，必须初始化后才能使用，并且只能初始化1次，否则会报错，怎么确定初始化一次？
+
++ 首先定义`pthread_once_t `类型变量，用宏`PTHREAD_ONCE_INIT`（即0）去初始化
++ 创建与控制变量相关的初始化函数
+
+```c
+void init_routine(void)
+{
+    //初始化互斥量
+    //初始化读写锁
+    ...
+}
+```
+
++ 接下来可以任意时刻调用`pthread_once(*pthread_once_t,回调init_routine)`去初始化
++ 尽管`pthread_once`可能在多个线程中被调用，但回调函数只会被调用一次，具体哪个线程中调用由内核决定
+
+demo
+
+```c
+pthread_once_t once=PTHREAD_ONCE_INIT;//必须这样初始化，否则会异常
+pthread_t tid;
+
+void thread_init()//发现此回调函数只会执行1次，有可能在线程1中执行，有可能在2中执行，哪个线程先执行，就在哪个里面回调
+{
+    printf("i am in thread 0x%x\n",tid);
+}
+
+void *thread_fun1(void*agr)
+{
+    tid=pthread_self();
+    printf("i'm thread1,id=0x%x\n",pthread_self());
+    pthread_once(&once,thread_init);
+    return (void*)20;
+}
+void *thread_fun2(void*agr)
+{
+    tid=pthread_self();
+    printf("i'm thread2,id=0x%x\n",pthread_self());
+    pthread_once(&once,thread_init);
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;
+    int err;
+
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    err=pthread_create(&tid2,NULL,thread_fun2,NULL);
+    if(err!=0)printf("create thread failed\n");
+    while(1);
+    return 0;
+}
+
+```
+
+
+
+#### 线程的分离属性
+
+设置步骤：---所有系统都支持线程的分离属性（自动回收）
+
++ 定义属性变量 pthread_attr_t  attr;
++ 初始化属性  `pthread_attr_init(&attr)`
++ 设置分离或非分离属性`pthread_attr_setdetachstate(&attr,detachstate)`
+  + PTHREAD_CREATE_DETACHED  分离，调join会失败
+  + PTHREAD_CREATE_JOINABLE    非分离，可join的
++ 创建线程 `pthread_create(&tid,&attr,thread_fun,NULL)`
++ `pthread_attr_destroy(&attr)`  销毁属性
+
+
+
+#### 线程的栈属性
+
+对于进程来说，虚拟地址空间大小是固定的，每个进程都有自己的栈大小通常够用。
+
+但对于线程来说，同样的虚拟地址被所有线程共享，若使用了太多线程，导致累计超过可用的虚拟地址空间，这时就需要减小线程默认栈的大小。如果线程分配了大量的自动变量或线程栈帧太深（函数调用嵌套），则需要增加线程栈的大小。
+
+如果用完了虚拟地址空间，可以用`malloc或mmap`为其他栈分配空间，并修改栈位置
+
++ 修改栈属性
+  + stackaddr 是栈内存单元最低地址，并不一定是栈的开始，有的栈地址从高往低
+  + `stacksize`不能小于 PTHREAD_STACK_MIN (16384) bytes  会报错
+  + `int pthread_attr_setstack(pthread_attr_t *attr,void *stackaddr, size_t stacksize);`
++ 获取栈属性
+  + ` int pthread_attr_getstack(const pthread_attr_t *attr, void **stackaddr, size_t *stacksize);`
++ 只修改栈大小  不修改栈属性
+  + `int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+    int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);`
+
+默认栈大小可以看:ulimit -a 查看
+
+demo
+
+```c
+#include<limits.h>    包含栈最小值的宏，如果设置的最小值小于PTHREAD_STACK_MIN，系统会按照PTHREAD_STACK_MIN去设置，如果》PTHREAD_STACK_MIN，按照设置值去设置
+void *thread_fun1(void*agr)
+{
+    sleep(1);
+    size_t stacksize;
+#ifdef _POSIX_THREAD_ATTR_STACKSIZE
+    pthread_attr_getstacksize(&attr,&stacksize);
+    printf("new thread stacksize=%d\n",stacksize);
+    pthread_attr_setstacksize(&attr,16284);
+    pthread_attr_getstacksize(&attr,&stacksize);
+    printf("new thread stacksize=%d\n",stacksize);
+#endif
+    return (void*)1;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;
+    int err;
+        pthread_attr_init(&attr);
+#ifdef _POSIX_THREAD_ATTR_STACKSIZE
+        pthread_attr_setstacksize(&attr,PTHREAD_STACK_MIN);
+#endif
+    err=pthread_create(&tid1,&attr,thread_fun1,NULL);
+    if(err!=0)printf("create thread failed\n");
+	while(1);
+    return 0;
+}
+
+```
+
+#### 线程的私有数据
+
+虽然变量名一样，但是每个线程访问这个数据的时候获得的值不一样
+
+```c
+void *thread_fun1(void*agr)
+{
+    printf("thread1 start\n");
+    int fd=open("1.c",O_RDONLY);
+    sleep(2);
+    printf("thread1 errno=%d\n",errno);
+    return (void*)1;
+}
+void *thread_fun2(void*agr)
+{
+        sleep(1);
+        open("t.c",O_RDWR);
+        printf("thread2 errno=%d\n",errno);
+    return (void*)1;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;
+    int err;
+
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    err=pthread_create(&tid2,NULL,thread_fun2,NULL);
+    if(err!=0)printf("create thread failed\n");
+
+        while(1);
+    return 0;
+}
+当前文件夹创建t.c  没有1.c。
+thread1 start
+thread2 start
+thread2 errno=0
+thread1 errno=2   include<errno.h>  这个变量在errno头文件中
+两个函数都访问同一个全局变量，获得的值却是不一样的
+```
+
+私有数据的使用
+
+```c
+pthread_key_t  key;
+void *thread_fun2(void*agr)
+{
+    sleep(1);
+    printf("thread2 start\n");
+    int a=2;
+    pthread_setspecific(key,(void*)a);   设置key与val关联
+    printf("thread2 key=%d\n",pthread_getspecific(key));  获得key关联的值
+    return (void*)1;
+}
+void *thread_fun1(void*agr)
+{
+    printf("thread1 start\n");
+    int a=1;
+    pthread_setspecific(key,(void*)a);
+    sleep(2);
+    printf("thread1 key=%d\n",pthread_getspecific(key));
+    return (void*)1;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;    int err;
+    pthread_key_create(&key,NULL);//第二个参数为析构函数，销毁key的时候调用，释放关联的空间
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    err=pthread_create(&tid2,NULL,thread_fun2,NULL);
+    if(err!=0)printf("create thread failed\n");
+    pthread_key_delete(&key);  销毁key--
+    while(1);
+    return 0;
+}
+
+```
+
+利用析构函数进行销毁怎么销毁,析构 键的 函数发生在线程退出之前。
+
+```c
+pthread_key_t key;
+typedef struct Tsd
+{
+    pthread_t tid;
+    char *str;
+} tsd_t;
+
+//用来销毁每个线程所指向的实际数据--入参不需要传，默认删除的是与key绑定的所有的地址空间数据
+void destructor_function(void *ptr)
+{
+    free(ptr);
+    printf("destructor..%p\n",ptr);
+}
+
+//初始化函数, 将对key的初始化放入该函数中,
+void init_routine()
+{
+    pthread_key_create(&key, destructor_function);
+    printf("init...\n");
+}
+
+void *thread_routine(void *args)
+{
+    //设置线程特定数据
+    tsd_t *value = (tsd_t *)malloc(sizeof(tsd_t));
+    value->tid = pthread_self();
+    value->str = (char *)args;
+    pthread_setspecific(key, value);
+    //不同的线程 malloc不同的地址，之后销毁的时候 malloc了几个地址，就free几个地址
+    printf("%s setspecific, address: %p\n", (char *)args, value);
+    //获取线程特定数据
+    value = (tsd_t *)pthread_getspecific(key);
+    printf("tid: 0x%x, str = %s\n", (unsigned int)value->tid, value->str);
+    sleep(2);
+    //再次获取线程特定数据
+    value = (tsd_t *)pthread_getspecific(key);
+    printf("tid: 0x%x, str = %s\n", (unsigned int)value->tid, value->str);
+    pthread_exit(NULL);
+}
+
+int main()
+{
+    pthread_t tid1, tid2;
+    init_routine();
+    pthread_create(&tid1, NULL, thread_routine, (void *)"thread1");
+    pthread_create(&tid2, NULL, thread_routine, (void *)"thread2");
+
+    pthread_join(tid1, NULL);
+    pthread_join(tid2, NULL);
+    pthread_key_delete(key);
+    return 0;
+}
+
+打印日志：
+init...
+thread1 setspecific, address: 0x7feffc000b60
+tid: 0x1c41700, str = thread1
+thread2 setspecific, address: 0x7feff4000b60
+tid: 0x1440700, str = thread2
+tid: 0x1c41700, str = thread1
+tid: 0x1440700, str = thread2
+destructor..0x7feffc000b60
+destructor..0x7feff4000b60
+
+```
+
+
+
+#### 线程与fork
+
+线程中怎么安全的使用fork
 
