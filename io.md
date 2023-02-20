@@ -725,11 +725,13 @@ int main()
 
 线程id只是在创建它的进程中有效，一旦当前进程结束，则线程id就会被销毁。
 
-### 函数
-```c
-pthread_self(); get thread id
+#### 控制
 
-```
+终止  	连接(回收)  	取消	发信号	清除
+
+#### 同步
+
+互斥量		读写锁		条件变量
 
 ### 主线程
 + main函数内的线程就是主线程
@@ -743,7 +745,7 @@ pthread_self(); get thread id
 void * fun(void* str)
 {
 //解析线程的入参的时候，先得((struct Stu*)ptr) 将指针包起来强制转换类型后，再去->访问成员。否则无法访问
-printf("in  thread,id=%d,name=%s\n",((struct Stu*)str)->id,((struc    t Stu*)str)->name);
+printf("in  thread,id=%d,name=%s\n",((struct Stu*)str)->id,((struct Stu*)str)->name);
 }
 pthread_create(&tid,NULL,fun,(void*)&stu);
 ```
@@ -755,13 +757,12 @@ pthread_create(&tid,NULL,fun,(void*)&stu);
 + 线程结束的时候，自己分配的动态内存，mmap，ipc对象，可以由其他线程或自己去释放，若要其他线程去释放，需要自己解锁互斥量---否则自己锁着，别人没法帮你释放
 
 ###
+
 + 线程中调用exit，_exit ,_Exit 会导致整个程序退出  是危险的
 + 正确的退出方式
     + return 退出，返回值就是线程的退出码
     + 线程可以被同一进程中的其他线程取消
-    + 调用pthread_exit(void*ret)  ret就是线程的退出码
-
-### pthread_exit 与 return的区别
+    + 调用pthread_exit(void*ret)  ret就是线程的退出码  与return类似
 
 
 ### 连接线程 pthread_join(pthread_t thread, void **retval)
@@ -902,7 +903,7 @@ int main()
     if(err!=0)printf("create thread failed\n");
 	
     sleep(1);//延时一下再去 kill 子线程，它已经退出了 则kill失败，返回 ESRCH，子线程不存在
-    int s=pthread_kill(tid,0);//判断子线程是否还活着
+    int s=pthread_kill(tid,0);//sig==0 时只是 判断子线程是否还活着
     if(s!=0)
     {
         printf("pthread_kill fail\n");
@@ -1195,6 +1196,99 @@ pthread_rwlock_t  rwlock
 解锁：
 
 `pthread_rwlock_unlock`     
+
+demo：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+
+pthread_rwlock_t rwlock;//创建读写锁
+long int love;//love 小于520，5个写线程都写一次 然后sleep。写线程sleep  读线程才能抢占cpu--读完后，1s后  再次写线程占用资源去写
+
+void *pth_wr(void *arg)//写操作
+{
+    int i = (int)arg;//参数类型转化
+    while (love <= 520) 
+    {
+        pthread_rwlock_wrlock(&rwlock);//请求写锁
+        printf("write================love = %ld, threadID = %d\n", love += 40, i + 1);//写操作，love每次加40
+        pthread_rwlock_unlock(&rwlock);//写锁释放
+        sleep(1);
+    }
+    return NULL;
+}
+void *pth_rd(void *arg)//读操作
+{
+    int i = (int)arg;
+    while (love <= 520)
+    {
+        pthread_rwlock_rdlock(&rwlock);//请求读锁
+        printf("love = %ld, threadID = %d-------------------- read\n", love, i + 1);
+        pthread_rwlock_unlock(&rwlock);//读锁释放
+        sleep(1);
+    }
+    return NULL;
+}
+int main(void)
+{
+    pthread_t pth[10];
+    int i;
+    pthread_rwlock_init(&rwlock, NULL);
+    for (i = 0; i != 5; i++)
+    {
+        pthread_create(&pth[i], NULL, pth_wr, (void *)i);
+    }
+    for (i = 0; i != 5; i++)
+
+    {
+        pthread_create(&pth[5 + i], NULL, pth_rd, (void *)i);
+    }
+    while (1)
+    {
+        if (love >= 520)//love  >520   才去回收 否则等待 线程运行
+        {
+            for (int j = 0; j != 10; j++)
+            {
+                pthread_join(pth[j], NULL);
+            }
+            break;
+        }
+    }
+   pthread_rwlock_destroy(&rwlock);
+   return 0;
+}
+
+
+结果：开始10个线程5个读  5个写 同时抢占cpu，只有5个写线程能抢到资源，然后写进程都sleep，读进程才能调用去读。1s后，写线程占有资源 又开始写---rwlock的使用方法，需要一个全局变量去限制  根据他  控制线程的写入读出
+write================love = 40, threadID = 1
+write================love = 80, threadID = 2
+write================love = 120, threadID = 3
+write================love = 160, threadID = 4
+write================love = 200, threadID = 5
+love = 200, threadID = 1-------------------- read
+love = 200, threadID = 2-------------------- read
+love = 200, threadID = 3-------------------- read
+love = 200, threadID = 4-------------------- read
+love = 200, threadID = 5-------------------- read
+write================love = 240, threadID = 1
+write================love = 280, threadID = 2
+write================love = 320, threadID = 3
+write================love = 360, threadID = 4
+write================love = 400, threadID = 5
+love = 400, threadID = 1-------------------- read
+love = 400, threadID = 2-------------------- read
+love = 400, threadID = 3-------------------- read
+love = 400, threadID = 4-------------------- read
+love = 400, threadID = 5-------------------- read
+write================love = 440, threadID = 3
+write================love = 480, threadID = 4
+write================love = 520, threadID = 2
+write================love = 560, threadID = 1
+
+```
 
 
 
@@ -1765,4 +1859,164 @@ destructor..0x7feff4000b60
 #### 线程与fork
 
 线程中怎么安全的使用fork
+
+错误的使用demo:
+
+```c
+pthread_mutex_t mutex;
+void *thread_fun1(void*agr)
+{
+    sleep(1);//延时使main 父进程 中先去抢占mutex
+    pid_t pid;
+    pid=fork();//fork之前锁被锁住了，父进程一把被锁住的锁，子进程一把被锁住的锁
+    if(pid==0)
+    {
+        pthread_mutex_lock(&mutex);//子进程进来 直接发现自己的锁是锁住的，得先解锁，不然会阻塞 子进程的锁得自己去解锁 
+        printf("child\n");
+        pthread_mutex_unlock(&mutex);
+    }else if(pid>0)
+    {
+        pthread_mutex_lock(&mutex) ;//父进程在main中解锁后 这里得以抢占，可往后运行。因为pid>0的部分只是进程的一个分支线程而已。main中还是会运行的
+        printf("parent\n");
+        pthread_mutex_unlock(&mutex);
+    }
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;
+    int err;
+    char* ret=0;
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    if(err!=0)printf("create thread failed\n");
+    pthread_mutex_lock(&mutex);
+    sleep(2);//父进程抢占2s后 再释放
+    pthread_mutex_unlock(&mutex);
+    printf("main\n");
+    void*jexitcode;
+    int jret=0;
+    jret=pthread_join(tid1,&jexitcode);
+    return 0;
+}
+
+```
+
+
+
+解决办法：
+
+```c
+pthread_mutex_t mutex;
+void prepare()  //调用fork之前调用
+{
+    pthread_mutex_lock(&mutex);
+    printf("in %s\n",__FUNCTION__);
+}
+
+void parent()   //fork返回父进程之前调用
+{
+    pthread_mutex_unlock(&mutex);
+    printf("in %s\n",__FUNCTION__);
+}
+
+void child()    //fork返回子进程之前调用
+{
+    pthread_mutex_unlock(&mutex);
+    printf("in %s\n",__FUNCTION__);
+}
+void *thread_fun1(void*agr)
+{
+    sleep(1);
+    pid_t pid;
+    pthread_atfork(prepare,parent,child);
+    pid=fork();
+    if(pid==0)
+    {
+        pthread_mutex_lock(&mutex)      ;
+        printf("child\n");
+        pthread_mutex_unlock(&mutex);
+    }else if(pid>0)
+    {
+        pthread_mutex_lock(&mutex)      ;
+        printf("parent\n");
+        pthread_mutex_unlock(&mutex);
+    }
+    return (void*)20;
+}
+int main()
+{
+    pthread_t tid1,tid2,tid3;
+    int err;
+    char* ret=0;
+
+    err=pthread_create(&tid1,NULL,thread_fun1,NULL);
+    if(err!=0)printf("create thread failed\n");
+    printf("in main after thread fork\n");
+    pthread_mutex_lock(&mutex);
+    sleep(2);
+    pthread_mutex_unlock(&mutex);
+    printf("main\n");
+    void*jexitcode;
+    int jret=0;
+    jret=pthread_join(tid1,&jexitcode);
+    return 0;
+}
+
+```
+
+
+
+## `tcp`
+
+### 其他
+
+`ip+port` 绑定唯一程序
+
+通信域--在哪个范围通信：
+
+`ipv4 ipv6  unix  `
+
+套接字类型：
+
+`dgram  raw  stream`
+
+
+
+`ip`地址转换：数字+点--->32位整数
+
+`int inet_aton(const char *cp, struct in_addr *inp);`   字符串转ip
+
+`int inet_aton(const char *cp, struct in_addr *inp);`   ip转字符串
+
+
+
+字节序转成网络字节序:（大端）------处理端口号 port的
+
+`htons---u short`		主机转网络
+
+`htonl---u  long	`	主机转网络
+
+`ntohs--u  short `  	 网络转主机
+
+`ntohl--u long 	`	  网络转主机
+
+
+
+accept 返回一个新的socket关联到客户端，传递给accept的socketfd并没有关联客户端，需要继续保持可用状态接收其他cli请求-----是个阻塞函数，一直等客户端请求
+
+
+
+
+
+
+
+void*arg 看传参的时候怎么传的解的时候先转化成传参的类型，然后用`*`解引用
+
+```c
+例如给线程传参写的(void*)1;   想用把数据解为int类型
+void * thread_fun(void*arg)
+{
+    printf("arg==%d",*(int*)arg);//先把arg转成int*的指针  再* 指向对应的区域
+}
+```
 
