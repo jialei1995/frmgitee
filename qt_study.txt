@@ -2354,3 +2354,43 @@ Rectangle{
         onClicked: parent.state=(parent.state=="stop")?"go":"stop"
     }
 }
+
+
+------------
+## Qt 学习
+所有可视化元素 直接或间接继承自 QWidget类
+应用程序主窗口用QMainWindow 或 QWidget
+提示信息对话框 用Qdialog或Qwidget
+
+不确定用哪个窗口的时候，选QWidget
+
+事件：应用程序与用户的交互。按下按钮，点击输入框
+操作系统也会与用户交互。定时任务触发，自动关闭应用程序
+
+main中return 0  与 return  a.exec() 区别：
+return 0 ：程序直接退出，什么操作都不做。
+return exec: 进入事件循环，把程序交给qt处理--后续作的对界面的点击，由qt去处理该怎么做操作。---只有按下关闭的时候，qt才会关闭，关闭的时候会处理子界面资源。
+
+
+ui中要新建控件需要在头文件声明指针，在构造函数中new了后
+所有文件都能访问该指针去操控控件。
+信号槽机制写法：
+connect(newbtn,&QPushButton::clicked,this,&QWidget::close);
+
+### QMessageBox
+QMessageBox 消息对话框类 用法
+整个框架中最常用的类，可以实现 消息对话框，调试
+
+QMessageBox::information(this,"标题","提示内容");
+QMessageBox::critical(this,"出错","提示内容");  出错提示框
+QMessageBox::question(this,"询问","提示内容");  选择 yes /no
+QMessageBox::warning(this,"警告","提示内容");  
+
+提示内容后 还可以加 参数：QMessageBox::Open 
+QMessageBox::Discard
+QMessageBox::Save|QMessageBox::Apply|QMessageBox::Ok 等等提示按钮
+
+后续可以根据 box 下方按钮 值作操作，执行apply 还是 save  还是ok
+
+
+
