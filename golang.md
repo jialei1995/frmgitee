@@ -12,6 +12,12 @@
 
 go=c+python   静态编译语言的安全性能  动态语言的开发维护
 
+
+
+fmt.Scanln(&a);  给a赋值 从键盘
+
+
+
 引入包 概念 ，每个文件都要属于一个包 不能单独存在
 
 + 语法类似c
@@ -419,18 +425,18 @@ func main(){
 3. 从终端输入数据赋值给变量fmt.Scanln(&var)
 4. 初始化数组的四种方法
 {
-  var numarr1[3]int=[3]int{1,2,3}
-  var numarr2=[3]int{5,6,7}
-  var numarr3=[...]int{8,9,10}
-  var numarr4=[...]int{1:800,0:900,2:500}
+    var numarr1[3]int=[3]int{1,2,3}
+    var numarr2=[3]int{5,6,7}
+    var numarr3=[...]int{8,9,10}
+    var numarr4=[...]int{1:800,0:900,2:500}
 }
 5. 打印数组:fmt.Println(numarr1)-与python输出类似
 遍历数组：
 {
-  //:= 定义时赋初值
-  for index,val := range numarr{
+    //:= 定义时赋初值
+    for index,val := range numarr{
     ...
-  }
+    }
 }
 ### 作为函数入参
 ```go
@@ -542,3 +548,122 @@ func fbnq(n int)([] uint64){
 ```
 
 ## string
+
+
+
+## 二维数组
+
+### 初始化
+
+```go
+package main
+import "fmt"
+import _ "strings"  //has "_" can not use
+
+func main(){
+    //init ,clare
+    var arr[4][6] int;  //row=4  col=6
+    //give pos val
+    arr[1][2]=100
+    fmt.Println(arr)//erwei arr can directly print
+    for i:=0;i<4;i++{ //another way to traverse
+         for j:=0;j<6;j++{
+             fmt.Print(arr[i][j]," ")
+         }
+         fmt.Println()
+     }
+    
+    //directly init  直接赋值初始化方式
+    var arr[2][3]int=[2][3]{{1,2,3},{4,5,6}}
+    var arr[2][3]int=[...][3]{{1,2,3},{4,5,6}}  //后面的3不能省，行数可以省。会自动推导行数
+    
+    var arr=[2][3]{{1,2,3},{4,5,6}}   有个var 则冒号可以省略
+    arr := [2][3]{{1,2,3},{4,5,6}} 
+}
+```
+
+本质上分配的内存空间 是连续的。
+
+arr[2,3] ==== arr[6]  分配的空间是一样的。
+
+二维的访问方式特殊些，更加遍历的去跳着访问。
+
+
+
+### 遍历
+
+1. 
+
+```go
+fmt.Println(arr)
+
+```
+
+2. 
+
+```go
+for i:=0;i<len(arr);i++{
+    for j:=0;j<len(arr[i]);j++{ //每个一维数组长度 不一定是一样长度的
+        fmt.Print(arr[i][j]," ")
+    }
+    fmt.Println()
+}
+```
+
+3. 
+
+```go
+for i,v : range(arr){ // i=行号   val=第i行的一维数组
+   fmt.Printf("i=%v  v=%v",i,v)
+}
+for i,v : range(arr){ // i=行号   val=第i行的一维数组
+    for j,v2:=range v{  //j=一维数组索引（列号）  v2表示第i行 第j列的数据
+        fmt.Printf("arr[%v][%v]=%v",i,j,v)
+    }
+}
+```
+
+
+
+4. 
+
+```go
+for i:=0;i<3;i++{
+    for j:=0;j<5;j++{
+        fmt.Printf("input %v banji,%v xuesheng score\n",i,j)
+        fmt.Scanln(&arr[i][j])  //从键盘给每个位置赋值
+    }
+}
+
+```
+
+
+
+## map
+
+键值对
+
+### 定义
+
++ var  变量名  map [keytype] valuetype
++ key可以是bool，数字，string，指针，channel，还可以是包含前几种类型的结构体
++ key不能是slice   map   function  ，这几种类型没法用 ==去判断
+
+声明举例：
+
+```c
+var  name  map[string]int
+var  name  map[string]string
+var  name  map[int][string]
+var  name  map[string]map[string] string   key是string，值是map
+```
+
+ ### 使用方式
+
++ 先声明，再make
+
+```go
+var val map[string] string
+val = make(map[string]string,10)   //
+```
+

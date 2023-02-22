@@ -1,5 +1,8 @@
- 
-层次遍历树：c++
+### 层次遍历树：
+
+#### c++
+
+```c++
 vector<int> levelOrder(TreeNode* root) {
 	queue<TreeNode*> queue;
 	vector<int> res;
@@ -18,15 +21,18 @@ vector<int> levelOrder(TreeNode* root) {
 	}
 	return res;
 }
+```
 
-python实现：
+#### python实现：
+
+```py
 def levelOrder( root: TreeNode) -> List[int]:     
 	if not root: return []
 	res = []
 	queue = []
 	queue.append(root)
 	while queue:
-		node = queue.pop(0)    python中的list无法从头部删除元素，错误。python中的pop可以控制从左边删除还是右边删除。pop(0)就是从左边删除
+		node = queue.pop(0)    #python中的list无法从头部删除元素，错误。python中的pop可以控制从左边删除还是右边删除。pop(0)就是从左边删除
 		res.append(node.val)
 		if node.left: queue.append(node.left)
 		if node.right: queue.append(node.right)
@@ -42,25 +48,17 @@ def levelOrder( root: TreeNode) -> List[int]:
 		if node.right: queue.append(node.right)
 	return res
 	'''
-层次遍历树，格式不同2：
-def levelOrder(self, root: TreeNode) -> List[List[int]]:
-	if not root: return []
-	res = []
-	queue = []
-	queue.append(root)
-	while queue:         在每一次的循环中将queue当前树某1层中所有的数据全部弹出
-		tmp = []
-		for _ in range(len(queue)):在每一次的循环中将queue当前树某1层中所有的数据全部弹出  
-			node = queue.pop(0)   
-			tmp.append(node.val)
-			if node.left: queue.append(node.left)
-			if node.right: queue.append(node.right)
-		res.append(tmp)
-	return res
-	
-寻找相交链表的第一个焦点的位置：
+```
+
+
+​	
+###  寻找相交链表的第一个焦点的位置：
 太他妈巧妙了，两个指针一个a,一个b。过程就是a将heada遍历一边然后遍历headb，b将headb遍历一边遍历heada。若有焦点就会退出循环，若没有焦点
 最终a,b都会指向null。因为a与b走的路程是一样的。每次循环2者都在移动。
+
+这个有个bug，若给定的不是相交链表，两个长度也不一样，程序就会死循环出不来？？  错，程序没bug，遍历走的总路程一样，若没有焦点，最终肯定指向NULL
+
+```python
 def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> ListNode:  太他妈巧妙了
 	a = headA
 	b = headB
@@ -68,51 +66,67 @@ def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> ListNode:  �
 		a = a.next if a else headB
 		b = b.next if b else headA
 	return a
-自制的升序排序好的栈：
+```
+
+### 自制的升序排序好的栈：
+
+```c
 #include <stack>
 class SortedStack {
 public:利用一个辅助栈
     stack<int> stack1;
-    stack<int> stack2;
+    stack<int> stack2;//临时用一下  最终的数据往stack1 放
     
-    void push(int val) {    
-            while(!stack1.empty() && val > stack1.top()){  若栈1不是空的，看新加的val是不是最大值，不是最大值，先将栈1的大于val的数字
-                stack2.push(stack1.top());					放到栈2，再放val到栈1.  val放进栈1后再将栈2里面的数据放回栈1. 栈2就是临时用一下
-                stack1.pop();								用完就成空的了。
-            }
-            stack1.push(val);
-            while(!stack2.empty()){
-                stack1.push(stack2.top());
-                stack2.pop();
-        }
-    }
-删除未排序链表中的重复节点，保留前一个节点组成新链表,在原来的链表上改变指针指向。
+void push(int val) {
+    while(!stack1.empty() && val > stack1.top()){   若栈1不是空的，看新加的val是不是最大值，不是最大值，先将栈1的大于val的数字
+        stack2.push(stack1.top());					放到栈2，再放val到栈1.  val放进栈1后再将栈2里面的数据放回栈1时用一下
+        stack1.pop();								
+     }
+    stack1.push(val);
+    while(!stack2.empty()){     //弹出临时栈里面的所有值 放回栈1
+        stack1.push(stack2.top());
+        stack2.pop();
+     }
+}
+```
+
+
+
+### 删除未排序链表中的重复节点，保留前一个节点组成新链表,在原来的链表上改变指针指向。
+
+```c++
 ListNode* removeDuplicateNodes(ListNode* head) {
-        if(head == NULL) return head;
-        set<int> set;
-        ListNode*tail = head;
-        set.insert(head->val);
-        ListNode*tmp = head->next;
-        while(tmp){
-            if(set.find(tmp->val) == set.end()){如果遍历到的tmp点不在set中，则这点是需要的。
-                set.insert(tmp->val);
-                tail->next = tmp;
-                tail = tmp;
-                tmp = tmp->next;  先让tmp指向下个节点
-                tail->next = NULL;	再将准备返回的节点尾部指向空，不然会丢失原链表的后续节点
-            }else{
-				tmp = tmp->next;  若当前tmp已经在set中，则继续向后遍历
-			}
+    if(head == NULL) return head;
+    set<int> set;
+    ListNode*tail = head;
+    set.insert(head->val);
+    ListNode*tmp = head->next;
+    while(tmp){
+        if(set.find(tmp->val) == set.end()){如果遍历到的tmp点不在set中，则这点是需要的。
+            set.insert(tmp->val);
+            tail->next = tmp;
+            tail = tmp;
+            tmp = tmp->next;  先让tmp指向下个节点
+            tail->next = NULL;	再将准备返回的节点尾部指向空，不然会丢失原链表的后续节点
+         }else{
+            tmp = tmp->next;  若当前tmp已经在set中，则继续向后遍历
         }
-        return head;
     }
-深度优先搜索：dfs
+    return head;
+}
+```
+
+
+
+### 深度优先搜索：dfs
 解题模板
-这类题通常用深度优先搜索(DFS)和广度优先搜索(BFS)解决，BFS较DFS繁琐
-一、自顶而下：dfs
-一般路径：
+深度优先搜索(DFS)和广度优先搜索(BFS)解决，BFS较DFS繁琐
+#### 自顶而下：dfs
+##### 一般路径：
+
+```c+
 vector<vector<int>>res;
-void dfs(TreeNode*root,vector<int> & path)  path最终返回的数据就是本函数执行深度优先查找的过程。
+void dfs(TreeNode*root,vector<int> & path)    path最终返回的数据就是本函数执行深度优先查找的过程。
 {
     if(!root) return;  //根节点为空直接返回
     path.push_back(root->val);  //作出选择
@@ -124,8 +138,11 @@ void dfs(TreeNode*root,vector<int> & path)  path最终返回的数据就是本�
     dfs(root->left,path);  //继续递归
     dfs(root->right,path);
 }
+```
 
-# **给定和的路径：**
+##### 给定和的路径：到叶子节点和刚好是sum
+
+```c
 void dfs(TreeNode*root, int sum, vector<int> path)
 {
     if (!root)
@@ -140,12 +157,14 @@ void dfs(TreeNode*root, int sum, vector<int> path)
     dfs(root->left, sum, path);
     dfs(root->right, sum, path);
 }
+```
 
-二、非自顶而下：
+
+
+#### 非自顶而下：
 这类题目一般解题思路如下：
 设计一个辅助函数maxpath，调用自身求出以一个节点为根节点的左侧最长路径left和右侧最长路径right，那么经过该节点的最长路径就是left+right
 接着只需要从根节点开始dfs,不断比较更新全局变量即可
-
 
 int res=0;
 int maxPath(TreeNode *root) //以root为路径起始点的最长路径
@@ -171,6 +190,7 @@ int maxPath(TreeNode *root) //以root为路径起始点的最长路径
 直接套用模板1即可，注意把"->"放在递归调用中  res保存所有的dfs的路径
 void dfs(TreeNode*root, string path)
 {
+
     if (!root)
         return;
     path += to_string(root->val);
@@ -349,7 +369,7 @@ def generateParenthesis(self, n: int) -> List[str]:
 	dfs(n,n,"")  #内部定义的dfs函数在generateParenthesis函数中得调用一次 在dfs中可以访问外部函数定义的变量，这个方法可以修改原函数入参。
 					# fun([],"")空列表，空字符串也可以直接当作入参当作临时变量去调用
 	return res
-	
+
 class Solution { c++写法
 public:
     vector<string> res;
@@ -628,6 +648,7 @@ int maxsubarr()
 方法1：
 class Solution {
 public:
+
     void dfs(TreeNode* root, int targetSum,vector<vector<int>>&ret,vector<int> &path) {
         if (root == nullptr)    return;
         path.push_back(root->val);
@@ -641,7 +662,7 @@ public:
         dfs(root->right, targetSum,ret,path);      
         path.pop_back();//弹出
     }
-
+    
     vector<vector<int>> pathSum(TreeNode* root, int targetSum) {
         vector<vector<int>> ret;
         vector<int> path;//深度遍历时的路径
@@ -765,7 +786,7 @@ vector<int> spiralOrder(vector<vector<int>>& matrix) {
 		row=row+dir[dirinex][0];
 		col=col+dir[dirinex][1];
 	}
-
+	
 	return retorder;
 }
 	
@@ -849,7 +870,7 @@ class Solution:
                 vis[tx][ty]=1
                 ans=ans+1
         return ans   
-		
+
 面试题14- I. 剪绳子  纯数学问题 代码不难
 
 
@@ -976,7 +997,7 @@ def minNumber(self, nums: List[int]) -> str:
 	strs = [str(num) for num in nums]  将数字数组转化成字符串数组，对字符串数组按照特定的排序规则排序
 	quick_sort(0, len(strs) - 1)
 	return ''.join(strs)   拼接排序后的数组
-		
+
 函数中定义的局部strs在子函数中可以直接使用，不需要传参就可以
 
 
@@ -1053,7 +1074,7 @@ public:
             + area(grid, r, c - 1)
             + area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
     }
-
+    
     bool inArea(vector<vector<int>>& grid, int r, int c) {
         return 0 <= r && r < grid.size() 
                 && 0 <= c && c < grid[0].size();
@@ -1092,7 +1113,7 @@ public:
         area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
         return;
     }
-
+    
     bool inArea(vector<vector<char>>& grid, int r, int c) {
         return 0 <= r && r < grid.size() 
                 && 0 <= c && c < grid[0].size();
@@ -1132,7 +1153,7 @@ public:
         area(grid, r, c + 1);//返回当前面积1+上下左右岛面积
         return;
     }
-
+    
     bool inArea(vector<vector<char>>& grid, int r, int c) {
         return 0 <= r && r < grid.size() 
                 && 0 <= c && c < grid[0].size();
@@ -1236,22 +1257,24 @@ def exist(self, board: List[List[str]], word: str) -> bool:
 			if(ret==True):
 				return True;
 	return False
-	
-	
+
+
+​	
 108. 将有序数组转换为二叉搜索树
 class Solution {
 public:
+
     TreeNode* sortedArrayToBST(vector<int>& nums) {
         return helper(nums, 0, nums.size() - 1);
     }
-
+    
     TreeNode* helper(vector<int>& nums, int left, int right) {
         if (left > right) {
             return nullptr;
         }
         //总是选择中间位置左边的数字作为根节点
         int mid = (left + right) / 2;
-
+    
         TreeNode* root = new TreeNode(nums[mid]);  //构造根节点
         root->left = helper(nums, left, mid - 1);	//构造左子树
         root->right = helper(nums, mid + 1, right); //构造右子树
@@ -1279,7 +1302,7 @@ int longestConsecutive(vector<int>& nums) {
 				currentNum += 1;
 				currentStreak += 1;
 			}
-
+		
 			maxlen = max(maxlen, currentStreak);//更新
 		}else
 		{
@@ -1289,6 +1312,7 @@ int longestConsecutive(vector<int>& nums) {
 
 	return maxlen;   
 	
+
 def longestConsecutive(self, nums: List[int]) -> int:
 	num_set = set(nums)  python中list转set 方法，直接set(list)即可直接转化
 
@@ -1302,17 +1326,26 @@ def longestConsecutive(self, nums: List[int]) -> int:
 				currentlen+=1
 			maxlen=max(currentlen,maxlen)  
 	return maxlen
-	
-------------------------------------1----------------------------
-//多项式加 乘计算
+
+
+
+
+
+### 多项式加 乘计算
 //设计存储结构体
 
+```c
 typedef struct{
     int cnt;//多项式有几项
     int array[100];//每项两个数字--系数+幂
 }Polynomial;
+```
+
+
 
 //读入多项式
+
+```c
 Polynomial ReadPoly()
 {
     Polynomial input;
@@ -1331,8 +1364,12 @@ Polynomial ReadPoly()
     }
     return input;
 }
-Polynomial Add(Polynomial p1,Polynomial p2);
+```
+
+
 //多项式相乘
+
+```c
 Polynomial Mult(Polynomial p1,Polynomial p2)
 {
     Polynomial mul;
@@ -1355,7 +1392,13 @@ Polynomial Mult(Polynomial p1,Polynomial p2)
     }
     return mul;
 }
+```
 
+
+
+多项式相加
+
+```c
 Polynomial Add(Polynomial p1,Polynomial p2)
 {
     int p1head=0,p2head=0;
@@ -1406,7 +1449,13 @@ Polynomial Add(Polynomial p1,Polynomial p2)
     }
     return sum;
 }
+```
 
+
+
+遍历多项式
+
+```c
 void PrintPoly(Polynomial pp)
 {
     cout<<"sum cnt="<<pp.cnt<<endl;
@@ -1416,6 +1465,11 @@ void PrintPoly(Polynomial pp)
     }
     cout<<endl;
 }
+```
+
+
+
+```c
 int main()
 {
     Polynomial P1,P2,PP,PS;
@@ -1427,8 +1481,13 @@ int main()
     PP=Mult(P1,P2);
     PrintPoly(PP);
     return 0;
+
 }
-----------------------------------------------2---------------------------------------------
+```
+
+
+### 哨兵
+
 在数组边界建立哨兵：
 例如：在数组中查询是否存在K
 正常的做法:
@@ -1448,36 +1507,32 @@ for(i=size-1;array[i]!=K;i--)
 
 
 
------------------------------------------------3--------------------------------
-利用栈中序遍历二叉树：
-void InorderTraversal(BinTree BT)
-{
-	Bintree T=BT;//临时指针指向根节点
-	Stack S = CreateStack(MAXSIZE);
-	while(T || !IsEmpty(S))
-	{
-		while(T)//一直压栈左子树，直到当前节点没有左子树
-		{
-			push(S,T);//第一次碰到
-			T=T->left;
-		}
-		if(!IsEmpty(S))
-		{
-			T=pop(S);//弹出栈顶数据，第二次碰到某节点
-			printf("%d--",T->data);
-			T=T->right;//访问右子树
-		}
-		
-	}
-	
+### 利用栈中序遍历二叉树：由两种遍历序列确定二叉树的时候必须有中序序列才可以。
+
+```c
+vector<int> inorderTraversal(TreeNode* root) {
+    vector<int> res;
+    stack<TreeNode*> stk;
+    while (root != nullptr || !stk.empty()) {
+        while (root != nullptr) {  //将所有的左子节点压栈
+            stk.push(root);
+            root = root->left;
+        }
+        root = stk.top();  //出栈最上面的节点 即最左边 的节点
+        stk.pop();
+        res.push_back(root->val);
+        root = root->right;//当前的遍历节点指向 右子树，看右面的节点是否需要压栈
+    }
+    return res;
 }
+```
 
 
-由两种遍历序列确定二叉树的时候必须有中序序列才可以。
 
 
 ### 剑指 Offer 50. 第一个只出现一次的字符
 
+```c
 #include<map>
 class Solution {
 public:
@@ -1498,3 +1553,7 @@ public:
 		return ' ';
 	}
 };
+```
+
+
+

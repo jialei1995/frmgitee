@@ -4,19 +4,20 @@
     + 交换机  环境
     + 网络环境 
 
-++ 过滤 写法
++ 过滤 写法
+
 ```c
 ip.src==192.168.3.239   只接收src为后面ip的帧
 
 ip.src==192.168.3.239 and ip.dst==14.215.177.38
 ```
 
-中间窗口中：
-Frame  物理层
-Ethernet  数据链路层
-Internet  网络层
-Transmission  传输层
-Transport Layer 应用层
++ 中间窗口中：
+  Frame  物理层
+  Ethernet  数据链路层
+  Internet  网络层
+  Transmission  传输层
+  Transport Layer 应用层
 
 tcp的3次握手4次挥手分析：抓包http包
 
@@ -32,13 +33,13 @@ tcpdump 抓的数据格式不好分析，通常转成.pcap 格式的文件，拖到wireshark去分析
 在Ethernet 数据链路层：可以看到 源mac  目的mac  地址信息
 在Internet Protocol网络（IP）层：
     + 可以看到 Protocal version
-    + 源ip  目的ip
-    + Header Length：ip包头数据长度
-    + Flags  不分片
-    + ttl： Time To Live ---ttl 值
-    + Protocol：ICMP  下层协议类型是ICMP还是别的
+        + 源ip  目的ip
+        + Header Length：ip包头数据长度
+        + Flags  不分片
+        + ttl： Time To Live ---ttl 值
+        + Protocol：ICMP  下层协议类型是ICMP还是别的
 在 Internet Control Message Protocol中：---即ICMP协议
-    + type：可以看到是ping命令执行 发起的本次网络通讯
+        + type：可以看到是ping命令执行 发起的本次网络通讯
 
 ### 总结
 通讯的过程中每一层都有自己的责任范围，上次协议完成自己的处理工作，就交给下层处理
@@ -55,24 +56,28 @@ seq的初始是个随机的值，后面ack的回复都是在这个值上一直+n，n是变化的
 
 而通常情况下，服务器端收到客户端的 FIN 后，很可能还没发送完数据，所以就会先回复客户端一个 ACK 包，稍等一会儿，完成所有数据包的发送后，才会发送 FIN 包，然后客户端再Ack 这也就是四次挥手了。
 
-1. 异常 无法连接服务器
-curl的自动超时重传：--服务器无法回复时
-客户端发起了 SYN 包后，一直没有收到服务端的 ACK ，所以一直超时重传了 5 次，并且每次 RTO 超时时间是不同的：
-第一次是在 1 秒超时重传
-第二次是在 3 秒超时重传
-第三次是在 7 秒超时重传
-第四次是在 15 秒超时重传
-第五次是在 31 秒超时重传
-可以发现，每次超时时间 RTO 是指数（翻倍）上涨的，当超过最大重传次数后，客户端不再发送 SYN 包。
+
+
+### 异常
+
++ 异常 无法连接服务器
+  curl的自动超时重传：--服务器无法回复时
+  客户端发起了 SYN 包后，一直没有收到服务端的 ACK ，所以一直超时重传了 5 次，并且每次 RTO 超时时间是不同的：
+  第一次是在 1 秒超时重传
+  第二次是在 3 秒超时重传
+  第三次是在 7 秒超时重传
+  第四次是在 15 秒超时重传
+  第五次是在 31 秒超时重传
+  可以发现，每次超时时间 RTO 是指数（翻倍）上涨的，当超过最大重传次数后，客户端不再发送 SYN 包。
 
 第一次握手的 SYN 超时重传次数，是如下内核参数指定的：
 $ cat /proc/sys/net/ipv4/tcp_syn_retries
     5
 重传5次后都收不到回复，客户端就会显示 连接超时
 
-2. 异常 TCP 第二次握手 SYN、ACK 丢包
-为了模拟客户端收不到服务端第二次握手 SYN、ACK 包，我的做法是在客户端加上防火墙限制，直接粗暴的把来自服务端的数据都丢弃，防火墙的配置如下：
-iptables -I INPUT -s serverip -j DROP  扔掉服务器数据
++ 异常 TCP 第二次握手 SYN、ACK 丢包
+  为了模拟客户端收不到服务端第二次握手 SYN、ACK 包，我的做法是在客户端加上防火墙限制，直接粗暴的把来自服务端的数据都丢弃，防火墙的配置如下：
+  iptables -I INPUT -s serverip -j DROP  扔掉服务器数据
 
 | 咦？客户端设置了防火墙，屏蔽了服务端的网络包，为什么 tcpdump 还能抓到服务端的网络包？
 + 添加 iptables 限制后， tcpdump 是否能抓到包 ，这要看添加的 iptables 限制条件：
@@ -82,7 +87,7 @@ iptables -I INPUT -s serverip -j DROP  扔掉服务器数据
 进来的顺序 Wire -> NIC -> tcpdump -> netfilter/iptables
 出去的顺序 iptables -> tcpdump -> NIC -> Wire
 
-3. TCP 第三次握手 ACK 丢包
++ TCP 第三次握手 ACK 丢包
 
 为了模拟 TCP 第三次握手 ACK 包丢，我的实验方法是在服务端配置防火墙，屏蔽客户端 TCP 报文中标志位是 ACK 的包，也就是当服务端收到客户端的 TCP ACK 的报文时就会丢弃
 服务端 iptables 配置命令如下：
@@ -90,3 +95,39 @@ iptables -I INPUT -s serverip -j DROP  扔掉服务器数据
 服务端收不到第三次握手的 ACK 包，所以一直处于 SYN_RECV 状态：
 而客户端是已完成 TCP 连接建立，处于 ESTABLISHED 状态：
 netstat -anp |grep serip、cliip
+
+既然客户端认为自己是连接的：
+
+可以telnet  serip 80（port）   发现客户端持续好久会断开
+
+
+
+#### 总结
+
+TCP 第一次握手的 SYN 包超时重传最大次数是由  tcp_syn_retries  指定
+
+TCP 第二次握手的 SYN、ACK 包超时重传最大次数是由  tcp_synack_retries 指定
+
+TCP 建立连接后的数据包传输，最大超时重传次数是由 `tcp_retries2` 指定
+
+$ cat /proc/sys/net/ipv4/tcp_retries2
+
+
+
+### **保活机制**
+
+TCP 的 **保活机制**。这个机制的原理是这样的：
+
+定义一个时间段，在这个时间段内，如果没有任何连接相关的活动，TCP 保活机制会开始作用，每隔一个时间间隔，发送一个「探测报文」，该探测报文包含的数据非常少，如果连续几个探测报文都没有得到响应，则认为当前的 TCP 连接已经死亡，系统内核将错误信息通知给上层应用程序。
+
+
+
+在 Linux 内核可以有对应的参数可以设置保活时间、保活探测的次数、保活探测的时间间隔，以下都为默认值：
+
+```c
+tcp_keepalive_time=7200：表示保活时间是 7200 秒（2小时），也就 2 小时内如果没有任何连接相关的活动，则会启动保活机制
+tcp_keepalive_intvl=75：表示每次检测间隔 75 秒；
+tcp_keepalive_probes=9：表示检测 9 次无响应，认为对方是不可达的，从而中断本次的连接。
+```
+
+也就是说在 Linux 系统中，最少需要经过 2 小时 11 分 15 秒才可以发现一个「死亡」连接。
