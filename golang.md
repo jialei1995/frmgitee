@@ -664,6 +664,238 @@ var  name  map[string]map[string] string   key是string，值是map
 
 ```go
 var val map[string] string
-val = make(map[string]string,10)   //
+val = make(map[string]string,10)   //申请空间
+val["no1"]="songjiang"
+val["non"]="wuyong"
+
+map[no1:songjiang non:wuyong]
+```
+
++ 直接make---推荐使用
+
+```go
+val:=make(map[string]string)   //default size
+//赋值同上
+```
+
++ 声明的时候直接赋值  底层也make分配空间了
+
+```go
+val:=map[string]string{
+     "key1":"songjia",
+     "key2":"lujunyi",  //last one also must has ','
+}
+```
+
+
+
+### 应用案例
+
+```go
+name:=""
+sex:=""
+stu:=make(map[string]string)
+for i:=0;i<3;i++{
+    fmt.Printf("input %d name\n",i+1);
+    fmt.Scanln(&name)
+    fmt.Printf("input %d sex\n",i+1);
+    fmt.Scanln(&sex)
+    //fmt.Scanln(&stu[name])  报错，必须先用临时变量将数据存起来，再去赋值
+    stu[name]=sex
+}
+
+复杂的：
+stuMap := make(map[string] map[string]string)  //map 都得make
+stuMap["stu01"] = make(map[string]string)  //每个使用前 都得先make
+stuMap["stu01"]["name"]="tom"
+stuMap["stu01"]["sex"]="nan"
+
+stuMap["stu02"] = make(map[string]string)  //每个使用前 都得先make
+stuMap["stu02"]["name"]="hong"
+stuMap["stu02"]["sex"]="nv"
+```
+
+### 增删改查
+
++ map[key] = value  若key不存在，这里就是增加；若key已存在，这里就是修改
+
++ 删除  `delete(mapname,“keyname”)`   删除key为keyname的节点,若无mapname变量，则不操作，也不报错
++ 若要清空map，需要遍历，一个一个删除
+
++ 查找   
+
+```go
+val,ok := cities["no1"]
+if ok{
+    有key为“no1”的节点，对应的值为val
+}else{
+    无key为"no1"的节点
+}
+```
+
++ 遍历--只能用for  range去遍历，因为key不是数字
+
+```go
+for key,val := range mapname{
+    fmt.Printf("key=%v,val=%v\n",key,val)
+}
+
+
+//复杂的结构怎么遍历
+stuMap := make(map[string] map[string]string)  //map 都得make
+stuMap["stu01"] = make(map[string]string)  //每个使用前 都得先make
+stuMap["stu01"]["name"]="tom"
+stuMap["stu01"]["sex"]="nan"
+
+stuMap["stu02"] = make(map[string]string)  //每个使用前 都得先make
+stuMap["stu02"]["name"]="hong"
+stuMap["stu02"]["sex"]="nv"
+
+for k1,v1 := range stuMap{ //这里的k1 为 stu01 stu02  v1为对应的值
+    当前遍历的key为stu01
+    for k2,v2 := range v1{ //本身就是个map，还得用for range去遍历
+        
+    }
+}
+```
+
+### map切片 动态的map---数组存map
+
+```go
+monsters := make([]map[string]string,2) //slice 需要make
+
+ var monsters []map[string]string  //只声明 后面make
+ //切片要make 才能使用   map也 要make才能使用
+ monsters = make([]map[string]string ,2)//计划放入两个妖怪
+ if(monsters[0]==nil){
+     monsters[0]=make(map[string]string)
+     monsters[0]["name"]="niiumo"
+     monsters[0]["age"]="123"
+ }
+ if(monsters[1]==nil){
+     monsters[1]=make(map[string]string)
+     monsters[1]["name"]="huli"
+     monsters[1]["age"]="234"
+ }
+//动态增加 切片 分配的只有2个 
+//新建新map  
+monster3 := map[string]string{
+     "name":"test",
+     "age":"890",
+}
+//直接将新map append到源切片中
+monsters=append(monsters,monster3)
+```
+
+### map排序
+
+默认key是无序的，但是可以排序遍历
+
+```go
+//1. 先将map的key 放入到切片中
+//2. 对切片排序
+//3. 遍历切片，按照key 输出map的值
+
+var keys []int  //新切片
+for k,_ := range map1{
+    keys.append(keys,k)  //把遍历的key 放到keys切片中
+}
+sort.Ints(keys)  //调用sort 包中的keys 进行排序
+
+for _,k := range keys{  //遍历切片，下标没用  值为map1的key
+    fmt.Printf("map1[%v]=%v\n",k,map1[k])
+}
+```
+
+### 使用细节
+
+#### 是引用类型
+
+函数中对入参的修改就是对 源值的修改
+
+```go
+func modify(map2 map[int]int){
+    map2[1]=100
+}
+func main(){
+    map1 := map[int]int{
+        1:1,
+        2:2,
+    }
+    fmt.Println(map1)
+    modify(map1)
+    fmt.Println(map1)  在函数中的修改会影响函数外面的map的值
+}
+```
+
+
+
+#### 自动动态扩容，不需要append（切片需要）
+
+#### map的value 
+
+管理复杂数据类型用struct 比直接用map更好
+
+```go
+type Stu struct{
+     Name string
+     Age int
+ }
+ func main(){
+     students := make(map[string]Stu)
+     stu1 := Stu{"tom",18}
+     stu2 := Stu{"marry",19}
+     students["no1"] = stu1    //直接将定义好的变量插入 map
+     students["no2"] = stu2
+     fmt.Println(students)
+     for k,v := range(students){
+         k==学生编号
+         v.Name==名字
+         v.Age===年龄
+     }
+ }
+```
+
+
+
+#### demo 复杂数据类型 函数
+
+```go
+func modify(users map[string]map[string]string,name string){
+    val,ok := users[name]  若该name存在，修改密码值
+    if(ok){
+        val["mima"]="88888"
+    }else
+    {					若不存在，先新建节点  再修改“mima”属性
+        users[name] = make(map[string]string)
+        users[name]["mima"]="88888"
+    }
+}
+
+//编写函数 修改map中某个节点的属性值
+func main(){
+    stuMap := make(map[string] map[string]string)  //map 都得make
+    stuMap["stu01"] = make(map[string]string)  //每个使用前 都得先make
+    stuMap["stu01"]["name"]="tom"
+    stuMap["stu01"]["sex"]="nan"
+    stuMap["stu01"]["mima"]="9999"
+
+    stuMap["stu02"] = make(map[string]string)  //每个使用前 都得先make
+    stuMap["stu02"]["name"]="marry"
+    stuMap["stu02"]["sex"]="nv"
+    stuMap["stu02"]["mima"]="0000"
+    fmt.Println(stuMap)
+
+    modify(stuMap,"stu01")
+    fmt.Println(stuMap)
+    modify(stuMap,"stu03")
+    fmt.Println(stuMap)
+}
+map[
+    stu01:map[mima:88888 name:tom sex:nan] 
+    stu02:map[mima:0000 name:marry sex:nv] 
+    stu03:map[mima:88888]
+]
+数据可看到 stu3新建的属性只有密码，没写别的属性
 ```
 
