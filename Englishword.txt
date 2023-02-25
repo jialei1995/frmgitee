@@ -141,3 +141,9 @@ dashboard:仪表板
 Indicator：指示信号
 
 Elapesed time：运行时间
+
+
+feedback   回馈
+Insulation   绝缘
+OOP			面向对象编程 object of program
+hobby		爱好

@@ -832,9 +832,7 @@ func main(){
 
 #### 自动动态扩容，不需要append（切片需要）
 
-#### map的value 
-
-管理复杂数据类型用struct 比直接用map更好
+#### 管理复杂数据类型用struct 比直接用map更好
 
 ```go
 type Stu struct{
@@ -899,3 +897,486 @@ map[
 数据可看到 stu3新建的属性只有密码，没写别的属性
 ```
 
+
+
+## go的面向对象
+
++ go里面的面向对象，是支持面向对象，并没有c++  python  c#那么完善
++ 没有class  用的struct实现面向对象特性
++ 很简洁，去掉了重载，构造函数，析构函数，this指针
+
++ 主要是面向接口编程，go中把接口用到了极致。
+
+
+
+### 定义
+
+```go
+type Cat struct{
+    var1  string
+    var2  int
+}
+var cat1  Cat  定义一个空属性的cat1  cat+‘.’ ：一个个赋值
+
+type ’C‘at struct{
+    ’v‘ar1  string
+    var2  int
+} C大写表示可以在其他包中使用，var1的v大写表示该成员在其他包中可以访问
+```
+
+
+
+结构体变量在内存分布：
+
+c中，会字节对齐--根据操作系统 默认对齐方式
+
+go中，在64位操作系统中，string 默认分配16字节  int 分配8字节大小空间
+
++ 字段使用
+
+```go
+type Person struct{
+    Name string
+    Age int
+    Score [5]float
+    ptr * int
+    slice[]int
+    map1 map[string]string
+}
+var p Person
+p.Name="name" 可以直接赋值
+p.ptr = new(int)    //需要申请空间才能赋值
+不申请空间直接 prt=&intval  也可以使用
+p.map1 = make(map[string]string) //map需要申请空间
+p.slice = make([]int,10)  //slice需要make 大小是10的slice
+
+var v1 *int
+v1=new(int)  需要先给int的指针申请空间 才能使用
+*v1=100   指针赋值
+fmt.Println(*v1)
+
+var v1 *int
+v2:=1000
+v1=&v2  不申请空间直接取已经申请空间的其他变量地址也能操作
+*v1=2000
+fmt.Println(*v1)
+```
+
+### 赋值
+
+```go
+per1:=per2  per1的修改不会影响per2  per1 与 per2 的地址不一定是挨着的
+var p1 * Person=&p2   则对p1或p2的修改 指向的时同一块地址 
+---------------------------------------
+//直接赋值
+p2 := Person("name",25)
+//new 申请空间
+var p3*Person = new(Person)  //p3是指针，标准使用：(*p3).Name  为了方便，也可以p3.Name直接使用，底层会用指针处理 ---go的特点
+ 
+//用&初始化  同p3的使用
+var p4 *Person=&Person{"name",476}
+var p4 *Person=&Person{}   赋值 使用同上p3
+
+```
+
+### 方法-与函数区别
+
+方法与结构体是绑定的,作用在指定的数据类型上的。
+
+函数入参随意
+
+```go
+声明：
+type A struct {
+    Num int
+}
+func (a A)test(){  //A 结构体有个test 方法，通过(a A)绑定  test方法与A创建的对象
+	//只能作用A 结构体中，作为A的方法
+    print(a.Num)
+}
+//调用
+var val A  需要有A类型的对象
+val.test()  
+
+在方法中对对象属性的修改不回影响外部的属性，值拷贝  （a A）也作为一个入参 被值拷贝一份到方法中
+```
+
+
+
+为了提高绑定效率，绑定的时候用指针绑定
+
+```go
+func (a* A)test(){  
+    print((*a).Num)   这下方法中获取的是对象的地址，不需要把对象拷贝一份
+   					  在方法中对属性的修改   会影响对象的属性
+}
+//调用
+(&obj).fun()   --也可以写成 obj.fun() 底层还是（&obj）.fun
+
+方法中a 就是实际obj的地址  所以在方法中的操作，与直接对obj的操作是一样的
+```
+
+
+
+#### int，float也可以定义自己的方法
+
+```go
+type interger  int  重命名
+func (i interger)print(){
+    fmt.Println("i=",i)
+}
+则int就有了print方法
+var i interger=10
+i.print()   调用打印函数
+```
+
+
+
+#### 重新封装fmt.Println,方便打印
+
+```go
+type Stu struct{
+    name string
+    age int
+}
+func (stu *Stu)String()string{
+    str := fmt.Sprintf("name=%v age=%v",stu.name,stu.age)
+    return str
+}
+func main(){
+    stu1 := Stu{
+        name:"xiaoming",
+        age:20,
+    }
+    fmt.Println(&stu1)  Println底层 就是调用重新封装的String 
+}
+
+```
+
+#### 区别3
+
+```go
+函数调用时对入参检查
+方法调用时很随意
+func test01(p Person){
+    fmt.Println(p.name)
+}
+func test02(p* Person){  必须test02(&p1)  才能调用
+    fmt.Println(p.name)
+}
+-----
+func (p Person) test03(){  值拷贝，不会影响源值
+    fmt.Println(p.name)
+}
+p.test03()   值拷贝不会影响源属性
+(&p).test03() 重点：仍然是值拷贝，不会影响源属性，不会报错
+-----
+func (p *Person) test03(){  地址拷贝，会影响源值
+    fmt.Println(p.name)
+}
+p.test03()    重点：仍然是地址拷贝，会影响源属性。不会报错
+(&p).test03() 地址拷贝，会影响源属性
+```
+
+
+
+### 练习
+
+```go
+可以定义空类
+type myClass struct{
+    //...   无任何参数的类，也可以集成方法
+}
+
+保留两位有效数字
+fmt.Println("sum=",fmt.Sprintf("%.2f",sum))
+fmt.Sprintf(".2f",sum)  格式化后传出string
+```
+
+
+
+### 创建struct变量时直接给指定属性赋值
+
+```go
+var stu1 = Stu{"xx",19,"yy"}  {}中数据与结构体中对应起来
+stu1 := Stu{"xx",19,"yy"} 
+
+//不依赖字段定义顺序
+var stu1 = Stu{
+    name:"xx"
+    age:20
+} 
+stu1 := Stu{
+    name:"xx"
+    age:20
+} 
+
+----------------------创建的时候直接返回--指针
+var stu5=&Stu{"xx",66} 
+stu5:=&Stu{"xx",66}
+stu6 :=&stu{
+    name:"yy"
+    age:99
+}
+var stu6 =&stu{
+    name:"yy"
+    age:99
+}
+直接print的时候会在对象前加&符号，
+要去掉&，打印的时候需要*obj去打，*表示取值
+```
+
+
+
+### 工厂模式
+
+相当于以前构造函数的功能
+
+
+
+若某个包里面的sturct首字母小写，别的包无法直接通过包去调用。怎么才能用呢？
+
+```go
+package model
+type student struct{ //在别的包无法直接使用
+    Nmae string    里面的字段还是要大写 ，否则即使传出指针还是无法访问
+    Score float32
+}
+如果字段也是小写怎么办？  通过在model中新增get方法，其他模块中可以获取设置score
+func (s * student)getScore()float32{
+    return s.score  
+}
+func (s * student)setScore(s float32){
+    s.score=s
+}
+
+//别的包可以直接调用此函数去定义该类型的变量指针。
+func NewStu(n string,s float32)*student{
+    return &student{
+        Name:n
+        Score:s
+    }
+}
+
+使用：
+var stu = model.NewStu("tom",10)
+*stu 可以操作赋值 或 访问
+里面的字段还是要大写 ，否则即使传出指针还是无法访问
+
+```
+
+
+
+### vscode快捷键
+
+左下角->快捷键  可以自定义
+
+
+### 封装
++ 多个属性封到一个结构体中
++ 隐藏方法实现细节
++ 通过包实现封装 (属性首字母小写，所有的操作都往外提供方法，类似库文件的使用，其他包不知道自己怎么实现的)
+#### 实现步骤
++ 将结构体、字段（属性） 首字母小写
++ 给结构体所在的包提供一个工厂模式的函数，首字母大写（构造函数）
++ 类内实现首字母大写的Set  Get 方法
+#### demo
+```go
+package main
+import  "fmt"
+import _ "strings"  //has "_" can not use
+import _ "unsafe"
+import "person"  在GOPATH中找
+
+func main(){
+    p:=person.NewPerson("xiaoming")
+    p.Setage(15)
+    fmt.Println(p.Getage())
+    p.Setage(20)
+    fmt.Println(p.Getage())
+    p.Setage(200)
+    fmt.Println(p.Getage())
+}
+
+go/src/person/person.go    在person文件夹新建person.go
+package person
+type person struct{
+    Name string
+    age  int
+}
+//factory mode
+func NewPerson(name string)*person{
+    return &person{
+        Name:name,  必须有, 
+    }
+}
+
+//get set for outside
+func (p *person)Getage()int{
+    return p.age
+}
+
+func (p *person)Setage(age int){
+    if(age>0 && age<150){
+        p.age=age
+    }else
+    {
+        p.age=999
+    }
+}
+
+```
+### 继承
+在已给的类上 继承部分属性
+需要给子类增加方法的时候 可以直接通过在父类 增加方法，多个子类都能直接继承此方法
+type Pupil struct{  //已有小学生类
+  Name string
+  Age int
+  Socre int
+} ShowInfo  SetScore GetScore 等等方法
+//怎么根据已有类 创建新的类
+1. 创建基类
+type Student struct{
+  Name string
+  Age int
+  Score int
+} ShowInfo  SetScore GetScore 等等方法
+2. Pupil Grauute 都继承这些私有属性
+type Pupil{          type Grauute{
+  Student              Student//这表示匿名结构体，因为无对象
+}                    }
+func (p *Pupil)testing(){小学生的考考试}
+func (p *Grauute)testing(){大学生的考考试}
+3. 使用
+```go
+pupil := &Pupil{}  //创建空Pupil对象
+pupil.Student.Name="tom"  //赋值方式
+pupil.Student.Age=8 
+//调用方法
+//私有方法
+pupil.testing()
+//继承的方法
+pupil.Student.ShowInfo()   需要--子对象.父类 才能打印出来
+```
+#### 继承的细节
++ 继承的基类的首字母大写的小写的字段，方法 在子类中都可以使用
++ 嵌入结构体字段 访问可以简化  
+    ```go
+    b.A.Name;b.A.sayhello() ;b.A.age  
+    b.Name; b.sayhello(); b.age
+    ```
++ 若子类与父类中都有同一属性，采取就近原则访问。子类没有才去父类找
++ 结构体嵌入两个或多个匿名结构体，若两个匿名结构体中有相同的属性或方法（同时本结构体无此名的属性或方法），在访问的时候必须指定匿名结构体的名字，否则编译报错
++ 若嵌套了有名结构体，则这种模式是组合，在组合关系中，访问组合的结构体的字段或方法时，必须带上结构体的名字
+    ```go
+    type A struct{
+      Name string
+      Age int
+    }
+    type C struct{
+      a  A  //C结构体中包含 类型为A类型的对象
+    }
+    var c C
+    c.a.Name  只有这样才能成功访问
+
+    ```
++ 嵌套匿名结构体后，可以在创建结构体变量（实例）时，直接指定各个匿名结构体字段的值
+    ```go
+    type Goods struct{
+      Name string
+      Price
+    }
+    type Brand struct{
+      Name string
+      Addr string
+    }
+    type Tv struct{ //同时嵌入2个匿名结构体
+      Goods
+      Brand
+    }
+    tv:=Tv{  //嵌套结构体 初始化
+      Goods{"电视机001",3000},
+      Brand{"海尔","山东"},
+    }
+    tv:=Tv{  //嵌套结构体 初始化  不依赖顺序
+      Goods{
+        Name:"电视机001",
+        Price:3000,
+      },
+      Brand{
+        Name:"海尔",
+        Addr:"山东",
+      },
+    }
+
+
+    type Tv2 struct{ //同时嵌入2个匿名结构体 指针
+      *Goods
+      *Brand
+    }
+    tv:=Tv2{  //嵌套结构体 初始化
+      &Goods{"电视机001",3000},
+      &Brand{"海尔","山东"},
+    }
+    tv:=Tv2{  //嵌套结构体 初始化  不依赖顺序
+      &Goods{
+        Name:"电视机001",
+        Price:3000,
+      },
+      &Brand{
+        Name:"海尔",
+        Addr:"山东",
+      },
+    }
+    //怎么取值呢？
+    fmt.Println("tv",*tv.Goods) 先找到tv.Goods地址，然后*取值
+    ```
+### 接口 Interface（多态是通过接口 实现的）
+
+```go
+//只要一个对象含有接口类型中的所有方法,那么这个对象就实现了这个接口
+type Usb interface{
+	start()
+	stop()
+}
+type Phone struct{
+
+}
+func (p Phone)start(){
+	fmt.Println("手机 开始...")
+}
+func (p Phone)stop(){
+	fmt.Println("手机 stop...")
+}
+
+type Camera struct{
+
+}
+func (p Camera)start(){
+	fmt.Println("zhaoxiangji  start...")
+}
+func (p Camera)stop(){
+	fmt.Println("zhaoxiangji stop...")
+}
+
+type Computer struct{
+
+}
+func (c Computer)Working(usb Usb){
+	usb.start()
+	usb.stop()
+}
+func main(){
+	var com Computer
+	var phone Phone
+	var camera Camera
+	com.Working(camera)//不需要传Usb类型的对象，传phone，调Phone的start stop
+
+}
+总结：
++ 接口就是个结构体 函数结合，本身不需要实现
++ 那个类型的对象想传进来，需要实现对应于接口中的函数
++ 上层调用时，入参是接口类型，传入不同的obj，调用不同的方法
++ 这就是多态
++ 只要一个对象含有接口类型中的所有方法，那么这个对象就实现了这个接口
+```
