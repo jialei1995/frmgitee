@@ -1987,6 +1987,8 @@ linux内核移植：
 	● documentation：内核各部分的通用解释和注释。
 	● include：头文件，与系统相关的头文件放置在include/linux 子目录下。
 	● init：内核初始化代码。著名的start_kernel() 就位于init/main.c 文件中。
+		kernel_init：用户态进程的祖先
+		kthread：内核线程的祖先
 	● kernel ：内核最核心的部分，包括进程调度、定时器等，而和平台相关的一部分代码
 	放在arch/*/kernel 目录下。
 	● security：主要是一个SELinux 的模块。
@@ -4328,6 +4330,17 @@ io：
  			普通用户不能改变root用户的进程的进程组
 
 	 task_struct 描述进程的状态的结构体
+{
+	pid  进程id
+	stack  状态：D  R
+	next_task，pre_task  前后任务指针（是个双向链表，指向下上两个任务结构体）
+	tty_struct  控制台
+	fs_struct   文件系统描述
+	mm_struct   内存管理
+	signal_struct  信号
+	父子关系
+	调度相关变量
+}
 
 	 1个cpu多个任务，那个任务抢到cpu那个任务执行，时间片轮转
 
@@ -6691,6 +6704,13 @@ glibc 提供的各种syscall比较通用。
 进程切换，任务切换，上下文切换：CPU对进程1的时间片到了或者进程1休眠，切换CPU到进程2
 尽管每个进程有自己的进程空间，但是共享CPU，切换前需要将之前的进程的
 **任务函数体，栈指针位置，当前CPUreg值
+内核挂起正在运行的process，恢复之前挂起的某个进程--内存是独立的
+用户地址空间：代码  data  堆栈  进程描述符
+
+中断切换：在同一进程，只是用户态-->内核态
+
+
+
 
 任务：送货
 进程：送货所需资源：道路+加油站+车+修车厂

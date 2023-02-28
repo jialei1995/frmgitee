@@ -16,7 +16,33 @@ go=c+python   静态编译语言的安全性能  动态语言的开发维护
 
 fmt.Scanln(&a);  给a赋值 从键盘
 
+### 类型转换
+只能显示转换
+var := (int32)var2
 
+### 数据使用
+```go
+var a int 声明
+var a int=45  初始化
+var b=67   自动推导初始化
+a:=90  自动推导初始化
+
++：对于字符连说是拼接，对于数据是相加减
+```
+
+### 进制转换
+```go
+FormatInt(num,10)  转10进制
+FormatInt.Itoa(intval)   转int
+FormatFloat(num,'f',10,64)  保留10位，转为float64类型
+FormatBool(val)  转bool
+//string -- 》基本类型
+strconv包
+.FormatInt 返回值boolval,errno  errno不收可以用 _代替
+.FormatFloat(str,64)  64位宽
+.FormatInt(str,10,64)   10进制，64位
+```
+### 其他
 
 引入包 概念 ，每个文件都要属于一个包 不能单独存在
 
@@ -287,6 +313,8 @@ fmt.Println(Fun1(3,4))  调用
 
 就是**一个函数** 与其**相关的引用环境-即变量**组合的一个整体。
 
+配置环境变量：GOPATH  GOROOT 至/etc/profile 修改后只需要exit+login即可
+
 ```go
 func AddUpper() func (int) int{
   var n int =10
@@ -384,6 +412,11 @@ make：分配内存，主要分配引用类型，比如channel slice map。
 
 1.正常的程序发生错误后，程序会崩溃退出
 2.若希望程序出错后，可以捕捉到错误，并保证程序继续运行，就需要 异常处理
+```go
+var i int8=128   会直接报错
+var i int8=127+var2  不会直接报错，运行时会溢出报错
+```
+
 
 ```go
 package main
@@ -548,7 +581,12 @@ func fbnq(n int)([] uint64){
 ```
 
 ## string
-
+```go
+fmt.Printf("%v %T",var，var)  格式化打印 %v数据 %T:类型
+fmt.Print()      无换行打印
+fmt.Println()    换行打印
+var n3 int='汉'   存一个字符  必须是单引号
+```
 
 
 ## 二维数组
