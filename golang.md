@@ -1372,7 +1372,7 @@ pupil.Student.ShowInfo()   需要--子对象.父类 才能打印出来
 ### 接口 Interface（多态是通过接口 实现的）
 
 ```go
-//只要一个对象含有接口类型中的所有方法,那么这个对象就实现了这个接口
+//只要一个对象含有接口类型中的所有方法,那么这个对象就实现了这个接口  接口不需要创建对象使用
 type Usb interface{
 	start()
 	stop()
@@ -1417,4 +1417,474 @@ func main(){
 + 上层调用时，入参是接口类型，传入不同的obj，调用不同的方法
 + 这就是多态
 + 只要一个对象含有接口类型中的所有方法，那么这个对象就实现了这个接口
++ 使用接口的时候，将接口类型作为入参传入，调用的时候将可以实现接口的obj传入，接口本身类型不需要去定义对象
+```
+
+#### 特点
++ 一个自定义类型可以实现多个接口
+```go
+//定义两种接口类型
+type Ainterface interface{
+	Hello()
+}
+type Binterface interface{
+	Say()
+}
+//Monster 实现两种接口
+type Monster struct{
+}
+func (m Monster)Hello(){
+	fmt.Println("monster hello()")
+}
+func (m Monster)Say(){
+	fmt.Println("monster Say()")
+}
+
+func main(){
+	var m_monster Monster
+	m_monster.Say()
+	m_monster.Hello()
+
+	var a Ainterface=m_monster
+	var b Binterface=m_monster
+	a.Hello()
+	b.Say()
+}
+```
++ 接口中不能有任何变量，只能是方法
+type Usb interface{
+	start()
+	stop()
+  var sss int  报错
+}
++ 一个接口可以继承多个别的接口，如果要实现A接口，也必须将B C接口的方法全部实现
+```go
+type Binterface interface{
+	test01()
+}
+type Cinterface interface{
+	test02()
+}
+type Ainterface interface{//要实现A接口，要实现3个方法
+	Binterface
+	Cinterface
+	test03()
+}
+type Stu struct{
+}
+//实现A接口的3个方法
+func (m Stu)test01(){
+	fmt.Println("stu implment test01()")
+}
+func (m Stu)test02(){
+	fmt.Println("stu implment test02()")
+}
+func (m Stu)test03(){
+	fmt.Println("stu implment test03()")
+}
+
+func main(){
+	var stu Stu
+	var a Ainterface=stu  //在Stu中必须将A接口的3个方法实现 才能赋值，否则无法赋值
+	a.test01()
+	a.test02()
+	a.test03()
+}
+```
+
++ interface 类型模式是指针（引用类型），必须初始化后才能使用，否则会nil
+var a Ainterface=stu   若不赋值stu，则a无法使用
+
++ 空接口没任何方法，所以所有的对象 都实现了空接口，我们可以把任何变量赋值给空接口
+```go
+type Tinterface interface{
+}
+func main(){
+	var stu Stu
+	var i int
+	var t Tinterface=stu //可以将任意对象赋值给空接口
+	var m = i
+	var t2 interface{} = stu //interface{}===Tinterface 
+}
+```
++ 接口中不允许有相同的方法名
+```go
+type Binterface interface{
+	test01()
+	test03()
+}
+type Cinterface interface{
+	test02()
+	test03()
+}
+type Ainterface interface{//test03() 重复，会报错
+	Binterface
+	Cinterface
+}
+```
++ 什么类型实现了接口方法，什么类型才能给接口赋值
+```go
+type Binterface interface{
+	Say()
+}
+type Stu struct{
+}
+func (m *Stu)Say(){ //*Stu  实现的Say
+	fmt.Println("implment say()")
+}
+
+func main(){
+	stu := Stu{}
+	var usb Binterface=&stu //必须&才行，什么类型实现了Say，什么类型才能给接口赋值
+}
+```
+
+#### 实践
+demo
+```go
+//结构体 排序
+package main
+import (
+	"fmt" 
+	"sort" 
+	"math/rand"
+)
+type Hero struct{
+	Name string
+	age int
+}
+type Heroslice []Hero //定义 Heroslice 为 Hero切片类型
+
+//实现接口 调用库函数的时候需要实现 Sort的3个方法：Len() Less() Swap()
+//都实现后 则将Heroslice类型的对象传入 sort.Sort。Sort入参就是接口，对Hero切片实现接口需要的函数，即可传入
+
+func (hs Heroslice)Len()int{
+	return len(hs)
+}
+func (hs Heroslice)Less(i int,j int)bool{ //升序还是降序 按年龄排序 升序
+	return hs[i].age > hs[j].age  //按照 前面>后面 排序
+}
+func (hs Heroslice)Swap(i,j int){ //若类型一致 最后一个类型填上就行 前面的类型不需要填
+	temp:=hs[i]
+	hs[i]=hs[j]
+	hs[j]=temp
+}
+//实现以上3个接口 才能调用 sort.Sort 去排序结构体
+
+func main(){
+	//定义切片 或 数组
+	var intslice = []int{0,-1,10,7,99}
+	//排序
+	//1.冒泡
+	//2.库方法
+	sort.Ints(intslice)
+	fmt.Println(intslice)
+	//怎么对结构体排序？调用库方法
+	var heros Heroslice
+	for i:=0;i<10;i++{
+		hero:=Hero{
+			Name : fmt.Sprintf("英雄%d",rand.Intn(100)),//随机name
+			age:rand.Intn(100),                         //随机age
+		}
+		heros = append(heros,hero)//新建的数据放到切片中
+	}
+	//排序前的顺序
+	for _,v := range heros{
+		fmt.Println(v)
+	}
+	//排序
+	sort.Sort(heros)
+	fmt.Println("排序后顺序")
+	for _,v := range heros{
+		fmt.Println(v)
+	}
+}
+
+[-1 0 7 10 99]
+{英雄81 87}
+{英雄47 59}
+{英雄81 18}
+{英雄25 40}
+{英雄56 0}
+{英雄94 11}
+{英雄62 89}
+{英雄28 74}
+{英雄11 45}
+{英雄37 6}
+排序后顺序
+{英雄62 89}
+{英雄81 87}
+{英雄28 74}
+{英雄47 59}
+{英雄11 45}
+{英雄25 40}
+{英雄81 18}
+{英雄94 11}
+{英雄37 6}
+{英雄56 0}
+```
+
+#### 接口与继承关系
+A继承B  则A有B的属性 方法，如果A想学习扩展自己的能力
+可以通过接口去学习，接口 是对 继承机制 的补充
+```go
+package main
+import (
+	"fmt" 
+	_"sort" 
+	_"math/rand"
+)
+type Monkey struct{
+	Name string
+}
+func (this *Monkey)climb(){
+	fmt.Println(this.Name,"生来会爬树")
+}
+type BirdAble interface{
+	Flying()
+}
+type LittleMonkey struct{
+	Monkey //继承Monkey的name climb 方法属性
+}
+//让 LittleMonkey 实现flying
+func (this*LittleMonkey)Flying(){
+	fmt.Println(this.Name,"通过学习会飞翔了")
+}
+func main(){
+	//定义
+	monkey := LittleMonkey{
+		Monkey{
+			Name:"小猴子",
+		},
+	}
+	monkey.climb()
+	//小猴子只能继承Monkey的climb方法 ，想学习游泳 飞翔
+	monkey.Flying()
+}
+```
+
+
+### 多态-（接口）
+1. 多态参数 
+    入参(usb Usb),传入不同入参，执行不同方法
+2. 多态数组
+    给Usb数组中存放Phone Camera 结构体对象
+```go
+type Usb interface{}
+type Phone struct{}
+type Camera struct{}
+type Xiyiji struct{}
+func main(){
+	var usbArr [3]Usb   //普通的数组里面只能放一种数据类型
+	usbArr[0] = Phone{} //不用接口多态的特定，无法将3种不同的结构体对象传入的
+	usbArr[1] = Camera{}
+	usbArr[2] = Xiyiji{}
+	fmt.Println(usbArr)
+}
+```
+
+#### 类型断言
+```go
+type Point struct{
+	x int
+	y int
+}
+func main(){
+	var Aint interface{}
+	var point Point = Point{1,2}
+	Aint = point //变量赋值给空接口 
+	//如何将 Aint 接口对象 赋值给Point 变量
+	var b Point //声明变量
+	//b=Aint //报错 无法将接口变量 赋值给Point变量
+	b = Aint.(Point) //将接口转换成Point类型，能否成功，能成功就能赋值,类型断言
+	fmt.Println(b)
+}
+
+
+y,okflag = x.(float64)  即使转化失败，程序不会panic
+if(okflag){
+  转换成功 y=
+}else{
+  转换失败
+}
+y = x.(float64)  不写flag的话，转化失败 则程序panic
+```
+最佳实践
+```go
+package main
+import (
+        "fmt"
+        _"sort"
+        _"math/rand"
+)
+
+type Usb interface{
+        Start()
+        Stop()
+}
+type Phone struct{}
+type Camera struct{}
+type Xiyiji struct{}
+func (p Phone) Start(){
+        fmt.Println("手机开始工作")
+}
+func (p Phone) Call(){
+        fmt.Println("手机 在打电话...")
+}
+func (p Camera) Start(){
+        fmt.Println("照相机开始工作")
+}
+func (p Xiyiji) Start(){
+        fmt.Println("洗衣机开始工作")
+}
+
+
+func (p Phone) Stop(){
+        fmt.Println("手机stop工作")
+}
+func (p Camera) Stop(){
+        fmt.Println("照相机stop工作")
+}
+func (p Xiyiji) Stop(){
+        fmt.Println("洗衣机stop工作")
+}
+
+type Computer struct{}
+func (com Computer)Working(usb Usb){
+        usb.Start() 如果传进来的是手机，多执行手机的call
+        //第1种写法
+        if phone,ok := usb.(Phone);ok==true{
+          phone.Call()
+        }
+        //第2种写法
+        phone ok := usb.(Phone)
+        if(ok==true){
+          phone.Call()
+        }
+        usb.Stop()
+}
+func main(){
+        var usbArr [3]Usb
+        usbArr[0] = Phone{}
+        usbArr[1] = Camera{}
+        usbArr[2] = Xiyiji{}
+        var com Computer
+        for _,v := range usbArr{
+                com.Working(v)
+        }
+}
+
+```
+
+```go
+判断传入参数是什么类型，interface{} 任意类型，泛型 空接口
+func TypeJudge(items... interface{}){
+  for index,x := range items{
+    switch x.(type){//只能这样用.(type) 必须是 接口+switch
+      case bool:
+      case float64:
+      case float32:
+      case string:
+      case int,int32,int64:
+      case default:
+    }
+  }
+}
+TypeJudge(n1,n2,n3,name,addr,xx,yy)  不定数量的参数个数
+```
+
+
+### 文件操作
+os.File contain all operation about file
+os.Open(name string)(fileptr*File,errno)
+os.Close(fileptr)
+
+```go  
+读文件
+func main(){
+	/* 
+		带缓冲的读取 一次读一行
+		fp,errno := os.Open("cat.txt")
+		if(errno != nil){
+			fmt.Printf("open fail,err=%d",errno)
+		}
+		defer fp.Close()
+		reader := bufio.NewReader(fp)
+		
+		str,newerr := reader.ReadString('\n')//一次读一行
+		for{//死循环
+			if(newerr==io.EOF){
+				//读到文件末尾
+				break
+			}
+			fmt.Print(str)
+			str,newerr = reader.ReadString('o')
+		}
+	*/
+	//若文件比较小 可以一次性读取 返回byte[]
+	content,err := ioutil.ReadFile("cat.txt")
+	if(err!=nil){
+		log.Fatal(err)  //有错误 打印错误
+	}
+	fmt.Printf("content\n%s",content)
+	fmt.Printf("%v",content) // byte 数组打印
+  fmt.Printf("%v",string(content)) //byte->string
+}
+```
+
+写文件
+```go
+func main(){
+	fp, err := os.OpenFile("test.txt",os.O_WRONLY|os.O_CREATE,0777 ) 
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer fp.Close()
+	//write use * Writer 
+	writer := bufio.NewWriter(fp) 
+	for i:=0;i<5;i++{
+		writer.WriteString("nnnn\n")
+	}
+	//writer 带缓存的，需要flush去更新 否则不会更新
+	writer.Flush()
+}
+
+os.O_TRUNC：打开已有文件，清空文件内容
+os.O_WRONLY|os.O_APPEND:不改动之前的内容，追加新内容
+```
+
+
+先读后写
+```go
+func main(){
+	//O_TRUNC 清空已有内容
+	fp, err := os.OpenFile("test.txt",os.O_RDWR|os.O_APPEND,0777 ) 
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print("open success\n")
+	defer fp.Close()
+	//先读 后写
+	reader := bufio.NewReader(fp)
+	str,newerr := reader.ReadString('\n')//一次读一行
+	if newerr!=nil{
+		log.Fatal(newerr) //读错，显示错误日志
+	}
+	fmt.Println("read 1 hang",str)
+	for{//死循环
+		if(newerr==io.EOF){
+			//读到文件末尾
+			break
+		}
+		fmt.Print(str)
+		str,newerr = reader.ReadString('\n')
+	}
+	//write use * Writer 
+	writer := bufio.NewWriter(fp) 
+	for i:=0;i<5;i++{
+		writer.WriteString("mmmmmm\n")
+	}
+	//writer 带缓存的，需要flush去更新 否则不会更新
+	writer.Flush()
+}
 ```
