@@ -45,3 +45,8 @@ nl			给文件加行号
 xlock		给终端上锁
 
 ```
+
+需要破解才能免费试用的类似xshell 与 mobaxterm 工具 Royal TSX 针对mac
+https://royalapps.com/ts/win/features
+安装后 左上角Plugins 安装Terminal 重启，在Connections ->add ->Terminal
+填写ip root passwd 即可登录试用
