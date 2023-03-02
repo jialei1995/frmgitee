@@ -1888,3 +1888,40 @@ func main(){
 	writer.Flush()
 }
 ```
+
+copy实现：
+```go
+func main(){
+	fp, err := os.OpenFile("test.txt",os.O_RDONLY,0777 ) 
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer fp.Close()
+
+	newfp, newerr := os.OpenFile("cat.txt",os.O_WRONLY,0777 )
+	if newerr != nil {
+		log.Fatal(newerr)
+	} 
+	defer newfp.Close()
+
+	//先读 后写 
+  //use reader to read writer to write
+	reader := bufio.NewReader(fp)
+	str,newerr := reader.ReadString('\n')//一次读一行
+	if newerr!=nil{
+		log.Fatal(newerr) //读错，显示错误日志
+	}
+
+	writer := bufio.NewWriter(newfp) 
+	fmt.Println("read 1 hang",str)
+	for{//死循环
+		writer.WriteString(str)
+		if(newerr==io.EOF){
+			//读到文件末尾
+			break
+		}
+		fmt.Print(str)
+		str,newerr = reader.ReadString('\n')
+	}
+	writer.Flush() //flush 
+```
