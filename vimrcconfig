@@ -83,7 +83,9 @@ gi:切换回最后一次编辑模式所在的光标位置，进入插入模式
 	b/B:回到上单词开头
 	搜索某一字符并且跳过去 f(char)跳到char上
 					t(char)跳到char的前一字符
-					F（char） 在行尾的时候倒着往前搜char字符
+					f(char) 找到第一个出现char的字符 跳过去
+					3f(char)   找到第3个出现的char 跳过去
+					F T（char） 倒着往前跳
 	;  跳到下一个  ,跳到上一个char
 	
 	^跳到行首 0跳到行首 $跳到行尾
@@ -279,3 +281,6 @@ set guifont=Monaco:h17          "设置字体和字的大小
 保存配置:w并执行:PluginInstall安装gruvbox，安装完成后:source %生效.vimrc配置文件即可。	
 	
 	
+.  重复上次的cmd  例如粘贴....
+ctrl+v + $ +A:块操作  尾部新增字符
+

@@ -1925,3 +1925,187 @@ func main(){
 	}
 	writer.Flush() //flush 
 ```
+
+## 命令行参数
+```go
+func main(){
+	fmt.Println("命令行参数有",len(os.Args))  //参数个数
+	for i ,v  := range(os.Args){
+		fmt.Printf("args[%v]=%v\n",i,v)
+	}
+}
+go run .\test.go 11 22 333 以空格分割
+```
+### flag包解析命令行参数
+```go
+//常用，解析命令行参数
+func main(){
+var user string 
+var pwd string
+var host string
+var port int
+flag.StringVar(&user,"u","","用户名，默认为空")
+flag.StringVar(&pwd,"pwd","","密码，默认为空")
+flag.StringVar(&host,"h","localhost","用户名，默认为空")
+flag.IntVar(&port,"port",3366,"用户名，默认3366")
+
+flag.Parse() //解析命令行参数
+fmt.Printf("user=%v pwd=%v host=%v port=%v",user,pwd,host,port)
+}
+go run .\test.go -u jl -pwd 1234 -h hostname -port 8888
+user=jl pwd=1234 host=hostname port=8888
+go run .\test.go  未传，则保持默认值
+user= pwd= host=localhost port=3366
+```
+
+## json
+web编程中的应用
+序列化（转化成json格式）
+
+```go
+package main
+import (
+	"fmt" 
+	"encoding/json"
+)
+type  Monster struct{
+	Name string;
+	Age int;
+	Birthday string;
+	Sal int;
+	Skill string;
+}
+//结构体 序列化
+func test(){
+	mons := Monster{
+		Name:"牛魔王",  首字母大写 才能在json包中使用，否则无法使用
+		Age:20,
+		Birthday:"2022-2-2",
+		Sal:9000,
+		Skill:"牛魔掌",
+	}
+	data,err :=  json.Marshal(&mons) //返回byte 数组
+	if(err != nil){
+		fmt.Println("序列号错误")
+	}
+	fmt.Println(string(data)) //byte数组 转成string 打印
+}
+//map 序列化
+func testMap(){
+	var a map[string]interface{}
+	a = make(map[string]interface{}) 空接口可以传任何数据类型进去
+	var arr [5]int = [5]int{1,2,3,4,5}
+	a["name"]=arr
+	a["age"] = 90
+	a["skill"]=arr
+	fmt.Println(a)
+	data,err :=  json.Marshal(&a) //map传入的时候有无& 都可以 返回byte 数组
+	if(err != nil){
+		fmt.Println("序列号错误")
+	}
+	fmt.Println(string(data)) //byte数组 转成string 打印
+}
+//切片序列化
+func testSlice(){
+	var slice[] map[string]interface{} //切片中 包含多个map
+	var m1 map[string]interface{}
+	m1 = make(map[string]interface{})  //map使用要make
+	m1["name"] = "jack"
+	m1["age"] = 999
+	m1["addr"] = "上海"
+	slice = append(slice,m1) //将m1 添加到slice中
+	m2 := make(map[string]interface{})  //map使用要make
+	m2["name"] = "tom"
+	m2["age"] = 888
+	m2["addr"] = "nanjing"
+	slice = append(slice,m2) //将m1 添加到slice中
+	data,err :=  json.Marshal(&slice) //map传入的时候有无& 都可以 返回byte 数组
+	if(err != nil){
+		fmt.Println("序列号错误")
+	}
+	fmt.Println(string(data)) //byte数组 转成string 打印
+}
+func main(){
+	testMap()
+}
+
+```
+
+反序列化（将json 字符串 转成...）
+```go
+type  Monster struct{
+	Name string;
+	Age int;
+	Birthday string;
+	Sal int;
+	Skill string;
+}
+func unmashal(){
+	//模拟获取到次字符串
+	str := "{\"Name\":\"牛魔王\",\"Age\":20,\"Birthday\":\"2022-2-2\",\"Sal\":9000,\"Skill\":\"牛魔掌\"}"
+	fmt.Println(str)
+	var mons Monster
+	err:=json.Unmarshal([]byte(str),&mons)  先转成字节数组传入
+	if(err!=nil){
+		fmt.Println("re marshal fail")
+	}
+	fmt.Println(mons)
+}
+将字符串 反序列化成 Monster类型的对象
+```
+
+## 单元测试
+cal.go
+```go
+package main
+import (
+	"fmt" 
+)
+
+//在工作中怎么测试确认 函数的执行结果是否正确
+func AppUpper(n int)int {
+	res:=0
+	for i:=0;i<=n;i++{
+		res+=i
+	}
+	return res
+}
+//传统方法就是调用 测试
+func test(){
+	res:=AppUpper(10)  //check AppUpper
+	if(res==55){
+		fmt.Println("res is right")
+	}else{
+		fmt.Println("res is wrong")
+	}
+}
+//新的测试函数的方法，testing 测试框架，可以做单元测试 性能测试
+//测试函数需要写 测试用例 testcase
+func main(){
+	test()
+}
+
+```
+
+cal_test.go
+```go
+//专用测试test.go中的appupper函数的程序
+package main
+import (
+	"fmt" 
+	"testing" //框架包
+)
+//implement Test TestXxx  第一个字母必须大写
+func TestAppUpper(t *testing.T){
+	res:=AddUpper(10)
+	if(res!=55){
+		t.Fatalf("执行出错") //程序自动退出
+	}
+	t.Logf("执行正确")
+}
+
+func TestHello(t *testing.T){
+	fmt.Println("TestHello 被调用")
+}
+```
+## 管道
