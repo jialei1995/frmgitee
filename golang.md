@@ -2108,4 +2108,168 @@ func TestHello(t *testing.T){
 	fmt.Println("TestHello 被调用")
 }
 ```
+
+## goroutine
+go 的主线程(即进程) 中可以跑很多协程--goroutine（轻松起上万个）--协程就类似 linuxc 中说的线程
+```go
+import (
+	"fmt" 
+	"strconv"
+	"time"
+)
+func test(){
+	for i:=0;i<10;i++{
+		fmt.Println("test() hello world"+strconv.Itoa(i))
+		time.Sleep(time.Second)
+	}
+}
+func main(){
+	go test()  //new goroutine exec test
+	for i:=0;i<10;i++{
+		fmt.Println("main() hello world"+strconv.Itoa(i))
+		time.Sleep(time.Second)
+	}
+}
+//main and test 同时执行
+```
+
+### 细节
+#### 执行顺序
+主线程若结束，则整个程序结束
+### MPG模式
+m:主线程  p：上下文  g：协程
+
+### 其他
+NumCPU()  返回当前机器物理cpu个数
+GOMAXPROCS(n)  设置同时执行的最大cpu个数，并返回先前的设置
+```go
+func main(){
+	cnt:=runtime.NumCPU()
+	fmt.Println("current PC cpu num=",cnt)
+	runtime.GOMAXPROCS(cnt-1)  //设置占用几个cpu跑go程序
+}
+```
+
+
 ## 管道
+不同 goroutine之前 如何通讯
+
+```go
+package main
+import (
+	"fmt" 
+	"time"
+)
+//需求：计算1-200 所有数据的阶乘，结构放map
+//全局 每个协程都能访问
+var(
+	myMap = make(map[int]int,10)
+)
+func test(n int){
+	res:=1
+	for i:=1;i<=n;i++{
+		res=res*i
+	}
+	myMap[n]=res //问题1：不允许并发写map
+}
+func main(){
+	for i:=1;i<=200;i++{
+		go test(i)
+	}
+	//问题2：到底怎么处理 到底休眠几秒
+	time.Sleep(time.Second*10) //休眠10s
+	fmt.Println(myMap)
+}
+```
+> go build -race .\xiecheng.go   -race 编译选项 可以查看exe中 发生竞争 的个数
+---
+PS E:\jl\04-golang\src\go_coed> .\xiecheng.exe
+==================  在0x00c00006e4b0位置两个协程想同时写入 出错了
+WARNING: DATA RACE
+Write at 0x00c00006e4b0 by goroutine 8:
+  runtime.mapassign_fast64()
+      C:/Program Files/Go/src/runtime/map_fast64.go:93 +0x0
+  main.test()
+      E:/jl/04-golang/src/go_coed/xiecheng.go:18 +0x70
+  main.main.func1()
+      E:/jl/04-golang/src/go_coed/xiecheng.go:22 +0x39
+
+Previous write at 0x00c00006e4b0 by goroutine 19:
+
+====================================
+WARNING: DATA RACE
+Read at 0x00c000320830 by main goroutine:
+
+Previous write at 0x00c000320830 by goroutine 98:
+  main.test()
+      E:/jl/04-golang/src/go_coed/xiecheng.go:18 +0x7c
+  main.main.func1()
+      E:/jl/04-golang/src/go_coed/xiecheng.go:22 +0x39
+
+Goroutine 98 (finished) created at:
+  main.main()
+      E:/jl/04-golang/src/go_coed/xiecheng.go:22 +0x77
+==================
+Found 2 data race(s)
+---
+
+优化上面的程序
+1.全局变量 加锁--低水平的做法
+2.管道
+```go
+package main
+import (
+	"fmt" 
+	"time"
+	"sync"  //同步
+)
+var(
+	myMap = make(map[int]int,10)
+	//互斥锁
+	lock sync.Mutex
+)
+func test(n int){
+	res:=1
+	for i:=1;i<=n;i++{
+		res=res*i
+	}
+	lock.Lock() //写之前加锁
+	myMap[n]=res //问题1：不允许并发写map
+	lock.Unlock() //写之后解锁
+}
+func main(){
+	for i:=1;i<=200;i++{
+		go test(i)
+	}
+	//问题2：到底怎么处理 到底休眠几秒
+	time.Sleep(time.Second*10) //休眠10s
+	lock.Lock() //du之前加锁
+	fmt.Println(myMap)
+	lock.Unlock() //du之后解锁
+}
+读也得加锁  否则读到某个位置的时候，另一个线程在写此位置
+当前线程在读此位置
+
+按理来说：10s 足够所有的协程执行完了，读的时候不应该出现竞争，实际运行中，会出现竟态--我们设计程序知道10s 协程会执行完，主线程并不知道。底层还是会出现资源争夺
+```
+
+以上用 锁，并没有解决问题2
+```go
+//使用管道 解决 不知道该 主线程延时多久
+
+```
+
+### 管道特点
+1. 本质是个队列，数据先进先出
+2. 线程安全，多goroutine 访问，无需加锁。go底层决定
+3. 有类型，string类型的管道，只能存string类型的数据
+
+#### 声明
+```go
+var varname chan datatype
+exp:
+var intChan chan int  (存int数据)
+var mapChan chan map[int]string  (存map 数据)
+var perChan chan Person  (存 Person 数据)
+
+```
