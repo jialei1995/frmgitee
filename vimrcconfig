@@ -284,3 +284,17 @@ set guifont=Monaco:h17          "设置字体和字的大小
 .  重复上次的cmd  例如粘贴....
 ctrl+v + $ +A:块操作  尾部新增字符
 
+
+vim配置：
+$ git clone https://git.oschina.net/vic.liu/vim_config.git ~/.vim_config
+$ cat ~/.vim_config/install.sh
+$ bash ~/.vim_config/install.sh
+
+安装后：
+,w   快速保存当前文件，不退出
+F2   退出编辑
+F5  重新载入当前文件
+F12  取消/加载右边窗口
+ctrl+p  打开文件，当前目录其他文件
+<>  切换文件  hjkl：左下上→
+
