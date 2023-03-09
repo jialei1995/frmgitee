@@ -36,6 +36,7 @@ FormatInt(num,10)  转10进制
 FormatInt.Itoa(intval)   转int
 FormatFloat(num,'f',10,64)  保留10位，转为float64类型
 FormatBool(val)  转bool
+uint64(val)   类型转化，不同类型之前计算 需要类型转换成同一类型
 //string -- 》基本类型
 strconv包
 .FormatInt 返回值boolval,errno  errno不收可以用 _代替
@@ -2224,7 +2225,7 @@ import (
 	"sync"  //同步
 )
 var(
-	myMap = make(map[int]int,10)
+	myMap = make(map[int]int,1)
 	//互斥锁
 	lock sync.Mutex
 )
@@ -2271,5 +2272,474 @@ exp:
 var intChan chan int  (存int数据)
 var mapChan chan map[int]string  (存map 数据)
 var perChan chan Person  (存 Person 数据)
+```
+
+#### 关闭-遍历
+channel 关闭后，无法再向其中写数据，但是仍然可以读
+遍历 for-range：
+遍历时如果channel没有关闭，则报deadlock
+遍历时如果已经关闭，则正常遍历
+
+```go
+func main(){
+	intChan := make(chan int,100)
+	for i:=0;i<100;i++{
+		intChan<-i*2
+	}
+	close(intChan)//关闭管道
+	// outChan1 := <-intChan  先进先出
+	// outChan2 := <-intChan
+	// outChan3 := <-intChan
+	// fmt.Println(outChan1,outChan2,outChan3)
+	//for range 遍历
+	//1. 不能使用  因为intChan长度会一直减小 无法完整遍历
+	// for i:=0;i<len(intChan);i++{
+	// }
+	//2. for range 遍历---正常遍历方法
+	for v:= range intChan{
+		fmt.Println(v)
+	}
+}
+```
+
+#### 协程与管道配合
+```go
+//一个协程读 一个协程写
+//两个管道  一个放数据 一个放bool
+package main
+import (
+	"fmt" 
+	"time"
+	_"sync"  //同步
+)
+
+func writeData(intChan chan int){
+	for i:=1;i<=50;i++{
+		intChan<-i //放入数据
+		fmt.Println("writedata=%v",i)
+		time.Sleep(time.Second)
+	}
+	close(intChan)//写完就关闭  不影响读数据
+}
+func readData(intChan chan int,exitChan chan bool){
+	for{
+		v,ok:=<-intChan  //读不出来阻塞 读取失败则退出
+		if !ok{
+			break
+		}
+		fmt.Println("readdata=%v",v)
+		//time.Sleep(time.Second)
+	}
+	//读完了
+	exitChan<-true
+}
+func main(){
+	intChan := make(chan int,50)
+	exitChan := make(chan bool,1)
+	go writeData(intChan)
+	go readData(intChan,exitChan)
+	//方法1，阻塞主线程  不好确定到底延时多久
+	//time.Sleep(50*time.Second)
+	//方法2：阻塞
+	for{
+		_,ok := <-exitChan
+		if !ok{
+			break
+		}
+	}
+}
 
 ```
+
+在主线程中直接使用管道，写入直接读
+```go
+func main(){
+	intChan := make(chan int,50)
+	intChan<-3
+  close(intChan)  //关闭之后才能读
+	for {
+		v,ok := <-intChan
+		if !ok{
+			fmt.Println("read fail")  所有的都读完 才会进入此分支
+			break
+		}
+		fmt.Println("v=",v)
+	}
+}
+
+```
+
+//协程中写数据  主线程读管道数据  不会直接退出
+```go
+func writeData(intChan chan int){
+	for i:=1;i<=50;i++{
+		intChan<-i //放入数据
+		fmt.Println("writedata=%v",i)
+		time.Sleep(time.Second)
+	}
+	close(intChan)//写完就关闭  不影响读数据
+}
+func main(){
+	intChan := make(chan int,3)
+	go writeData(intChan)
+	for{
+		v,ok:=<-intChan  //读不出来阻塞 读取失败则退出
+		if !ok{
+			fmt.Println("read fail")
+			break
+		}
+		fmt.Println("v=%v",v)
+	}
+}
+```
+
+//怎么实现一个协程放数据 多个协程处理数据,以下代码有问题  
+```go
+package main
+import (
+	"fmt" 
+)
+func putThread(numChan chan int){
+	for i:=1;i<=100;i++{
+		numChan<-i
+	}
+	close(numChan)
+	fmt.Println("close numChannel")
+}
+func CalThread(numChan chan int,resChan chan map[int]uint64){
+	var res uint64
+	res=0
+	//从numChan取数 
+	for{
+		v,ok :=<-numChan
+		if !ok{
+			fmt.Println("in calthread read numchannel err")
+			break
+		}
+		for i:=1;i<=v;i++{
+			res+=uint64(i)
+		}
+		val:=map[int]uint64{
+			v:res,
+	    }
+		resChan<-(val)
+	}	
+	
+}
+
+func main(){
+	numChan := make(chan int,10000)
+	resChan := make(chan map[int]uint64,10000)
+	go putThread(numChan)
+	for i:=0;i<1;i++{
+		go CalThread(numChan,resChan)
+	}
+
+	for{
+		v,ok := <-resChan
+		if !ok{
+			fmt.Println("read res channel err")
+			close(resChan)
+			break
+		}
+		fmt.Println(v)
+	}
+}
+```
+
+再优化后 正常的程序
+```go
+//借助exitChan 管道，知道多会再去关闭 resChan，不关闭一直读 就会出错
+package main
+import (
+	"fmt" 
+)
+func putThread(numChan chan int){
+	for i:=1;i<=100;i++{
+		numChan<-i
+	}
+	close(numChan)
+	fmt.Println("close numChannel")
+}
+func CalThread(numChan chan int,resChan chan map[int]uint64,exitChan chan bool){
+	var res uint64
+	res=0
+	//从numChan取数 
+	for{
+		v,ok :=<-numChan
+		if !ok{
+			fmt.Println("in calthread read numchannel err")
+			break
+		}
+		for i:=1;i<=v;i++{
+			res+=uint64(i)
+		}
+		val:=map[int]uint64{
+			v:res,
+	    }
+		resChan<-(val)
+	}
+	exitChan<-true
+}
+
+func main(){
+	numChan := make(chan int,100)
+	resChan := make(chan map[int]uint64,100)
+	exitChan := make(chan bool,4)
+	go putThread(numChan)
+	for i:=0;i<4;i++{
+		go CalThread(numChan,resChan,exitChan)
+	}
+	//阻塞程序
+	for i:=0;i<4;i++{
+		<-exitChan
+	}
+	//4个线程都退出，关闭存结果的 channel
+	close(resChan)
+	//遍历
+	for{
+		v,ok := <-resChan
+		if !ok{
+			fmt.Println("read res channel over")
+			break
+		}
+		fmt.Println(v)
+	}
+}
+```
+
+#### 管道的阻塞机制
+写死锁：
+给的管道大小10，一直写20个数据，则会阻塞 导致deadlock
+若有协程读 就不会deadlock了，底层发现有人读（即使2s读一次），就会等别人读。不会deadlock---异步机制
+
+```go
+func writeData(intChan chan int){
+	for i:=1;i<=50;i++{
+		intChan<-i //放入数据
+		fmt.Println("writedata=%v",i)
+	}
+	close(intChan)//写完就关闭  不影响读数据
+}
+func readData(intChan chan int,exitChan chan bool){
+	for{
+		v,ok:=<-intChan  //读不出来阻塞 读取失败则退出
+		if !ok{
+			break
+		}
+		fmt.Println("readdata=%v",v)
+		time.Sleep(time.Second)
+	}
+	//读完了
+	exitChan<-true
+}
+func main(){
+	intChan := make(chan int,10)
+	exitChan := make(chan bool,1)
+	go writeData(intChan)
+	go readData(intChan,exitChan)
+	for{
+		_,ok := <-exitChan
+		if !ok{
+			break
+		}
+	}
+}
+writedata=%v 1
+writedata=%v 2
+writedata=%v 3
+writedata=%v 4
+writedata=%v 5
+writedata=%v 6
+writedata=%v 7
+writedata=%v 8
+writedata=%v 9
+writedata=%v 10
+writedata=%v 11   阻塞，channel 大小10 发现有人读 等读完一个 再去写一个
+readdata=%v 1     阻塞若发现没人读，直接deadlock
+readdata=%v 2
+writedata=%v 12
+readdata=%v 3
+writedata=%v 13
+readdata=%v 4
+writedata=%v 14
+readdata=%v 5
+writedata=%v 15
+readdata=%v 6
+writedata=%v 16
+```
+
+求1-1000之内的素数,一个线程放数据  别的4个线程取数据
+```go
+func putNum(numChan chan int){
+        for i:=1;i<=1000;i++{
+                numChan<-i
+        }
+        close(numChan)
+        fmt.Println("close numChannel")
+}
+func primeNum(intChan chan int,primeChan chan int,exitChan chan bool){
+    var flag bool
+    for{
+        num,ok:=<-intChan
+        if !ok{
+            break //intChan is empty
+        }
+        flag=true
+        //judge if num is primenum
+        for i:=2;i<num;i++{
+            if(num%i == 0){
+                //num not primenum
+                flag=false
+                break;
+            }
+        }
+        if flag{
+            //put num to primeChan
+            primeChan<-num
+        }
+    }
+    fmt.Println("one thread exit,can not get intChan")
+    //can not directly close primtChan--other thread may can put data
+    exitChan<-true
+}
+func main(){
+    intChan := make(chan int,1000)
+    //save prime num
+    primeChan := make(chan int,2000)
+    //标识退出的管道
+    exitChan := make(chan bool,4)
+
+    //open thread put 1-8000
+    go putNum(intChan)
+
+    //open 4 thread ,get num and judge if is primenum
+    for i:=0;i<4;i++{
+        go primeNum(intChan,primeChan,exitChan)
+    }
+
+    //阻塞 main thread
+    for i:=0;i<4;i++{
+        <-exitChan
+    }
+    //all primeNum thread exit,can close primeChan
+    close(primeChan)
+
+    //遍历
+    for{
+        v,ok:=<-primeChan
+        if !ok{
+            fmt.Println("travers over")
+            break
+        }
+        fmt.Printf("%v ",v)
+    }
+}
+
+```
+
+#### 管道特点
+1. 可以声明成只读/只写
+```go
+只读只写 不是类型，是个属性，一般用作函数入参 限制函数权限
+//只能进行写操作 chanx
+func send(chanx chan<-){
+  chanx<-m
+}
+//只能进行 读 操作 chanx
+func send(chanx chan<-){
+  n:=<-chanx
+}
+func main(){
+	//1.default declare chennel is read write,2 directions
+	//var chan1 chan int //can read and write
+	//2.only write
+	var chan2 chan<- int //chan<-
+	chan2 = make(chan int,n)
+	//3.only read
+	var chan3 <-chan int //<-chan
+	//4 useful
+	send(chanx)
+	recv(chanx)
+}
+```
+2. select 
+可以解决从管道取数据的阻塞问题
+```go
+
+func main(){
+	intChan := make(chan int,10)
+	for i:=0;i<10;i++{
+		intChan<-i
+	}
+	stringChan := make(chan string,5)
+	for i:=0;i<5;i++{
+		stringChan<-"hello"+fmt.Sprintf("%d",i)
+	}
+	//不知道管道多会才能关闭 而遍历 又需要在 管道关闭之后
+
+	//所以 遍历的时候 会阻塞
+
+	//则可以使用select 解决,不需要关闭 也可以遍历。会把数据取出来
+	//for range 遍历的时候没有<- 取出动作 只是遍历
+	for{
+		select{
+		case v:= <-intChan://若intchan一直不关闭，则先取后面的case，不会阻塞到这里
+			fmt.Println("from intChan read %v",v)
+		case v:= <-stringChan:
+			fmt.Println("from stringchan read %v",v)
+		default:
+			fmt.Println("nothing can be read")
+			return
+		}
+	}
+}
+```
+
+3. 线程退出不要影响主程序
+```go
+package main
+import (
+	"fmt" 
+	"time"
+)
+func sayHello(){
+	for i:=0;i<10;i++{
+		time.Sleep(time.Second)
+		fmt.Println("hello world")
+	}
+}
+
+func test(){
+	defer func(){
+		//捕获panic
+		if err:=recover(); err != nil {
+			fmt.Println("test 发生错误",err)
+		}
+	}()  //直接调用匿名函数
+	var mymap map[int]string
+	mymap[0]="golang"//error
+}
+
+func main(){
+	go sayHello()
+	go test() //线程出现问题 整个程序退出,优化线程 不要影响主程序
+
+	for i:=0;i<10;i++{
+		time.Sleep(time.Second *2)
+		fmt.Println("in main ")
+	}
+}
+```
+
+### 统计程序运行时间
+start := time.Now().Unix()  
+...
+	end := time.Now().Unix() 
+
+
+## 反射
+适配器函数
+写框架的时候 会用到
+
+## 网络编程
