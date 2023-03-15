@@ -284,3 +284,6 @@ set guifont=Monaco:h17          "设置字体和字的大小
 .  重复上次的cmd  例如粘贴....
 ctrl+v + $ +A:块操作  尾部新增字符
 
+
+https://blog.csdn.net/freeking101/article/details/62037015?spm=1001.2101.3001.6650.4&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-4-62037015-blog-78663590.pc_relevant_3mothn_strategy_recovery&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-4-62037015-blog-78663590.pc_relevant_3mothn_strategy_recovery&utm_relevant_index=9
+vim配置链接
