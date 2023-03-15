@@ -16,6 +16,10 @@ go=c+python   静态编译语言的安全性能  动态语言的开发维护
 
 fmt.Scanln(&a);  给a赋值 从键盘
 
+go env -w GOPATH=""设置默认搜索路径
+go env 查看当前golang环境变量
+设置好后在/$GOPATH/src 目录直接创建文件或文件夹都可以
+
 ### 类型转换
 只能显示转换
 var := (int32)var2
@@ -2264,7 +2268,10 @@ func main(){
 1. 本质是个队列，数据先进先出
 2. 线程安全，多goroutine 访问，无需加锁。go底层决定
 3. 有类型，string类型的管道，只能存string类型的数据
-
+4. map可以自动扩容，但是管道不可以
+5. len(intChan)  当前管道有几个数据
+6. cap(intChan)  总容量是多少
+7. 关闭后只能读不能写
 #### 声明
 ```go
 var varname chan datatype
@@ -2272,6 +2279,7 @@ exp:
 var intChan chan int  (存int数据)
 var mapChan chan map[int]string  (存map 数据)
 var perChan chan Person  (存 Person 数据)
+声明成空接口类型后，取出时 需要var：=(<-intchan).(Cat)  断言转化 才可以
 ```
 
 #### 关闭-遍历

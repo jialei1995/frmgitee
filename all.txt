@@ -8653,6 +8653,7 @@ u-boot 移植：
 				[*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
 
 
+Ubuntu下载ssh失败，apt源一定要配置对应版本os的源，否则下载的软件与本os底层不匹配，会安装失败
 
 Ubuntu18 linux中apt命令下载失败，报错E:Read error - read (21: Is a directory), E:The package lists or status file could not be parsed or opened.
 因为自己把/var/lib/dpkg 中的很多内容删了
