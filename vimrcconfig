@@ -104,6 +104,8 @@ gi:切换回最后一次编辑模式所在的光标位置，进入插入模式
 	dt(char)：删除当前位置到char之间的所有
 	x:直接删除当前光标处字符 
 	:syntax on 高亮显示关键单词
+	ci": 调到当前行的“”中并进入插入模式
+	ci(  调到当前行的（）中并进入插入
 快速修改：
 	r:replace  r(char):把光标处的字符换成char
 	c:change	cw:替换当前单词 进入插入模式
@@ -297,4 +299,7 @@ F5  重新载入当前文件
 F12  取消/加载右边窗口
 ctrl+p  打开文件，当前目录其他文件
 <>  切换文件  hjkl：左下上→
+
+
+参考:https://gitee.com/jl_git/dot-vimrc.git 配置，用到的git 都fork到了gitee上。
 

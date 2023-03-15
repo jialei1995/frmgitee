@@ -2751,3 +2751,81 @@ start := time.Now().Unix()
 写框架的时候 会用到
 
 ## 网络编程
+
+客户端服务器通讯
+ser.go
+```go
+package main
+import "fmt"
+import "net"
+import "io"
+func threadForClient(conn net.Conn){
+    //处理某个客户端的数据
+    defer conn.Close() //函数退出 一定要退出
+    for{
+        buf:=make([]byte,1024)
+        //阻塞 等待客户端发来数据。若cli退出，也会收到返回值 io.EOF
+        n,err:=conn.Read(buf) //读clinet传来的数据
+        if err==io.EOF{ //只有客户端退出 才会收到此 EOF标志
+            fmt.Println("client had  exit")
+            break
+        }
+        //show client meg,只显示到n 否则buf中后面的数据全部显示
+        fmt.Print(string(buf[:n])) //不用换行，客户端发来就是带换行的
+    }
+}
+func main(){
+    fmt.Println("ser正在监听...")
+    listen,err := net.Listen("tcp","0.0.0.0:8888")
+    if err != nil{
+        fmt.Println("listen fail")
+        return
+    }
+    //listen is a socket
+    //in case forget colse
+    defer listen.Close()
+    //for wait cli connect
+    for{
+        fmt.Println("wait for connect...")
+        conn,err:=listen.Accept()  //阻塞直到cli链接
+        if err!=nil{
+            fmt.Println("Accept err")
+        }
+        //get client ip and port
+        fmt.Printf("accept success con=%v  ip=%v",conn,conn.RemoteAddr().String())
+        go threadForClient(conn) //每次有客户端链接 建立一个 协程处理
+    }
+}
+```
+
+cli.go
+```go
+package main
+import "fmt"
+import "net"
+import "bufio"
+import "os"
+func main(){
+    conn,err:=net.Dial("tcp","0.0.0.0:8888")
+    if err!=nil{
+        return
+    }
+    //function1:发送单行数据 创建句柄 来自stdin
+    reader:=bufio.NewReader(os.Stdin)
+    for{
+    //from stdin get data  get一行
+    line,err := reader.ReadString('\n')
+    if err!=nil{
+        return
+    }
+
+    //send data to ser ,先转成byte 切片再转发
+    n,err:=conn.Write([]byte(line))
+    if err!=nil{
+        return
+    }
+    fmt.Println("client send ok len=",n)
+
+    }
+}
+```
