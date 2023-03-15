@@ -3654,3 +3654,6 @@ for(int i=0;i<100;i++)
 
 No space in execution regions with .ANY selector matching (.data).
 分配的全局变量所占空间太大  sram不够用了
+
+
+jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片就能链接了----坑死人

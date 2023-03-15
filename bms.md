@@ -650,3 +650,101 @@ void (uint8_t *txdBuf,uint16_t len);
 
 
 
+检测充电器是否撤去：对于脉冲充电器 需要在1ms中断中检测是否撤掉---
+对于直冲充电器 直接检测充电器信号就知道充电器在不在
+对于脉冲充电器  就得这么检测
+sysflag.bits.CHG_DET_load = CHG_DET_Get();//1ms中断中 赋值即可
+uint8_t CHG_DET_Get(void )
+{
+	static	uint8_t time =0 ; 
+	static	uint16_t Retime =0 ; 
+	static	uint8_t ret= 0;
+	if(gpio_input_bit_get(chgdet_GPIO_Port, chgdet_Pin)==1)//说明chgdet在线
+	{
+		if(time<100) 
+		{
+			time++;
+		}
+		Retime =0;
+	}
+	else
+	{
+		if(Retime<2200)
+		{
+			Retime++;
+		}
+		time= 0;
+	}
+	if(time>10)			//有10ms 在线 说明充电器未撤
+	{
+		ret = 1;
+	}
+	else
+	{
+		if(Retime>2000) //持续2s 充电器不在 说明充电器撤掉了
+		{
+			ret = 0;
+		}
+	}
+	return ret ;
+}
+
+
+
+小端：低字节在前 高字节在后
+大端 高字节在前，低字节在后
+
+
+同步帧处理：
+采集程序：
+while(rcvFlag==0 && (delay<2000) )  收不到同步帧，采集以下  能收到直接采集
+{
+	delay++;
+	hal_delay(1ms);
+}
+//rcvFlag=0 delay=0
+开始采集数据 ... 
+
+回复数据 根据id
+收到同步帧，将当前数据存到buffer，打开定时器 tim14_syscnt=0;
+void TIM14_IRQHandler(void)
+{
+	LL_TIM_ClearFlag_UPDATE(TIM14);
+	tim14_syscnt++;
+	if(tim14_syscnt>(300+50*(syspara.BmsID-1)))//到了自己该发数据的时候 发数据
+	{
+		USART2_SendByte(10+SendLen.halfword);
+		LL_TIM_DisableIT_UPDATE(TIM14);//停止定时器  等下次收到同步帧再开启
+		LL_TIM_DisableCounter(TIM14);
+		tim14_syscnt=0;
+	}
+}
+
+深度休眠唤醒后：
+void DeepSleepCheck(void)
+{
+	static uint32_t  ltime=0;
+	static uint8_t  first_in=0;
+	if(first_in==0)//第一次上电一定给ltime赋值，否则 直接欠压的时候 就直接进深度了
+	{
+		first_in=1;
+		ltime=NowTime;
+	}
+	deepSleepFlag.bytes = 0;
+	// 欠压才会触发深度休眠
+	deepSleepFlag.bits.bit0 = ((syspara.voltMin < flashpara.bytes.CFG_ST_DPSLPV)) ? 1 : 0;
+	
+	if (deepSleepFlag.bytes != 0) //需要深度休眠
+	{
+		if ((NowTime-ltime)> (300)) 
+		{
+			DeepSleep();
+		}
+	}
+	else//只能电压大的时候恢复   第一次如果欠压  就会直接进深度
+	{
+		deepsleep_sendflag=0;
+		sysflag.bits.WAKE_RTC = 0;
+		ltime=NowTime;
+	}
+}
