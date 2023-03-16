@@ -2829,3 +2829,54 @@ func main(){
     }
 }
 ```
+
+
+## redis数据库
+remote directory server 服务器
+下载redis-server
+直接执行redis-server 启动服务端
+netstat -anp |grep redis 可以看到6379号端口已处于listen状态
+直接执行redis-cli 运行客户端
+```c
+127.0.0.1:6379> set key1  hello  往数据库存入key1:"hello"
+OK
+127.0.0.1:6379> get key1    取值
+"hello"
+//redis 默认有16个数据库 默认打开的0号数据库
+//切换数据库 1号
+127.0.0.1:6379>  select 1
+OK
+127.0.0.1:6379[1]> get key1  1号中无key1
+(nil)
+127.0.0.1:6379[1]>  select 0
+OK
+127.0.0.1:6379> get key1
+"hello"
+dbsize ：查看当前数据库有几对数据（key-val）
+flushdb:清空当前所在的数据库
+flushall：清空16个数据库
+```
+
+redis支持的数据类型：
+string(字符串) Hash(哈希) List(列表) Set(集合) zset(有序集合)
+存在于内存中，一旦服务器停止就没了。
+
+其他命令：
+mset 同时设置一至多对数据
+mget 同时获取多对数据
+
+存放 哈希 数据（结构体）
+`hset user1 name smith`
+`hset user1 age 30`
+`hset user1 job golangcoder`
+`hget user1 name`  获取name
+`hgetall user1`   一次性获取所有的数据
+`hdel user1`  从库删除
+`hmset user2 name jerry age 20 job "java coder"`  有空格用双引号包起来
+`hmget user2 name age job`  一次性获取三个属性
+`hexists key field`  查看key的field属性是否存在  返回1/0 存在/不存在
+
+
+
+
+
