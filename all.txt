@@ -2699,11 +2699,16 @@ spi:时钟是主机产生的，每个spi周期传输1bit数据
 		LCD模块的通信（芯片之间的通讯）
 		高速、串行（只有2根线是收发）、全双工、同步总线（总线就是多对多，usart就不是总线1对1）
 		极性：在未开始通信前（或者说空闲状态下）的sck的电平0/1  可以设置
-		相位：0--->前沿采样后沿输出    1--->前沿输出（发送）后沿采样（获取）（通过这个双方同步）（沿：上升沿或下降沿）根据sck的沿
+		相位：0--->前沿采样后沿输出    永远是前沿采样 后沿输出
+		
+		设置为 1沿：就是第一个沿读 第二个沿写
+		设置为 2沿：就是第二个沿读 第三个沿写-第一个沿没用
+		
+		一般都是第一个边沿采样，很少有人用2沿的
 		速度：目前最快3.4M/s  输入口速度48M，所以要预分频。确定波特率（sck）
 		First bit：LSB/MSB
 		（lsb不是低位先传，而是低字节先传，是以字节为单位的）
-		同理msb：不是高位先传，应该是高字节先传，一般的机器的存储都是lsb
+		同理msb：先传高bit 再传低bit
 		主机驱动mosi信号----采样miso信号
 		spi的通讯双方的极性与相位要一致（配置）
 	编程时每个spi模块都有自己的一套寄存器，就地址不一样，名字功能都基本一样
@@ -8755,3 +8760,22 @@ windows自带防火墙，对个人电脑保护，由个人管理--不安全
 cat /proc/interrupts  查看中断
 
 
+C 知识点：
+指针变量不一定非得malloc 才能在指向的地址赋值，直接指向全局变量 全局变量在全局区 可以直接操作此部分内存
+static   u8DataQueue  SPI_Queue;		//queue 结构体变量
+static   U8 SPI_QUEUE[SPI_QUEUE_SIZE];  //数组
+QueueInit(&SPI_Queue,SPI_QUEUE,SPI_QUEUE_SIZE);
+U8 QueueInit(u8DataQueue  * Queue,U8 *uBuff,U16 uSize)
+{
+    if((Queue==NULL)||(uBuff==NULL))
+    {
+        EXIT_SAFE_CODE();
+        return 0;
+    }
+    Queue->cnt=0;
+    Queue->head=0;
+    Queue->tail=0;
+    Queue->size=uSize;//
+    Queue->lpBuffer=uBuff;//指针直接指向 全局变量数组地址 ，不用非得给这个地址malloc空间去操作
+    return 1;
+}

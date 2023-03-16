@@ -60,6 +60,155 @@ void MX_SPI1_Init(void)
   }
 SPI做从机：
 
+
+
+
+
+
+分析之前的代码：
+
+SPI主机设置：
+SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;  
+SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;//主机上升沿采样 下降沿输出
+
+主机是主动发消息的，则可以主动的收消息，不需要开spi的接收中断
+U8 SPI_WriteReadBytes(U8 LecuNo,U8 *TxData,U16 TxLength,U8 *RxData,U16 RxLength)
+{
+	if(LecuNo==0)//根据 LecuNo 拉低 对应的片选
+	{
+		GPIO_ResetBits(INTER_CS1_PORT,INTER_CS1_PIN);
+	}
+	GT_Delayms(5);
+	for(i=0;i<TxLength;i++)//将 TxData 数组全部发走
+	{
+		RxData[i]=SPI_ReadWriteByte(TxData[i]);
+	}
+	for(j=0;j<RxLength;j++)//要读多少长度  将数据读到RXDATA buf
+	{
+		RxData[i+j]=SPI_ReadWriteByte(DUMP);
+	}
+	if(LecuNo==0)//最后将片选再拉高
+	{
+		GPIO_SetBits(INTER_CS1_PORT,INTER_CS1_PIN);
+	}
+	return (u8)*RxData;
+}
+
+U8 SPI_ReadWriteByte(U8 TxData)//同时读写一字节数据 函数
+{
+	U8 RxData = 0;
+	while((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET));
+	SPI_I2S_SendData(SPI1, TxData);
+	while((SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET));
+	RxData = SPI_I2S_ReceiveData(SPI1);
+	return (u8)RxData;
+}
+spi通信的时候需要制定协议，主从机根据协议去收发对应的数据
+
+SPI 从机配置：
+SPI_InitStructure.SPI_Mode = SPI_Mode_Slave;
+SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
+从机需要开中断，因为不知道主机多会跟自己通信 开接收 发送中断
+SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_RXNE,ENABLE);
+SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_TXE,ENABLE);
+
+#define  FRAME_HEAD						0x0  
+#define  FRAME_LEN						0x1  
+#define  FRAME_CONTENT					0x2  
+ 
+协议：0x53 lenh lenl 数据内容
+void SPI_ISR(void)	// 如何在接收到SPI数据的时候  将数据分类整理
+{
+	U8 u8Data=0;
+	u8 crc= 0xaa;
+	static U8  *txpBuff=NULL;
+	static U8  tempBUff[6];
+	if(SPI_I2S_GetITStatus(SPI1,SPI_I2S_IT_RXNE)==SET)//接收缓冲区 不为空 需要接收并处理
+	{
+		u8Data=SPI_I2S_ReceiveData(SPI1);//接收spi数据
+		switch(recvState)
+		{
+			case FRAME_HEAD://收到数据头
+				if(u8Data==0x53)//初始化 校验crc
+				{
+					sendCRC=0xaa;
+					SPI_PutData(0x35);
+					sendCRC^=0x35;
+					recvState=FRAME_LEN;//下次再收到数据 表示收到的是数据长度
+				}
+				break;
+			case FRAME_LEN:
+				SPI_PutData(u8Data);//把收到的数据存起来
+		    	if(recvCNT<2)
+				{
+					tempBUff[recvCNT++]=u8Data;//接收数据
+					sendCRC^=u8Data;
+				}
+			  	if(recvCNT==2)  
+				{
+				  	recvCNT=(U16)((tempBUff[0]<<8)|tempBUff[1]);//要收 recvCNT 个数据
+					recvState=FRAME_CONTENT;//进入下一阶段
+					sendCNT=0;
+					txpBuff=(u8*)&ClustSendBuff;
+				}
+				break;
+			case FRAME_CONTENT:
+			  	if(sendCNT<recvCNT)//数据内容
+				{
+					u8Data=*txpBuff++;
+					sendCRC^=u8Data;
+		     		SPI_PutData(u8Data);
+					sendCNT++;					
+				}
+				if(sendCNT==recvCNT)//所有长度的数据 收完整了
+				{
+					SPI_PutData(sendCRC);//把收到的数据存起来
+					recvState=FRAME_HEAD;//清除阶段标志
+					sendCNT=0;
+					recvCNT=0;
+				}
+				break;
+	  	default:
+			break;
+		}	
+	}
+}
+
+//初始化从机的片选线为input模式
+开启边沿跳变中断
+static void CS_ISR(void)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+	if (EXTI_GetITStatus(EXTI_Line4)!= RESET)
+	{
+		EXTI_ClearITPendingBit(EXTI_Line4);  //进来先把中断清了 否则程序卡死
+			recvState=FRAME_HEAD;
+			sendCRC=0;
+			recvCNT=0;
+			sendCNT=0;
+			RecvCMDFlag=0;
+			RecvCMDCNT= 0;		
+		if(GPIO_ReadInputDataBit(INTER_CS_PORT,INTER_CS_PIN)==0)//
+		{
+			GPIO_InitStructure.GPIO_Pin =  INTER_MISO_PIN;
+			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; 
+			GPIO_Init(INTER_MISO_PORT, &GPIO_InitStructure);
+			SPI_Cmd(SPI1, ENABLE);//主机要跟自己通讯 使能spi miso设置成 af_pp 模式
+			
+		}
+		else
+		{
+			SPI_Cmd(SPI1, DISABLE);//主机不跟自己说话了，浮空miso 自己的发送管脚
+			GPIO_InitStructure.GPIO_Pin =  INTER_MISO_PIN;
+			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
+			GPIO_Init(INTER_MISO_PORT, &GPIO_InitStructure);
+		}
+	}
+}
 ---
 
 ## 电池相关知识
@@ -803,8 +952,9 @@ CPHA=0，表示第一个边沿：
 CPHA=1，表示第二个边沿：
 对于CPOL=0，idle时候的是低电平，第二个边沿就是从高变到低，所以是下降沿采样，上升沿输出
 对于CPOL=1，idle时候的是高电平，第二个边沿就是从低变到高，所以是上升沿采样，下降沿输出
+
 有的从机芯片的对极性的设置根本没要求，设置成0或者1都没关系
-我们需要看从机手册是哪个边沿读取数据来确定cpu应该设置成哪种相位。
+我们需要看 从机手册 是哪个边沿读取数据来确定cpu应该设置成哪种相位。
 若从机是上升沿读取/采样数据我们需要设置哪种极性与相位的结合
 若从机是下降沿读取/采样数据我们需要设置哪种极性与相位的结合
 
@@ -896,7 +1046,7 @@ uint8_t SPI_FLASH_SEND_and_RECEIVE_BYTE(uint8_t data){
 	//执行函数发送数据
 	SPI_I2S_SendData(SPI1,data);
 	//检查并等待直到SPI的rx缓冲区为非空,rx缓冲区为非空才能读取数据
-	while(SPI_I2S_GetFlagStatus(SPI1,SPI_I2S_FLAG_RXNE)==RESET);
+	while(SPI_I2S_GetFlagStatus(SPI1,SPI_I2S_FLAG_RXNE)==RESET)
 	{
 		//这里最好不要直接写成死循环，应该设置一个超时事件
 		if(SPI_TIMEOUT-- == 0) return callback(0);这个回调函数便于我们定位问题
@@ -1172,6 +1322,38 @@ ringBuffer_t var= {0,0,{0},0,0,100};  对结构体中有数组的变量可以直
 }
 
 
+uart 485 的发送：有意思的处理方式
+void USART1_SendByte( uint16_t len)
+{
+	RS485_RxDen();//使能DE 管脚 
+	LL_mDelay(1);
+	RS485sendLen= len;
+	RS485sendnum= 0;
+	RS485sendFlag = 1;//表示有数据要发  要发的长度为 RS485sendLen 已经发了RS485sendnum个
+	//先 发1个 ，立即开启发送中断 USART_INT_TC
+	usart_data_transmit(USART1,SendBuff[RS485sendnum++]);//并不会立刻把数据发完 会进中断去发 不占cpu
+	usart_interrupt_enable(USART1, USART_INT_TC);
+}
+
+void USART1_IRQHandler(void)
+{
+  if(usart_interrupt_flag_get(USART1,USART_INT_FLAG_TC) != RESET)//第一次进来因为USART1_SendByte调了一次usart_data_transmit
+  {
+  	usart_interrupt_flag_clear(USART1,USART_INT_FLAG_TC);
+  	if(RS485sendLen>RS485sendnum)  //发送数据缓冲区是否还有数据，如果有发送，没有则关闭发送中断
+	{
+		usart_data_transmit(USART1,SendBuff[RS485sendnum++]);//继续发送数据
+	}
+	else
+	{
+		RS485_RxEn();//使能接收 不再发485了 发完了
+		usart_interrupt_disable(USART1, USART_INT_TC);//关闭TC 中断
+		RS485sendnum= 0;
+		RS485sendLen= 0;
+		RS485sendFlag = 0;
+	}
+  }
+}
 ```
 
 
@@ -3657,3 +3839,54 @@ No space in execution regions with .ANY selector matching (.data).
 
 
 jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片就能链接了----坑死人
+
+
+时钟主频配置：
+将hsi 换成hse 变化：
+-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;//由hsi变成hse 配置 OscillatorType
+-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;//若选择 hsi  则hsi 的state on
+-  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;//选择了 hsi  hsi的 配置属性就会带出来
+-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;//选择了 hsi  hsi的 配置属性就会带出来
++  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
++  RCC_OscInitStruct.HSEState = RCC_HSE_ON;//若选则 hse 则hse 的state on  hse没啥其他属性
+
+   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;//不关选hse 还是 hsi 最终选给 pll 上，pll都开
+   
+-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI; //pll source 选择，上面配的那个就选择 哪个
++  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+
+
+以下全是配置PLL 部分的分频配置 
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+  
+选择 system clock Mux ，确定选择 哪个时钟源 作为主时钟源 
+ RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+
+
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+总线时钟配置
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;  不知道是什么 
+  PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;//fdcan 时钟源 配置
+
+
+总线时钟50M   
+//主要起作用的配置未Nominal部分  50/2/(1+10+9)=250k
+  hfdcan1.Init.NominalPrescaler = 5;
+  hfdcan1.Init.NominalSyncJumpWidth = 9;//好像没啥用
+  hfdcan1.Init.NominalTimeSeg1 = 10;
+  hfdcan1.Init.NominalTimeSeg2 = 9;
+  //不配Data 结构体可能有点问题
+  hfdcan1.Init.DataPrescaler = 5;
+  hfdcan1.Init.DataSyncJumpWidth = 9;
+  hfdcan1.Init.DataTimeSeg1 = 10;
+  hfdcan1.Init.DataTimeSeg2 = 9;
+
+要使用fdcan 需要在can 监控软件配置 data struct的数据 与 波特率 才能收到数据。比cantest 使用麻烦多了
