@@ -2507,11 +2507,78 @@ xQueueCalcHandle = xQueueCreate(); 创建队列，用于任务间数据通信的
 cubemx创建rtos程序：
 简单的选择cmsis_v1就可以了，默认只有7个等级的优先级任务
 一般需要开启software timer definition
-系统时钟来自主systick--在FreeRTOSConfig.h可以看到cpu频率
+系统时钟来自主systick--在 FreeRTOSConfig.h可以看到cpu频率 configTICK_RATE_HZ
 默认系统定时器周期都是1ms
 myTimer01Handle = osTimerCreate(osTimer(myTimer01), osTimerPeriodic, NULL);创建时钟任务后需要开启此任务
 osTimerStart(myTimer01Handle,500);---500表示500ms执行一次，myTimer01Handle为句柄
 
+
+cubemx中Config parameters->Kernel settings->TICK_RATE_HZ  配置的就是 configTICK_RATE_HZ
+Config parameters->Kernel settings->USE_PREEMPTION        默认配置的就是抢占式
+为 1 时使用抢占式调度器，为 0 时使用协程
+1.如果使用抢占式调度器的话内核会在每个时钟节拍中断中进行任务切换
+2.当使用协程的话会在如下地方进行任务切换
+	一个任务调用了函数 taskYIELD()。
+	一个任务调用了可以使任务进入阻塞态的 API 函数。（当前任务交出cpu控制权）
+	应用程序明确定义了在中断中执行上下文切换。
+
+钩子函数配置:
+Hook function related define 
+USE_TICK_HOOK 使能后，每个TICK周期，钩子函数都会执行一次 void vApplicationTickHook(void)
+别的钩子参考：
+https://jeckxu666.blog.csdn.net/article/details/120877303?spm=1001.2101.3001.6650.5&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-5-120877303-blog-126061553.pc_relevant_multi_platform_whitelistv4&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-5-120877303-blog-126061553.pc_relevant_multi_platform_whitelistv4&utm_relevant_index=10
+
+//创建定时器任务  未启动 调度后也不会启动	
+Timer_clera=xTimerCreate("Timerclera",100,  pdTRUE, (void*)2,Timeclera); 
+xTimerStart(Timer_clera,0); 	//0s后开始 Timer_clera 任务
+xTimerStop(Timer_clera,0); 	   //0s后停止 Timer_clera 任务
+
+
+//创建其他任务，调度后直接运行
+xTaskCreate(can_task,   "can_task", 256, NULL, 3, &CANTask_Handler);
+
+
+配置可裁剪功能项：include parameters 
+vTaskPrioritySet	改变某个任务的任务优先级。
+uxTaskPriorityGet	查询某个任务的优先级。
+vTaskDelete			删除任务
+vTaskCleanUpResources	回收任务删除后的资源如RAM等等
+vTaskSuspend			挂起任务
+vTaskDelayUntil	阻塞延时一段绝对时间（绝对延时去去除程序执行时间，执行更精准）
+vTaskDelay			阻塞延时一段相对时间
+xTaskGetSchedulerState	获取任务调度器的状态，开启或未开启
+xTaskResumeFromISR	在中断服务函数中恢复一个任务的运行
+xQueueGetMutexHolder	获取信号量的队列拥有者，返回拥有此信号量的队列
+xSemaphoreGetMutexHolder	查询拥有互斥锁的任务，返回任务控制块
+pcTaskGetTaskName	获取任务名称
+uxTaskGetStackHighWaterMark	获取任务的堆栈的历史剩余最小值，FreeRTOS 中叫做“高水位线”
+xTaskGetCurrentTaskHandle	此函数用于获取当前任务的任务句柄，就是获取当前任务控制块
+eTaskGetState	此函数用于查询某个任务的运行壮态，比如：运行态、阻塞态、挂起态、就绪态等
+xEventGroupSetBitFromISR	在中断服务函数中将指定的事件位清零
+xTimerPendFunctionCall	定时器守护任务的回调函数（定时器守护任务使用到一个命令队列，只要向队列发送信号就可以执行相应代码，可以实现“中断推迟处理”功能）
+xTaskAbortDelay	中止延时函数，该函数能立即解除任务的阻塞状态，将任务插入就绪列表中
+xTaskGetHandle	此函数根据任务名字获取的任务句柄（控制块）
+
+
+可以直接在Tasks and Queues 选项卡中在Tasks 中添加任务
+任务属性：
+优先级自己设置，
+Code Generation	代码生成模式
+As weak： 产生一个用 __weak 修饰的弱定义任务函数，用户可自己在进行定义；
+As external： 产生一个外部引用的任务函数，用户需要自己定义该函数；
+Default： 产生一个默认格式的任务函数，用户需要在该函数内实现自己的功能
+Allocation:	内存分配方式
+Static： 静态方式是直接在RAM占据一个静态空间
+Dynamic（默认）：动态方则是在初始配置的内存池大小数组中动态申请、释放空间
+
+可以直接在Timers and Semphare 里面创建单次/循环执行的定时器任务
+osTimerStart(myTimHandle,10) 设置定时器周期，启动定时器（10个tick）
+osTimerStop			停止定时器
+osTimerIsRunning	检测定时器是否在运行
+osTimerDelete		删除定时器
+
+对于程序中的中断任务，还需要新建任务去处理嘛？还是直接在中断处理函数中处理就行
+-------------------------
 信号量：信号量在使用过程中会出现优先级反转的Bug，使用时需要注意
 osSemaphoreAcquire(myBinarySem01Handle,10);获取信号量，句柄+超时时间
 osSemaphoreRelease(myBinarySem01Handle);释放信号量
@@ -3890,3 +3957,32 @@ jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片
   hfdcan1.Init.DataTimeSeg2 = 9;
 
 要使用fdcan 需要在can 监控软件配置 data struct的数据 与 波特率 才能收到数据。比cantest 使用麻烦多了
+
+
+--------
+将不变的量转化为常量保存，可以节省 RAM 资源空间，因为常量和变量的保存位置不同
+C 的内存 4区：c语言级别的概念
+堆 ：生长方向由低向高，申请上限由计算机自身的虚拟内存决定
+栈 ：生长方向由高向低，操作系统分配回收，保存局部变量，函数入参，函数调用后的返回地址
+全局区（静态区）：
+	存放全局，静态变量，常量
+	初始化过的全局变量，初始化过的静态变量在一个区域
+	未初始化的全局变量和未初始化的静态变量（未初始化默认初始化为0）  或者初始化为0的全局\静态变量在相邻的另一块区域
+	常量放在常量区域
+代码区
+
+
+程序三段概念：cpu级别的概念
+代码段（.text段）
+数据段（.data段）
+.bbs段
+每一段的功能如下：
+代码段：存放指令代码（局部变量也放在代码段），只读
+数据段：存放初始化值不为0的全局变量或静态变量，可写
+BSS段：存放初始化为0或未初始化的全局或静态变量，可写
+
+联系：
+程序三段和内存四区有一定的对应关系的，
+初始时启动代码会加载内存四区的数据，为了让启动代码更加简单快速，编译链接器会直接按照分区读取数据到对应的程序段，
+比如直接复制全局区的初始化变量到数据段，或者直接将未初始化段的区域直接清零后读取到 .bbs段，简化启动流程
+-----------
