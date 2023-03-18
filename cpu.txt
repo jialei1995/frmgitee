@@ -2601,7 +2601,64 @@ osKernelGetSysTimerCount	获取系统时钟（SysTick）的计数值
 osKernelGetSysTimerFreq		获取系统时钟（SysTick）的频率
 
 
+-----------------------------ucosii
+分析中断是怎么开启的，中断处理函数怎么赋值的？
+TIM_Config( TIM2, Period );
+void TIM_Config( TIM_TypeDef* TIMx, u16 Cyc )
+{
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	TIM_DeInit( TIMx ); /*复位TIMx定时器*/
+	TIM_TimeBaseStructure.TIM_Period = Cyc * 100; /*10us*100 00 = 100ms，最大计数值0xffff*/
+	TIM_TimeBaseStructure.TIM_Prescaler = 719;/*分频72M/(719+1)=0.1Mhz, T= 10us*/
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1; /*时钟分割*/
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  /*计数方向向上计数*/
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
+	TIM_TimeBaseInit( TIMx, &TIM_TimeBaseStructure );
 
+	/* Clear TIMx update pending flag[清除TIMx溢出中断标志] */
+	TIM_ClearFlag( TIMx, TIM_FLAG_Update );
+	/* Enable TIMx Update interrupt [TIM2溢出中断允许]*/
+	TIM_ITConfig( TIMx, TIM_IT_Update, ENABLE );//这里算是配置stm32 开定时器的更新 中断了
+	/////// 对于普通的单片机程序，还需要设置中断处理函数   用如下处理  但是带ucos的程序不需要这样设置
+	/////// NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+	/////// NVIC_InitStructure.NVIC_IRQChannelPriority = 0x1;
+	/////// NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	/////// NVIC_Init(&NVIC_InitStructure);
+}
+void TIM2_ISR( void )//现在的isr 函数直接写完后，往 BSP_IntVectSet 赋值一下即可
+{
+	if( TIM_GetITStatus( TIM2, TIM_IT_Update ) == SET )
+	{
+		TIM_ClearFlag( TIM2, TIM_FLAG_Update );
+		TIM2_Update_ISR_Code();
+	}
+}
+BSP_IntVectSet( BSP_INT_ID_TIM2, TIM2_ISR );//中断处理 函数 的设置方法。BSP_INT_ID_TIM2 导入ucos时需要将对应的芯片的 相关属性 设置到某个头文件里面
+void  BSP_IntVectSet ( CPU_DATA  int_id, CPU_FNCT_VOID  isr )
+{
+#if (CPU_CFG_CRITICAL_METHOD == CPU_CRITICAL_METHOD_STATUS_LOCAL)
+	CPU_SR   cpu_sr;//在关中断前，使用局部变量保存中断状态，所以需要先声明一个局部变量
+#endif
+	if ( int_id < BSP_INT_SRC_NBR )
+	{
+		CPU_CRITICAL_ENTER();//关闭中断
+		BSP_IntVectTbl[int_id] = isr;
+		CPU_CRITICAL_EXIT();//开启中断
+	}
+}
+BSP_IntEn( BSP_INT_ID_TIM2 );
+void  BSP_IntEn ( CPU_DATA  int_id )
+{
+	if ( int_id < BSP_INT_SRC_NBR )
+	{
+		CPU_IntSrcEn( int_id + 16 ); //使能对应的中断
+	}
+}
+
+//配置can 里面的中断
+CAN_ITConfig( CAN1, CAN_IT_FMP0, ENABLE );//使能单片机的fifo中断
+BSP_IntVectSet( BSP_INT_ID_USB_LP_CAN_RX0, STM_Can1_RX_ISR );  配置 STM_Can1_RX_ISR，中断处理函数 对应can的所有触发中断
+BSP_IntEn( BSP_INT_ID_USB_LP_CAN_RX0 );  使能can的中断函数配置，BSP_INT_ID_USB_LP_CAN_RX0
 
 -----------------------------------MDK编译流程
 每个.o文件包含=代码段+数据段（变量）
