@@ -147,3 +147,7 @@ feedback   回馈
 Insulation   绝缘
 OOP			面向对象编程 object of program
 hobby		爱好
+
+
+batch  批量
+sparseArr  稀疏数组

@@ -8776,6 +8776,7 @@ U8 QueueInit(u8DataQueue  * Queue,U8 *uBuff,U16 uSize)
     Queue->head=0;
     Queue->tail=0;
     Queue->size=uSize;//
-    Queue->lpBuffer=uBuff;//指针直接指向 全局变量数组地址 ，不用非得给这个地址malloc空间去操作
+	//自己malloc的空间 不用了还得自己 free，全局的空间不用自己操心
+    Queue->lpBuffer=uBuff;//指针直接指向 全局变量数组地址 ，不用非得给这个地址malloc空间去操作 
     return 1;
 }

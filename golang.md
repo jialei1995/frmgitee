@@ -2865,7 +2865,7 @@ string(字符串) Hash(哈希) List(列表) Set(集合) zset(有序集合)
 mset 同时设置一至多对数据
 mget 同时获取多对数据
 
-存放 哈希 数据（结构体）
+存放 哈希 数据（结构体）---键 不可重复
 `hset user1 name smith`
 `hset user1 age 30`
 `hset user1 job golangcoder`
@@ -2876,7 +2876,145 @@ mget 同时获取多对数据
 `hmget user2 name age job`  一次性获取三个属性
 `hexists key field`  查看key的field属性是否存在  返回1/0 存在/不存在
 
+List 操作：
+lpush citys jiagang xiangfen fencheng
+（lpush key value [value ...]）
+lrange citys 0 -1 (全部取出)
+127.0.0.1:6379> lrange citys 0 -1  取出来是相反的顺序
+1) "fencheng"
+2) "xiangfen"
+3) "jiagang"
+lpush：左边插入
+rpush：右边插入
+lrange：从左边取出
+lpop：从左边弹出一个数据  List中会少一个
+rpop: 从右边弹出一个数据 
+del citys  删除List 对象
+llen  查看长度
 
+Set 操作：
+元素是无序，且不能重复的
+127.0.0.1:6379> sadd email 642@qq.com  插入
+127.0.0.1:6379> smembers email  查看
+srem 删除指定值
+
+### golang 操作redis
+下载库（golang 操作redis的库）
+在 /root/go（GOPATH）:执行 go get github.com/garyburd/redigo/redis
+则可以看到 /root/go/src/github.com 表示库安装成功
+
+```go
+//操作string 类型redis
+package main
+import (
+    "fmt"
+    "github.com/garyburd/redigo/redis" //import redis package
+)
+func main(){
+    //connect
+    coon,err := redis.Dial("tcp","127.0.0.1:6397")
+    if err!=nil{
+       fmt.Println("Dial fial",err)
+       return
+    }
+	defer coon.Close() //记住最后一定关闭库 
+	_,err = coon.Do("set","name","tom")
+	if err!=nil{
+		fmt.Println("set err",err)
+	}
+	//返回的res是空接口，需要转换,怎么转换呢
+	res,err := coon.Do("get","name")
+	if err!=nil{
+		fmt.Println("get err",err)
+	}
+	//namestring := res.(string) 类型断言 不能用
+	//redis库提供了方法  直接将get 结果转成 string
+	res,err := redis.String(coon.Do("get","name"))
+	if err!=nil{
+		fmt.Println("get err",err)
+	}
+    fmt.Println("connect success",coon)
+}
+
+```
+
+```go
+//operation hash type data
+_,err = coon.Do("hset","user01","name","jack")
+_,err = coon.Do("hset","user01","age",18)  //18 写成string 也可以，因为入参是空接口类型 
+//get data
+r1,err = redis.String(coon.Do("hget","user01","name"))
+r2,err = redis.Int(coon.Do("hget","user01","age"))  //结果是年龄，数字
+
+//batch operation set get data
+_,err = coon.Do("Mset","name","user01","addr","beijing")
+res,err = redis.Strings(coon.Do("Mget","name","age"))
+redis.Strings  
+res = 切片 
+for i,v := range res{  
+}
+```
+
+//List 操作
+查表
+
+## 数据结构 算法 
+复杂数据转成稀疏数组
+怎么存
+```go
+package main
+import (
+    "fmt"
+)
+
+type ValNode struct{
+    row int
+    col int
+    val int
+}
+
+func main(){
+    var chessMap[11][12]int
+    chessMap[1][2]=1 //black
+    chessMap[2][3]=2 //white
+
+    for _,v:=range chessMap{
+        for _,v2 :=range v{
+            fmt.Printf("%d\t",v2)
+        }
+        fmt.Println()
+    }
+    //how to save above data
+    //1 trave chessMap ,if cur pos not equl 0,save to node
+    var sparseArr []ValNode
+    //标准的稀疏数组 首先要表示原始行列规模,表示其他位置 都为0
+    valnode := ValNode{
+        row:11,
+        col:12,
+        val:0,
+    }
+    sparseArr=append(sparseArr,valnode)
+
+    for i,v:=range chessMap{
+        for j,v2:=range v{
+            if v2!=0{
+                //create ValNode
+                valnode := ValNode{
+                    row:i,
+                    col:j,
+                    val:v2,
+                }
+                sparseArr=append(sparseArr,valnode)//append data to res
+            }
+        }
+    }
+    //output sparseArr
+    for _,v2:= range sparseArr{
+        fmt.Printf("row=%d,col=%d,val=%d\n",v2.row,v2.col,v2.val)
+    }
+}
+
+```
 
 
 
