@@ -2751,3 +2751,132 @@ start := time.Now().Unix()
 写框架的时候 会用到
 
 ## 网络编程
+
+客户端服务器通讯
+ser.go
+```go
+package main
+import "fmt"
+import "net"
+import "io"
+func threadForClient(conn net.Conn){
+    //处理某个客户端的数据
+    defer conn.Close() //函数退出 一定要退出
+    for{
+        buf:=make([]byte,1024)
+        //阻塞 等待客户端发来数据。若cli退出，也会收到返回值 io.EOF
+        n,err:=conn.Read(buf) //读clinet传来的数据
+        if err==io.EOF{ //只有客户端退出 才会收到此 EOF标志
+            fmt.Println("client had  exit")
+            break
+        }
+        //show client meg,只显示到n 否则buf中后面的数据全部显示
+        fmt.Print(string(buf[:n])) //不用换行，客户端发来就是带换行的
+    }
+}
+func main(){
+    fmt.Println("ser正在监听...")
+    listen,err := net.Listen("tcp","0.0.0.0:8888")
+    if err != nil{
+        fmt.Println("listen fail")
+        return
+    }
+    //listen is a socket
+    //in case forget colse
+    defer listen.Close()
+    //for wait cli connect
+    for{
+        fmt.Println("wait for connect...")
+        conn,err:=listen.Accept()  //阻塞直到cli链接
+        if err!=nil{
+            fmt.Println("Accept err")
+        }
+        //get client ip and port
+        fmt.Printf("accept success con=%v  ip=%v",conn,conn.RemoteAddr().String())
+        go threadForClient(conn) //每次有客户端链接 建立一个 协程处理
+    }
+}
+```
+
+cli.go
+```go
+package main
+import "fmt"
+import "net"
+import "bufio"
+import "os"
+func main(){
+    conn,err:=net.Dial("tcp","0.0.0.0:8888")
+    if err!=nil{
+        return
+    }
+    //function1:发送单行数据 创建句柄 来自stdin
+    reader:=bufio.NewReader(os.Stdin)
+    for{
+    //from stdin get data  get一行
+    line,err := reader.ReadString('\n')
+    if err!=nil{
+        return
+    }
+
+    //send data to ser ,先转成byte 切片再转发
+    n,err:=conn.Write([]byte(line))
+    if err!=nil{
+        return
+    }
+    fmt.Println("client send ok len=",n)
+
+    }
+}
+```
+
+
+## redis数据库
+remote directory server 服务器
+下载redis-server
+直接执行redis-server 启动服务端
+netstat -anp |grep redis 可以看到6379号端口已处于listen状态
+直接执行redis-cli 运行客户端
+```c
+127.0.0.1:6379> set key1  hello  往数据库存入key1:"hello"
+OK
+127.0.0.1:6379> get key1    取值
+"hello"
+//redis 默认有16个数据库 默认打开的0号数据库
+//切换数据库 1号
+127.0.0.1:6379>  select 1
+OK
+127.0.0.1:6379[1]> get key1  1号中无key1
+(nil)
+127.0.0.1:6379[1]>  select 0
+OK
+127.0.0.1:6379> get key1
+"hello"
+dbsize ：查看当前数据库有几对数据（key-val）
+flushdb:清空当前所在的数据库
+flushall：清空16个数据库
+```
+
+redis支持的数据类型：
+string(字符串) Hash(哈希) List(列表) Set(集合) zset(有序集合)
+存在于内存中，一旦服务器停止就没了。
+
+其他命令：
+mset 同时设置一至多对数据
+mget 同时获取多对数据
+
+存放 哈希 数据（结构体）
+`hset user1 name smith`
+`hset user1 age 30`
+`hset user1 job golangcoder`
+`hget user1 name`  获取name
+`hgetall user1`   一次性获取所有的数据
+`hdel user1`  从库删除
+`hmset user2 name jerry age 20 job "java coder"`  有空格用双引号包起来
+`hmget user2 name age job`  一次性获取三个属性
+`hexists key field`  查看key的field属性是否存在  返回1/0 存在/不存在
+
+
+
+
+
