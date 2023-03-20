@@ -9,7 +9,7 @@ void MX_DMA_Init(void)
   /* DMA controller clock enable ,使能DMA控制器时钟*/
   __HAL_RCC_DMA1_CLK_ENABLE();
   /* DMA interrupt init */  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0); 设置优先级 
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0); 设置优先级
   HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);  使能DMA的这个中断
 }
 void MX_SPI1_Init(void)
@@ -43,7 +43,7 @@ void MX_SPI1_Init(void)
   while (wTransferState == TRANSFER_WAIT)//如果传输没完成，继续等待---程序可以在发送完成的钩子函数中将wTransferState置成TRANSFER_COMPLETE
   {
   }
-  
+
   switch(wTransferState)
   {
     case TRANSFER_COMPLETE ://传输完成
@@ -51,10 +51,10 @@ void MX_SPI1_Init(void)
 	  if(Buffercmp((uint8_t*)aTxBuffer, (uint8_t*)aRxBuffer, BUFFERSIZE))//比较接收的内容跟发送的内容是否一致
       {
         /* Processing Error */
-        Error_Handler();     
+        Error_Handler();
       }
     break;
-    default : 
+    default :
       Error_Handler();
     break;
   }
@@ -69,7 +69,7 @@ SPI做从机：
 
 SPI主机设置：
 SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
-SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;  
+SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
 SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;//主机上升沿采样 下降沿输出
 
 主机是主动发消息的，则可以主动的收消息，不需要开spi的接收中断
@@ -114,10 +114,10 @@ SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
 SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_RXNE,ENABLE);
 SPI_I2S_ITConfig(SPI1, SPI_I2S_IT_TXE,ENABLE);
 
-#define  FRAME_HEAD						0x0  
-#define  FRAME_LEN						0x1  
-#define  FRAME_CONTENT					0x2  
- 
+#define  FRAME_HEAD						0x0
+#define  FRAME_LEN						0x1
+#define  FRAME_CONTENT					0x2
+
 协议：0x53 lenh lenl 数据内容
 void SPI_ISR(void)	// 如何在接收到SPI数据的时候  将数据分类整理
 {
@@ -146,7 +146,7 @@ void SPI_ISR(void)	// 如何在接收到SPI数据的时候  将数据分类整�
 					tempBUff[recvCNT++]=u8Data;//接收数据
 					sendCRC^=u8Data;
 				}
-			  	if(recvCNT==2)  
+			  	if(recvCNT==2)
 				{
 				  	recvCNT=(U16)((tempBUff[0]<<8)|tempBUff[1]);//要收 recvCNT 个数据
 					recvState=FRAME_CONTENT;//进入下一阶段
@@ -160,7 +160,7 @@ void SPI_ISR(void)	// 如何在接收到SPI数据的时候  将数据分类整�
 					u8Data=*txpBuff++;
 					sendCRC^=u8Data;
 		     		SPI_PutData(u8Data);
-					sendCNT++;					
+					sendCNT++;
 				}
 				if(sendCNT==recvCNT)//所有长度的数据 收完整了
 				{
@@ -172,7 +172,7 @@ void SPI_ISR(void)	// 如何在接收到SPI数据的时候  将数据分类整�
 				break;
 	  	default:
 			break;
-		}	
+		}
 	}
 }
 
@@ -189,22 +189,22 @@ static void CS_ISR(void)
 			recvCNT=0;
 			sendCNT=0;
 			RecvCMDFlag=0;
-			RecvCMDCNT= 0;		
+			RecvCMDCNT= 0;
 		if(GPIO_ReadInputDataBit(INTER_CS_PORT,INTER_CS_PIN)==0)//
 		{
 			GPIO_InitStructure.GPIO_Pin =  INTER_MISO_PIN;
 			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; 
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 			GPIO_Init(INTER_MISO_PORT, &GPIO_InitStructure);
 			SPI_Cmd(SPI1, ENABLE);//主机要跟自己通讯 使能spi miso设置成 af_pp 模式
-			
+
 		}
 		else
 		{
 			SPI_Cmd(SPI1, DISABLE);//主机不跟自己说话了，浮空miso 自己的发送管脚
 			GPIO_InitStructure.GPIO_Pin =  INTER_MISO_PIN;
 			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 			GPIO_Init(INTER_MISO_PORT, &GPIO_InitStructure);
 		}
 	}
@@ -319,7 +319,7 @@ static void CS_ISR(void)
 > 	先在peripheral register boundary addresses章节找到对应的外设占用的边界地址，
 > 	然后去对应外设的register map章节查找对应reg的偏移量确认reg的精确地址。
 > 	或者用第一次找到的addr->datareg  这样去找数据reg
-> 	
+>
 >
 > 	dma_init() dma的初始化
 > 	{
@@ -335,7 +335,7 @@ static void CS_ISR(void)
 > 		使能对应的dmax时钟---dmax也算是外设
 > 		使能对应的adcx时钟
 > 		设置gpio为模拟输入
-> 		设置变量的pin为对应的pin	
+> 		设置变量的pin为对应的pin
 > 	}
 > 	adc_init()
 > 	{
@@ -416,7 +416,7 @@ SQR寄存器控制着转换通道的数目和转换顺序，只要在对应的�
 ADC也需要一个触发信号来实行模/数转换。
 其一就是通过直接配置寄存器触发，通过配置控制寄存器CR2的ADON位，写1时开始转换，写0时停止转换。在程序运行过程中只要调用库函数，将CR2寄存器的ADON位置1就可以进行转换，比较好理解。
 另外，还可以通过内部定时器或者外部IO触发转换，也就是说可以利用内部时钟让ADC进行周期性的转换，也可以利用外部IO使ADC在需要时转换，具体的触发由控制寄存器CR2决定。
-五.数据寄存器 
+五.数据寄存器
 转换完成后的数据就存放在数据寄存器中，但数据的存放也分为规则通道转换数据和注入通道转换数据的。
 规则数据寄存器负责存放规则通道转换的数据，通过32位寄存器ADC_DR来存放。
 当使用ADC独立模式（也就是只使用一个ADC，可以使用多个通道）时，数据存放在低16位中，当使用ADC多模式时高16位存放ADC2的数据。
@@ -438,7 +438,7 @@ typedef union
 {
     uint32_t word;
     struct
-    {   
+    {
         uint8_t byte_1:8; 0x01  在低字节
         uint8_t byte_2:8; 0x02
         uint8_t byte_3:8; 0x03
@@ -481,9 +481,9 @@ typedef union
 
 > > https://blog.csdn.net/zhanghuaichao/article/details/48266309 对iic的解读，每个函数定义
 >
-> IIC驱动程序：基于stm32f10x_ll_iic.c 固件库 
-> 	分为总线的驱动iic.c与器件的驱动程序lm75a.c 
-> 	iic.c中集成：iic配置初始化函数	
+> IIC驱动程序：基于stm32f10x_ll_iic.c 固件库
+> 	分为总线的驱动iic.c与器件的驱动程序lm75a.c
+> 	iic.c中集成：iic配置初始化函数
 > 初始化gpio+初始化iic控制器--注意需要开启对应iic控制器的时钟与对应的gpio的时钟
 > 发送一个字节：按照协议->start->sendaddr+rw->senddata->stop
 > 发送buffer：start->slaveaddr->while(datelen>0){发送一个byte;datebuf++}->stop
@@ -495,7 +495,7 @@ typedef union
 > 						start；等待
 > 						sendslaveaddr；等待有没有数据
 > 						stop（）；
-> 						buf=databuf(iic);将收到的datareg中的数据放到buf中返回。					
+> 						buf=databuf(iic);将收到的datareg中的数据放到buf中返回。
 > 					}
 > ```
 >
@@ -533,7 +533,7 @@ typedef union
 > 	GPIO_WritePin(IIC_GPIO_INFO[x].SDA_PORT, IIC_GPIO_INFO[x].SDA_PIN, GPIO_PIN_RESET);先让数据线为0
 > 	Soft_Delay(2);延时，这里的实现就是让一个数递减，很占用cpu，可以用timer优化吗？
 > 	I2C_SCL_1(IICNum);让scl为1
-> 	Soft_Delay(1);延时 
+> 	Soft_Delay(1);延时
 > 	I2C_SDA_1(IICNum);数据线为1
 > 	Soft_Delay(2);延时
 > }
@@ -544,7 +544,7 @@ typedef union
 > start->ack->slaveaddr->ack->data->ack->data->ack->data->ack->stop
 > ```
 >
-> 
+>
 sda与scl之前类似于之前的一线通的tx引脚与rx引脚电平
 只有tx为1的时候才能读rx，否则无效。
 
@@ -559,7 +559,7 @@ sda与scl之前类似于之前的一线通的tx引脚与rx引脚电平
 ### gpio
 引脚设置为pp输出，读的时候就要读
 GPIOB->ODR&GPIO_PIN_X  输出数据寄存器
-引脚设置为输入模式，读的时候就要读 
+引脚设置为输入模式，读的时候就要读
 GPIOB->IDR&GPIO_PIN_X  输入数据寄存器
 STM32怎么读取输出口电平？
 其实你自己在库函数源文件也能找到，以PC13为例：
@@ -605,13 +605,13 @@ GPIOx->ODR
 > 	flash写：传入flash中的add，传入要写入的data。
 > 	固件库中提供了很多对flash的op函数
 > 	{
-> 		1.需要在这里或者外部提前开启flash的时钟            
+> 		1.需要在这里或者外部提前开启flash的时钟
 > 		2.flash_unlock();  固定操作，每次操作前都要先解锁
 > 		3.清除标志位x,y,z
 > 		4.flash_erasepage(add); 清除要写的地址的数据，要以页的方式擦除
 > 		5.flash_programword(add,data); 调用固件库函数从指定页的add开始写入data
 > 		6.清除标志位x,y,z
-> 		7.flash_lock(); 
+> 		7.flash_lock();
 > 	}
 > 	flash读：传入add即可
 > 	{
@@ -620,7 +620,7 @@ GPIOx->ODR
 > 	}
 > ```
 >
-> 操作一定是先擦除再写入，每页1024个地址，起始地址0x08000000 
+> 操作一定是先擦除再写入，每页1024个地址，起始地址0x08000000
 > 擦除以页为单位，写操作必须以16bit为单位，允许跨页写
 > 擦除时注意避开用户程序的存储区域，避免擦除掉用户程序
 >
@@ -718,7 +718,7 @@ reg的映射过程演变：
 	操作： *GPIOB_ODR=0xffff；  这种方法往地址写数据
 4.为了更方便：
 	#define GPIOB_ODR *(unsigned int)(0x12345678)
-	操作： GPIOB_ODR=0xffff；   
+	操作： GPIOB_ODR=0xffff；
 	c语言对总线外设基地址的映射通过头文件，这里的都是地址的映射，都没有带*
 		define ahb  0x1
 		define apb ahb+x
@@ -746,8 +746,8 @@ reg的映射过程演变：
 > 3.外设相关 stm32f10x.h  实现内核之外的外设的reg映射
 > 	stm32f10x_xx.c 外设的初始化struct，外设的驱动函数库文件（这个文件很多
 > 	种类例如：stm32f10x_gpio.h stm32f10x_uart.h stm32f10x_iic.h等等）
-> 4.内核相关 core_cm3.h 实现内核里面的外设的reg映射 
-> 5.头文件的配置文件 stm32f10x_conf.h 
+> 4.内核相关 core_cm3.h 实现内核里面的外设的reg映射
+> 5.头文件的配置文件 stm32f10x_conf.h
 > 	头文件的头文件，这个头文件中已经include了所有外设用的头文件
 > 	例如：stm32f10x_gpio.h stm32f10x_uart.h stm32f10x_iic.h但是都是屏蔽的
 > 	所以我们只需要包含这个一个头文件，将这个文件中的相关的include去掉屏蔽即可。
@@ -795,7 +795,7 @@ reg的映射过程演变：
 > {
 > 	int i=0;
 > 	uint8_t buf[12] = {0};
-> 	uint16_t var=0x1023; 
+> 	uint16_t var=0x1023;
 > 	buf[0] = var>>8; buf[0]只取var>>8的低8bit
 > 	buf[1] = var;buf[1]只取var的低8bit，高bit不管
 > 	printf("%x--%x\n",buf[0],buf[1]); 0x10 0x23
@@ -803,7 +803,7 @@ reg的映射过程演变：
 > }
 > ```
 >
-> 
+>
 
 ## bootloader
 
@@ -1030,7 +1030,7 @@ spi_init()
 	spi_initstruct.SPI_BaudRatePrescaler = SPI_BaudRATEPrescaler_2;   设置时钟分频因子
 	spi_initstruct.SPI_FirstBit = SPI_FirstBit_MSB;    设置MSB/LSB先行，一般设置msb先发
 	spi_initstruct.SPI_CRCPolynomial = 0;   不使用crc校验，随便设置一个数字
-	
+
 	SPI_Init(SPI1,&spi_initstruct);
 	SPI_CMD(SPI1,ENABLE);
 }
@@ -1056,7 +1056,7 @@ uint8_t SPI_FLASH_SEND_and_RECEIVE_BYTE(uint8_t data){
 }
 
 上面的发送函数同时实现了读写功能，就是读的时候每次都需要先发1byte数据，我们可以重定义一个read函数，发没用的0x00然后
-收数据，更好。这样读的时候就不需要发有用的cmd，随便发个数据就好了 
+收数据，更好。这样读的时候就不需要发有用的cmd，随便发个数据就好了
 uint8_t SPI_FLASH_RECEIVE_BYTE(uint8_t data){
 	return SPI_FLASH_SEND_and_RECEIVE_BYTE(0x00);
 }
@@ -1126,7 +1126,7 @@ SPI：因为接收数据的时候可以同时发送数据，所以我们一般�
 优势。所以我们一般都会在收到数据后直接就看有没有要发的数据在去发。
 发的数据与收的数据本身没有啥关系。
 
------------------为啥手接零线还是会触电 
+-----------------为啥手接零线还是会触电
 我们摸零线的时候我们与大地与火线其实已经形成了回路，相当于我们接了火线。
 ----------------为什么一线通的一端要接P-
 只是用来证明mos没通的时候无法进行一线通通信，并不会有危险。错错错，会有危险。
@@ -1190,12 +1190,12 @@ i2c read的时候，master在接收完slave发送的最后一个字节之后会�
 s+addr+r/w+ack+stop  不需要发送data，r/w就是1/0就可以控制dcdc的开或关。
 IIC的read/write与smbus的read/write不同，我们平时接触的大多IIC器件其实都用的是smbus协议
 ps:
-iic的block write 
+iic的block write
 s+addr w+ack+interl reg+ack+datax+ack+stop
-smbus的block write 
+smbus的block write
 s+addr w+ack+interl reg+byte_count+ack+datax+ack+stop
 
-iic的block read 
+iic的block read
 s+addr w+ack+interl reg+ack+restart+addr r+datax+nack+stop
 smbus的block read
 s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
@@ -1204,7 +1204,7 @@ s+addr w+ack+interl reg+ack+restart+addr r+byte_count+ack+datax+nack+stop
 
 ## 对enum的学习 struct中的：占位
 
-1. 
+1.
 enum DAY
 {
    MON=1, TUE, WED, THU, FRI, SAT, SUN
@@ -1298,22 +1298,22 @@ ringBuffer_t var= {0,0,{0},0,0,100};  对结构体中有数组的变量可以直
 {
 	定义LL_USART_InitTypeDef结构体变量；
 	定义LL_GPIO_InitTypeDef结构体变量；
-        
+
     使能uart1/2时钟，这个是外设时钟；
     使能具体gpio时钟，uart1/2用的那个管脚
-        
+
     LL_GPIO_InitTypeDef.成员={pin,模式（输入、输出、复用）,速度,
                             输出类型（推挽、开漏）--串口就设置推挽,
                            Pull(no,pull up,pull down)--一般硬件管理？我们设置no即可，
                            Alternate(LL_GPIO_AF_1)--复用哪个功能，有iic，uart，mco，time查datesheet可知}
     配置完之后初始化一下此配置的pin,则当前变量没用了，对下一个pin初始化。
-        
+
     配置中断优先级并且使能中断。
-    
+
     对LL_USART_InitTypeDef结构体变量的初始化。
     PrescalerValue，波特率，datewidth，stopbit，Parity，TransferDirection，HardwareFlowControl，OverSampling
     配置完之后init这个变量
-        
+
     LL_USART_ConfigAsyncMode(USART1); --异步
 	LL_USART_EnableIT_RXNE(USART1); --？
 	LL_USART_EnableIT_IDLE(USART1); --？
@@ -1325,7 +1325,7 @@ ringBuffer_t var= {0,0,{0},0,0,100};  对结构体中有数组的变量可以直
 uart 485 的发送：有意思的处理方式
 void USART1_SendByte( uint16_t len)
 {
-	RS485_RxDen();//使能DE 管脚 
+	RS485_RxDen();//使能DE 管脚
 	LL_mDelay(1);
 	RS485sendLen= len;
 	RS485sendnum= 0;
@@ -1396,12 +1396,12 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_1, LL_ADC_SAMPLINGTIME_160CYCLES_5);
 	LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_2, LL_ADC_SAMPLINGTIME_160CYCLES_5);
 	LL_ADC_EnableInternalRegulator(ADC1);
-	
+
 	/* Delay for ADC internal voltage regulator stabilization. */
 	ADC_VREFINT_CAL= *(uint16_t*)0x1FFF75AA;
 	//ADC_VREFINT_DATA= LL_ADC_GetCalibrationFactor(ADC1);
 	//printf("ADC_VREFINT_CAL=%d\r\n",ADC_VREFINT_CAL);
-	
+
 	ADC_Calibration();
 	uint32_t wait_loop_index;
 	wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
@@ -1437,15 +1437,15 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;  向上计数
 	TIM_InitStruct.Autoreload = 500;  计数到500停
 	TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;  再分频
-	TIM_InitStruct.RepetitionCounter = 0;  
+	TIM_InitStruct.RepetitionCounter = 0;
 	LL_TIM_Init(TIM16, &TIM_InitStruct);
-	
-	
+
+
 	stm32f103:内部8m内部高速时钟
-	TIM_TimeBaseStructure.TIM_Period=8-1;		 分频后1m									
-	TIM_TimeBaseStructure.TIM_Prescaler= freq*1000;		再分频100，则步进1s/100=10ms进一次中断		    
-	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1; 		
-	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up; 
+	TIM_TimeBaseStructure.TIM_Period=8-1;		 分频后1m
+	TIM_TimeBaseStructure.TIM_Prescaler= freq*1000;		再分频100，则步进1s/100=10ms进一次中断
+	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
 这里初始化里面没有开定时器的中断，可能在外面是开了的。
     定时器的作用：
     1.计算时间--不开中断，不连接pin脚
@@ -1459,7 +1459,7 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 		计数16bit
 		pclk1来自apb1，时钟最大36M，但是分到定时器上的时候可以倍频成72m，所以这两个定时器时钟最大72m
 		apb1上的其他外设最大时钟36m.
-	定时器最主要的部分：时基，包括 
+	定时器最主要的部分：时基，包括
 		预分频器 PSC  在时钟来源的基础上配置好TIM_XCLK，然后在TIM_XCLK的基础上再去预分频
 		计数器 CNT
 		自动重装载寄存器ARR   计数器计数到arr的数值就会自动归零，重新增加
@@ -1467,25 +1467,25 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	定时器分频算下来1us一格，我们设置arr为50000（因为最大65535，最多只要65ms就进一次中断）
 	我们可以在中断函数中定义全局变量var，每次进入中断时var+++，判断var==20的时候再去执行想执行的函数
 	相当于每1s执行一次想执行的函数，就实现了1s的定时。
-		
-	高级定时器：tim1 tim8 
-		计数16bit，可以上/下两边计数 tim1和tim8 
+
+	高级定时器：tim1 tim8
+		计数16bit，可以上/下两边计数 tim1和tim8
 		有4个gpio通道 其中几个通道可以输出PWM脉冲
 		时钟来自PCLK2 72M 可分频
 		时钟源多了几种选择，
 		增加输入捕获，输出比较，断路功能
-		
+
 	通用定时器：tim2 tim5 tim3 tim4
 		比基本定时器功能多，但是没有GPIO通道，不能输出脉冲
-		
-	
-	
-	
+
+
+
+
 ```
 
 ---
 
-#### rtc初始化--深度休眠rtc也不停,只要板子有电(后备寄存器中的数据 就不会消失  rtc就不会停止)  
+#### rtc初始化--深度休眠rtc也不停,只要板子有电(后备寄存器中的数据 就不会消失  rtc就不会停止)
 普通休眠后被唤醒后不需要重新初始化rtc,rtc一直就没停
 
 ```c
@@ -1516,7 +1516,7 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	    {
 	        LL_RTC_WaitForSynchro(RTC);
 	    }
-	    
+
 		LL_RTC_EnableWriteProtection(RTC);
 	return ;
 	}
@@ -1536,7 +1536,7 @@ LL库与HAL库类似，hal库体积比较大，ll库体积小。
 	sTime.TimeFormat= 0;
 	if (LL_RTC_TIME_Init(RTC,LL_RTC_FORMAT_BIN, &sTime) != SUCCESS)
 	{
-	
+
 	}
 	sDate.WeekDay = 2;
 	sDate.Month = LL_RTC_MONTH_JUNE;
@@ -1572,7 +1572,7 @@ CAN1_SendData(u32 CanID,u8 *buff,u8 bytes)
 	需要发送的数据需要在结构体里面包着
 	GT_CAN_CanMsg CanTxMessage;
 	标准函数进行发送     哪个can                  CanTxMessage中的帧id						标准帧还是扩展帧										 数据				数据长度
-	CAN_MessageTransmit( can_name_2, ( CAN_id_Status )( TxMsgData->IDE ), ( TxMsgData->IDE == GT_CAN_id_ext ) ? TxMsgData->ExtId : TxMsgData->StdId, TxMsgData->Data, TxMsgData->DLC );	
+	CAN_MessageTransmit( can_name_2, ( CAN_id_Status )( TxMsgData->IDE ), ( TxMsgData->IDE == GT_CAN_id_ext ) ? TxMsgData->ExtId : TxMsgData->StdId, TxMsgData->Data, TxMsgData->DLC );
 }
 
 void GT_CAN0_ReceiveMsg( GT_CAN_CanMsg* RxMsgData )
@@ -1599,12 +1599,12 @@ void    CAN_INIT( CAN_name name, CAN_bps bps )
 	switch( name )
 	{
 		case can_name_1:
-			CAN_1_Int();//配置gpio的模式 速度 
+			CAN_1_Int();//配置gpio的模式 速度
 			{
 					GPIO_InitTypeDef GPIO_InitStructure;
 					//使能io口的时钟
 					RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOA, ENABLE );
-					
+
 					GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
 					GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 					GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -1689,17 +1689,17 @@ void STM_Can1_RX_ISR(void)  can对应的中断处理函数
 void CAN1_Init(void)
 {
 	有这4个结构体需要初始化。
-	GPIO_InitTypeDef GPIO_InitStructure; 
+	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	CAN_InitTypeDef        CAN_InitStructure;
 	CAN_FilterInitTypeDef  CAN_FilterInitStructure;
 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-	/* 复用功能和GPIOB端口时钟使能*/    
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);                                                                      
+	/* 复用功能和GPIOB端口时钟使能*/
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);
 
 	/* CAN1 控制器时钟使能 */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE); 
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
 
 	/* Configure CAN pin: RX  引脚初始化 */  // PA11
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
@@ -1725,7 +1725,7 @@ void CAN1_Init(void)
 	CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;      //重新同步跳跃宽度1个时间单位
 	CAN_InitStructure.CAN_BS1=CAN_BS1_2tq;      //时间段1为3个时间单位
 	CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;      //时间段2为2个时间单位
-	CAN_InitStructure.CAN_Prescaler=12;         
+	CAN_InitStructure.CAN_Prescaler=12;
 	CAN_Init(CAN1,&CAN_InitStructure);         //利用这个can结构体初始化can控制器
 
 	/* CAN 过滤器设置 */
@@ -1739,7 +1739,7 @@ void CAN1_Init(void)
 	CAN_FilterInitStructure.CAN_FilterFIFOAssignment = CAN_FIFO0;
 	CAN_FilterInitStructure.CAN_FilterActivation = ENABLE;
 	CAN_FilterInit( &CAN_FilterInitStructure );  //初始化can过滤器
-    
+
 	/* enabling interrupt */
 	NVIC_InitStructure.NVIC_IRQChannel=USB_LP_CAN1_RX0_IRQn;对应can的中断处理函数
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
@@ -1754,7 +1754,7 @@ typedef struct{
 	uint8_t RateVal;
 	uint8_t CMD;
 	uint8_t IDVal;
-	
+
 	uint8_t BatCnt;
 	uint32_t BatUseFlag;
 	uint8_t RcvFlag;
@@ -1766,7 +1766,7 @@ void USB_LP_CAN1_RX0_IRQHandler()//针对收到的can数据，怎么处理
 	S_HALFWORD val;
 	CanRxMsg RxMessage;
 
-	CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);	收到的can数据存放到RxMessage结构体变量中		       
+	CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);	收到的can数据存放到RxMessage结构体变量中
 	if( RxMessage.StdId == 0x100 )//如果收到的标准帧id是100
 	{
 		val.bytes.byte_h = RxMessage.Data[1];
@@ -1778,7 +1778,7 @@ void USB_LP_CAN1_RX0_IRQHandler()//针对收到的can数据，怎么处理
 		DataFramID=1;
 		TIM_SetAutoreload(TIM3, ((10+ data.ID* 10)* 100));//:10us		  设置定时器频率
 		TIM_Cmd(TIM3, ENABLE);//										使能定时器
-		TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);				定时器已开启，则定时器中断中就会发对应的数据，按照定时器的频率		
+		TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);				定时器已开启，则定时器中断中就会发对应的数据，按照定时器的频率
 
 	}
 	else if( RxMessage.StdId == 0x101 )//如果收到的标准帧id是101
@@ -1789,14 +1789,14 @@ void USB_LP_CAN1_RX0_IRQHandler()//针对收到的can数据，怎么处理
 	else if(( RxMessage.StdId == 0x200 )&&(0x47 ==RxMessage.Data[0]))//修改下位机ID的指令
 	{
 		if((data.ID  == RxMessage.Data[1])||(0xff  == RxMessage.Data[1]))
-		{			
-				if((RxMessage.Data[2]<=24)&&(RxMessage.Data[2]>=1)) 
+		{
+				if((RxMessage.Data[2]<=24)&&(RxMessage.Data[2]>=1))
 				{
 					canrcv.IDVal = RxMessage.Data[2];
-					flag.bits.IDChange = 1;						
-				}		
+					flag.bits.IDChange = 1;
+				}
 		}
-		
+
 	}
 	if((0x130 == RxMessage.StdId)&&(0x89 == RxMessage.Data[0])&&(0x89 == RxMessage.Data[1])
 		&&(0xAB == RxMessage.Data[2])&&(0xAB == RxMessage.Data[3])
@@ -1806,43 +1806,43 @@ void USB_LP_CAN1_RX0_IRQHandler()//针对收到的can数据，怎么处理
 	}
 
 	if((0x188 == RxMessage.StdId)&&((data.ID == RxMessage.Data[0])||(0xff == RxMessage.Data[0])))
-	{		
-		CHG_LED = RxMessage.Data[1];	
+	{
+		CHG_LED = RxMessage.Data[1];
 		DSG_LED = RxMessage.Data[2];
 		WARN_LED = RxMessage.Data[3];
 		CHG_SWITH = RxMessage.Data[4];
 		DSG_SWITH = RxMessage.Data[5];
-	}		
+	}
 	if((0x189 == RxMessage.StdId)&&(data.ID == RxMessage.Data[0]))
-	{		
+	{
 		if((RxMessage.Data[2]<=125)&&(RxMessage.Data[2]>=85)&&(RxMessage.Data[1]==0x48))
 		{
 				canrcv.RateVal = RxMessage.Data[2];
-				flag.bits.RateChange = 1;	
+				flag.bits.RateChange = 1;
 		}
-	}	
+	}
 
 }
 
 
 uint8_t CAN_SendMsg(uint32_t id,uint8_t* buf,uint8_t len)
-{ 
+{
     uint8_t mbox;
-    uint32_t i=0; 
-    CanTxMsg TxMessage;  
+    uint32_t i=0;
+    CanTxMsg TxMessage;
 	if( id < 0x7ff )
 	{
-		TxMessage.StdId=id;     
+		TxMessage.StdId=id;
 		TxMessage.IDE=CAN_ID_STD;   //使用STD识符
 	}
 	else
 	{
-		TxMessage.ExtId=id;     
+		TxMessage.ExtId=id;
 		TxMessage.IDE=CAN_ID_EXT;   //使用扩展标识符
 	}
 
     TxMessage.RTR=CAN_RTR_DATA;
-    TxMessage.DLC=len;            
+    TxMessage.DLC=len;
     for(i=0;i<len;i++)
 	{
 		TxMessage.Data[i] = buf[i];  结构体中存放要发送的can数据
@@ -1851,7 +1851,7 @@ uint8_t CAN_SendMsg(uint32_t id,uint8_t* buf,uint8_t len)
     mbox= CAN_Transmit(CAN1, &TxMessage);  //TxMessage里面包含了can的结构与数据
     while((CAN_TransmitStatus(CAN1, mbox)!=CANTXOK)&&(i<0xFFFF))判断can发送状态是否成功
     {
-        i++;    
+        i++;
     }
     if(i>=0xFFFF)
         return 0;
@@ -1886,7 +1886,7 @@ IIC作为从机怎么配置使用
 /*---------IIC1---------------*/
 uint8_t  Buffer_Rx_IIC1[40];//接收缓存，接收buf
 uint8_t  Rx_Idx_IIC1=0;    //接收计数，记下当前读到哪里了
-uint8_t  Flag_RcvOK_IIC1 = 0;// 接收完成标志 
+uint8_t  Flag_RcvOK_IIC1 = 0;// 接收完成标志
 uint8_t  Tx_Idx_IIC1=0;    //发送计数，记下当前发到哪里了
 u8 Response_Message[40];  //发送缓存，发送buf
 
@@ -1906,12 +1906,12 @@ void I2C1_Configuration(void)
     I2C_DeInit(I2C1);
     .I2C_Mode = I2C_Mode_I2C;
     .I2C_DutyCycle = I2C_DutyCycle_2;
-    .I2C_OwnAddress1 = I2C1_Slave_Address; //从机地址，一定要设置正确                          
+    .I2C_OwnAddress1 = I2C1_Slave_Address; //从机地址，一定要设置正确
     I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
     I2C_InitStructure.I2C_AcknowledgedAddress= I2C_AcknowledgedAddress_7bit;
     I2C_InitStructure.I2C_ClockSpeed = 100000;
     I2C_Init(I2C1, &I2C_InitStructure);  初始化iic结构体
-        
+
     NVIC_InitStructure.NVIC_IRQChannel    = I2C1_EV_IRQn;//事件中断
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0;
@@ -1920,12 +1920,12 @@ void I2C1_Configuration(void)
 
     NVIC_InitStructure.NVIC_IRQChannel = I2C1_ER_IRQn;//错误中断
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;                 
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
     NVIC_Init(&NVIC_InitStructure);   初始化iic的err中断
 
-    I2C_ITConfig(I2C1, I2C_IT_BUF | I2C_IT_EVT |I2C_IT_ERR, ENABLE);   
-    I2C_Cmd(I2C1, ENABLE);                                             
+    I2C_ITConfig(I2C1, I2C_IT_BUF | I2C_IT_EVT |I2C_IT_ERR, ENABLE);
+    I2C_Cmd(I2C1, ENABLE);
 }
 
 从机的中断处理程序：
@@ -1937,7 +1937,7 @@ void I2C1_EV_IRQHandler(void)
     /* I2C1是从机(MSL = 0) */
   if((SR2Register &0x0001) != 0x0001)  //判断当前是从机模式
   {
-    /* 主机已发送地址，地址为被置位·(ADDR = 1: EV1(包括发送和接收)) 
+    /* 主机已发送地址，地址为被置位·(ADDR = 1: EV1(包括发送和接收))
        从模式下：地址匹配-0：地址不匹配或没有收到地址；1：收到的地址匹配
        表示有主机要与自己通信*/
     if((SR1Register & 0x0002) == 0x0002)
@@ -1966,10 +1966,10 @@ void I2C1_EV_IRQHandler(void)
         在主模式下，通讯结束之前，绝不能清除该位。）
         SR1Register = 0;
         SR2Register = 0;
-        Flag_RcvOK_IIC1 = 1;            
+        Flag_RcvOK_IIC1 = 1;
     }
 
-    /* 发送数据(TxE = 1: EV3、EV3-1) 
+    /* 发送数据(TxE = 1: EV3、EV3-1)
     TxE数据寄存器是否为空(发送时)，定义：0（数据寄存器非空）,1（数据寄存器空）-注意：在发送数据时，数据寄存器为空时该位被置’1’，在发送地址阶段不设置该位*/
     if((SR1Register & 0x0080) == 0x0080)
     {
@@ -1982,8 +1982,8 @@ void I2C1_EV_IRQHandler(void)
     {
         I2C1->SR1 &= 0xFDFF;
         SR1Register = 0;
-        SR2Register = 0;        
-    }       
+        SR2Register = 0;
+    }
   }
 
 }
@@ -1991,7 +1991,7 @@ void I2C1_EV_IRQHandler(void)
 　　当主机写入数据时，中断的执行顺序是EV1—>EV2—>EV4，其中有多个数据EV2会多次执行；
 　　当主机读取数据时，中断的执行顺序是EV1—>EV3—>EV3-2，本中断程序中将EV3和EV3-1合并了，若有多个数据，EV3将多次执行。
 
-    
+
 void I2C1_ER_IRQHandler(void) {
 
   __IO uint32_t SR1Register =0;
@@ -2002,9 +2002,9 @@ void I2C1_ER_IRQHandler(void) {
     if(I2C_GetITStatus(I2C1,I2C_IT_SMBALERT)) {
     }
     else if(I2C_GetITStatus(I2C1, I2C_IT_TIMEOUT)) {
-    } 
+    }
     else if(I2C_GetITStatus(I2C1, I2C_IT_PECERR)) {
-    } 
+    }
     else if(I2C_GetITStatus(I2C1, I2C_IT_OVR)) {
     }
     else if(I2C_GetITStatus(I2C1, I2C_IT_AF)) {
@@ -2016,15 +2016,15 @@ void I2C1_ER_IRQHandler(void) {
     }
         I2C1->CR1 |= 0x0001;
         SR1Register = 0;
-        SR2Register = 0;    
+        SR2Register = 0;
 }发送各种错误进行错误中断不做对应的处理，最后只进行清除寄存器（SR1和SR2）操作。
-```  
+```
 野火I2C硬件初始化流程：
 I2C_InitTypeDef 定义iicinit结构体，用这个结构体变量去初始化iic控制器
 
 1.初始化iic相关的gpio--pb6,pb7
 2.配置iic外设的工作模式
-3.编写iic的读写函数，有byte_write page_write  radom_read 函数 
+3.编写iic的读写函数，有byte_write page_write  radom_read 函数
 
 1.初始化iic相关的gpio--pb6,pb7
 2.配置iic外设的工作模式
@@ -2034,17 +2034,17 @@ I2C_EEPROM_CONFIG()
 	//打开i2c控制器的时钟
 	设置gpio结构体中scl的GPIO_MODE=GPIO_Mode_AF_OD;  推挽复用模式
 	设置gpio结构体中sda的GPIO_MODE=GPIO_Mode_AF_OD;  推挽复用模式
-	
+
 	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;  使能或关闭ack，一般都要使能ack
 	I2C_InitStructure.I2C_AcknowledgedAddress= I2C_AcknowledgedAddress_7bit;  指定地址长度7或10 bit
 	I2C_InitStructure.I2C_ClockSpeed = 100000;  指定速度100k
 	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;  指定占空比，火哥说好像没啥实际作用，默认随便配一个就行
 	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;  			还有smbus模式
-	I2C_InitStructure.I2C_OwnAddress1 = I2C1_Slave_Address; //从机地址，一定要设置正确                          
+	I2C_InitStructure.I2C_OwnAddress1 = I2C1_Slave_Address; //从机地址，一定要设置正确
 	I2C_Init(I2C1,&I2C_InitStructure);  初始化i2c1控制器
 	I2C_cmd(I2C1,enable);  使能i2c
 }
-3.编写iic的读写函数，有byte_write page_write  radom_byte_read radom_bytes_read函数 
+3.编写iic的读写函数，有byte_write page_write  radom_byte_read radom_bytes_read函数
 
 void EEPROM_write_byte(uint8_t addr,uint8_t data)往哪里写就得在哪里读
 {
@@ -2052,22 +2052,22 @@ void EEPROM_write_byte(uint8_t addr,uint8_t data)往哪里写就得在哪里读
 	I2C_GenerateSTART(I2C1,ENABLE);
 	//检测EV5事件,即I2C_EVENT_MASTER_MODE_SELECT，若start失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-	
+
 	//发送设备地址,是写操作，所以是I2C_Direction_Transmitter方向
 	I2C_Send7bitAddress(I2C1,从机地址，I2C_Direction_Transmitter);
 	//检测EV6事件，即 I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED,若发送地址失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-	
+
 	//发送要写的存储单元地址
 	I2C_SendData(I2C1,addr);
 	//检测EV8事件，还未完成
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_BYTE_TRANSMITTING)==ERROR);
-	
+
 	//发送要写的数据
 	I2C_SendData(I2C1,data);
 	//检测EV8_2事件,发送完成
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
-	
+
 	//产生结束信号
 	I2C_GenerateSTOP(I2C1,ENABLE);
 }
@@ -2081,17 +2081,17 @@ void EEPROM_page_write(uint8_t addr,uint8_t *data，uint8_t num_to_write)
 	I2C_GenerateSTART(I2C1,ENABLE);
 	//检测EV5事件,即I2C_EVENT_MASTER_MODE_SELECT，若start失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-	
+
 	//发送设备地址,是写操作，所以是I2C_Direction_Transmitter方向
 	I2C_Send7bitAddress(I2C1,从机地址，I2C_Direction_Transmitter);
 	//检测EV6事件，即 I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED,若发送地址失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-	
+
 	//发送要写的存储单元地址
 	I2C_SendData(I2C1,addr);
 	//检测EV8事件，还未完成
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_BYTE_TRANSMITTING)==ERROR);
-	
+
 	while(num_to_write)
 	{
 		//发送要写的数据
@@ -2111,28 +2111,28 @@ void radom_bytes_read(uint8_t addr,uint8_t* data,uint8_t num_to_read)从哪个�
 	I2C_GenerateSTART(I2C1,ENABLE);
 	//检测EV5事件,即I2C_EVENT_MASTER_MODE_SELECT，若start失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-	
+
 	//发送设备地址,是写操作，所以是I2C_Direction_Transmitter方向
 	I2C_Send7bitAddress(I2C1,从机地址，I2C_Direction_Transmitter);
 	//检测EV6事件，即 I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED,若发送地址失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-	
+
 	//发送要读取的存储单元地址
 	I2C_SendData(I2C1,addr);
 	//检测EV8事件，还未完成
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_BYTE_TRANSMITTING)==ERROR);
-	
+
 	//第2次产生起始信号
 	I2C_GenerateSTART(I2C1,ENABLE);
 	//检测EV5事件,即I2C_EVENT_MASTER_MODE_SELECT，若start失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-	
+
 	//发送设备地址,是读操作，所以是I2C_Direction_Receiver方向
 	I2C_Send7bitAddress(I2C1,从机地址，I2C_Direction_Receiver);
 	//检测EV6读事件，即 I2C_EVENT_MASTER_Receiver_MODE_SELECTED,若发送地址失败则阻塞
 	while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_Receiver_MODE_SELECTED)==ERROR);
-	
-	//接收数据 
+
+	//接收数据
 	while(num_to_read){
 		if(num_to_read == 1){  如果是最后一个字节，则主机要给从机说我读完了，不读了，返回nack信号
 			I2C_AcknoledgeConfig(I2C1,DISABLE);
@@ -2140,10 +2140,10 @@ void radom_bytes_read(uint8_t addr,uint8_t* data,uint8_t num_to_read)从哪个�
 		//检测EV7事件，即数据寄存器已经读到有效数据，此时可以去取数据了
 		while(I2C_CheckEvent(I2C1,I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		*data = I2C_ReceiveData(I2C1);
-		data++;  
+		data++;
 		num_to_read--;
 	}
-	
+
 	//产生结束信号
 	I2C_GenerateSTOP(I2C1,ENABLE);
 	//重新配置ack使能，则主机默认回复的时候回复ack.如果配置成disable，则每次主机收到数据回复nack信号
@@ -2180,11 +2180,11 @@ HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN)  开启alarm闹钟唤醒。
 void setalarm(int hours, int minutes, int seconds)
 {
     RTC_AlarmTypeDef sAlarm = {0};
-    RTC_DateTypeDef sdate = {0};    
+    RTC_DateTypeDef sdate = {0};
     RTC_TimeTypeDef stime = {0};
 
-    //读取当前时间 
-    HAL_RTC_GetTime(&hrtc, &stime, RTC_FORMAT_BIN); 
+    //读取当前时间
+    HAL_RTC_GetTime(&hrtc, &stime, RTC_FORMAT_BIN);
     HAL_RTC_GetDate(&hrtc, &sdate, RTC_FORMAT_BIN);
     //获取设置中断时的时间
     sAlarm.Alarm = RTC_ALARM_A;
@@ -2230,12 +2230,12 @@ void setalarm(int hours, int minutes, int seconds)
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 {
     static uint16_t sEnterCnt = 0;
-    
+
     setalarm(0,0,5);	//设置当前时候的 5s 后再次产生闹钟中断
     printf("Alarm A Interrupt Cnt:%d \r\n",sEnterCnt++);
 }
 
-    
+
 ```
 
 ---
@@ -2246,12 +2246,12 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 union长度怎么计算
     struct的大小计算根据成员的对齐，大小肯定是对齐字节的整数倍。
     union的长度取决于其中的长度最大的那个成员变量的长度。即union中成员变量是重叠摆放的，其开始地址相同。union(共用体)的各个成员是以同一个地址开始存放的,每一个时刻只可以存储一个成员
-   union   mm{   
-  char   a;//元长度1   
-  int   b[5];//元长度4   
-  double   c;//元长度8   
+   union   mm{
+  char   a;//元长度1
+  int   b[5];//元长度4
+  double   c;//元长度8
   int   d[3]; //元长度4
-  };   
+  };
 本来mm的空间应该是sizeof(int)*5=20;但是如果只是20个单元的话,那可以存几个double型(8位)呢?两个半?当然不可以,所以mm的空间延伸为既要大于20,又要满足其他成员所需空间的整数倍,,因为含有double元长度8，故大小为24。
 ```
 
@@ -2271,11 +2271,11 @@ union长度怎么计算
 	（2-2.5）--3.2--3.65
 	有些自己生产的电芯，电芯容量可以做到13Ah，是普通18650的5-6倍的容量。
 	电池充放电的单位：
-	1C=1A*s 
+	1C=1A*s
 	1Ah=3600C 1mAh=3.6C
 ```
 
-	
+
 -------------FreeRTOS：
 如何确定stack大小：
 1.定义一个优先级最低得额外任务，计算其他所有任务消耗得栈利用率
@@ -2285,7 +2285,7 @@ union长度怎么计算
 keil的配置output文件夹下的晶振配置需不需要配置呢？
 start.c文件中SYSTEM_CLOCK就是时钟，配置的晶振时钟需要与它一致。
 
-	
+
 在main.c文件最上面需要定义每个任务的栈大小：
 StackType_t Task1Stack[20];
 StackType_t Task2Stack[20];
@@ -2295,7 +2295,7 @@ StackType_t TasknStack[20];
 
 定义任务入口：
 void Task1(){任务1代码}
-void Task2(){任务2代码} 
+void Task2(){任务2代码}
 
 任务控制块：
 {
@@ -2315,10 +2315,10 @@ TaskHandle_t xTaskCreateStatic(TaskFunction_t pxtaskcode,//任务入口
 								)
 怎么移植：
 FreeRTOSConfig.h中定义的configTICK_RATE_HZ  决定了系统多久进行一次任务时间片的分配
-	
-	
-	
-	
+
+
+
+
 单任务静态内存调用流程：----需要指定栈空间
 main()
 {
@@ -2426,7 +2426,7 @@ int main()
 	rtos_taskcreate(apptack);
 	//启动rtos，开启调度
 	rtos_start();
-	
+
 }
 void apptack()
 {
@@ -2464,7 +2464,7 @@ typedef struct tskTaskControlBlock
 	pxtopstack;  栈顶指针
 	pxstack;   栈首地址指针
 	uxpriority;  任务优先级
-	taskname[x];  任务名称 
+	taskname[x];  任务名称
 	statelist;	  状态列表
 	eventlist;    事件列表
 }
@@ -2478,7 +2478,7 @@ typedef struct tskTaskControlBlock
 
 怎么管理任务：
 1.找到最高优先级的运行态或就绪态任务，运行它
-2.如果大家平级，轮流执行 
+2.如果大家平级，轮流执行
 
 谁去调度的？
 TICK定时器，在tick中断中去调度。
@@ -2499,7 +2499,7 @@ rtos里面有3类链表：
 3.suspendlist挂起链表
 	优先级不同也是只有一个链表
 tick中断根据优先级查找可以执行的高优先级任务；程序执行的过程中任务也可能会跳到其他类型的链表中（例如阻塞，sleep）
-任务移动到其他链表中后，下次再调度的时候就会变化的 
+任务移动到其他链表中后，下次再调度的时候就会变化的
 
 xQueueCalcHandle = xQueueCreate(); 创建队列，用于任务间数据通信的，生产者消费者
 
@@ -2523,13 +2523,13 @@ Config parameters->Kernel settings->USE_PREEMPTION        默认配置的就是�
 	应用程序明确定义了在中断中执行上下文切换。
 
 钩子函数配置:
-Hook function related define 
+Hook function related define
 USE_TICK_HOOK 使能后，每个TICK周期，钩子函数都会执行一次 void vApplicationTickHook(void)
 别的钩子参考：
 https://jeckxu666.blog.csdn.net/article/details/120877303?spm=1001.2101.3001.6650.5&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-5-120877303-blog-126061553.pc_relevant_multi_platform_whitelistv4&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-5-120877303-blog-126061553.pc_relevant_multi_platform_whitelistv4&utm_relevant_index=10
 
-//创建定时器任务  未启动 调度后也不会启动	
-Timer_clera=xTimerCreate("Timerclera",100,  pdTRUE, (void*)2,Timeclera); 
+//创建定时器任务  未启动 调度后也不会启动
+Timer_clera=xTimerCreate("Timerclera",100,  pdTRUE, (void*)2,Timeclera);
 xTimerStart(Timer_clera,0); 	//0s后开始 Timer_clera 任务
 xTimerStop(Timer_clera,0); 	   //0s后停止 Timer_clera 任务
 
@@ -2538,7 +2538,7 @@ xTimerStop(Timer_clera,0); 	   //0s后停止 Timer_clera 任务
 xTaskCreate(can_task,   "can_task", 256, NULL, 3, &CANTask_Handler);
 
 
-配置可裁剪功能项：include parameters 
+配置可裁剪功能项：include parameters
 vTaskPrioritySet	改变某个任务的任务优先级。
 uxTaskPriorityGet	查询某个任务的优先级。
 vTaskDelete			删除任务
@@ -2678,14 +2678,14 @@ ZI（zero init）-data不会被算做代码里因为不会被初始化;其实与
 简单的说就是在烧写的时候是FLASH中的被占用的空间为：Code + RO Data + RW Data（rwdata是非0数据，需要存起来）
 														zidata是0，不需要存
 程序运行的时候，芯片内部RAM使用的空间为： RW Data + ZI Data
-程序运行的时候，只读区域：code+rodata 
+程序运行的时候，只读区域：code+rodata
 
 crf文件--->类似ctags文件，跳转使用
-机器代码 					 code 
-常量 						rodata 
-初始非0全局var   			rwdata 
-初始化0全局var 				zidata 
-局部var 					zidata 
+机器代码 					 code
+常量 						rodata
+初始非0全局var   			rwdata
+初始化0全局var 				zidata
+局部var 					zidata
 使用malloc动态分配的空间	zidata
 
 在keil中选择芯片型号的时候：设置里面可以看到rom的size会自动设置好0x8000=512k，ram的size也是，不同的cpu，rom大小不同。ram不同
@@ -2750,12 +2750,12 @@ cc/7f：校验
 bin文件大小就是code+ro大小，编译出来的时候就可以看到code+ro段的大小就是bin的大小。
 bin文件就是很纯粹的code+ro数据，将来直接往flahs写的数据
 
-其实bin文件就是hex文件中除了:，ll ，aaaa， tt，cc以外的其它的数据就是bin数据。 
+其实bin文件就是hex文件中除了:，ll ，aaaa， tt，cc以外的其它的数据就是bin数据。
 
 程序刚开始是vector中断向量表，包含：
-表里面最开始的是init_sp 初始化 
+表里面最开始的是init_sp 初始化
 然后是reset_handler  复位处理
-中断向量表中还包含几个错误处理中断，NMI_HANDLER HARDFAULT_handler busfault_handler 
+中断向量表中还包含几个错误处理中断，NMI_HANDLER HARDFAULT_handler busfault_handler
 reset_handler:
 跳到main
 执行system_init函数，就是初始化时钟。
@@ -2800,7 +2800,7 @@ LL_SetSystemCoreClock(16000000);  设置主时钟源频率sets directly SystemCo
 LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSI);  	设置rtc时钟源，HSE/128,LSE,LSI三种时钟源
 LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_SYSCLK);	设置adc时钟源为sysclk，也可以设置成PLL，hsi
 
-可以在uart内部去设置uart的时钟  
+可以在uart内部去设置uart的时钟
 set_clksource(PCLK);设置时钟源为PCLK
 LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2);  使能uart时钟
 LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);		使能对应的port的时钟
@@ -2835,32 +2835,32 @@ LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOD);
 vector向量表里面包含各种触发中断之后要跳过去的函数名字：
 __initial_sp          我们程序每次复位之前都会执行初始化SP指针，栈
 Reset_Handler         复位
-NMI_Handler       		    
-HardFault_Handler                         
-SVC_Handler                              
-PendSV_Handler        
-SysTick_Handler       
-WWDG_IRQHandler                          
-RTC_TAMP_IRQHandler   
-FLASH_IRQHandler      
-RCC_IRQHandler        
-EXTI0_1_IRQHandler    
-EXTI2_3_IRQHandler    
-EXTI4_15_IRQHandler   
-TIM16_IRQHandler  
-TIM17_IRQHandler  
-I2C1_IRQHandler   
-I2C2_IRQHandler   
-SPI1_IRQHandler   
-SPI2_IRQHandler   
-USART1_IRQHandler 
-USART2_IRQHandler 
+NMI_Handler
+HardFault_Handler
+SVC_Handler
+PendSV_Handler
+SysTick_Handler
+WWDG_IRQHandler
+RTC_TAMP_IRQHandler
+FLASH_IRQHandler
+RCC_IRQHandler
+EXTI0_1_IRQHandler
+EXTI2_3_IRQHandler
+EXTI4_15_IRQHandler
+TIM16_IRQHandler
+TIM17_IRQHandler
+I2C1_IRQHandler
+I2C2_IRQHandler
+SPI1_IRQHandler
+SPI2_IRQHandler
+USART1_IRQHandler
+USART2_IRQHandler
 
 Reset_Handler    PROC
                  EXPORT  Reset_Handler                 [WEAK]，我们下面其实是在重写之前别的文件定义的resethandler
         IMPORT  __main  	IMPORT定义表示这是一个外部变量的标号，不是在本程序定义的
         IMPORT  SystemInit		EXPORT ，表示本程序里面用到的变量提供给其他模块调用的。
-        LDR     R0, =__initial_sp    ;PC指针刚开始只初始化栈  
+        LDR     R0, =__initial_sp    ;PC指针刚开始只初始化栈
         MSR     MSP, R0  	；；EXPORT  __initial_sp，这个初始化栈的底层也不是在这里初始化的，__initial_sp是别的文件里定义的
 
 ;;Check if boot space corresponds to test memory    测试
@@ -2869,7 +2869,7 @@ Reset_Handler    PROC
         LSRS R1, R1, #24
         LDR R2,=0x1F
         CMP R1, R2
-        BNE ApplicationStart  
+        BNE ApplicationStart
 ;; SYSCFG clock enable      RCC寄存器的
         LDR R0,=0x40021018   4002 1000 RCC寄存器里面的LSIRDYIE: LSI ready interrupt enable  启用由LSI引起的中断
         LDR R1,=0x00000001
@@ -2882,7 +2882,7 @@ Reset_Handler    PROC
 		{
 		  SET_BIT(SYSCFG->CFGR1, PinRemap);    在APB总线上设置CFGR1
 		}
-ApplicationStart        
+ApplicationStart
 	 LDR     R0, =SystemInit  重定位中断向量表
 		void SystemInit(void)  在g00x.c中
 		{
@@ -2971,7 +2971,7 @@ buf[1] = syspara.chgMos<<7 |syspara.dsgMos<<6 | sysflag.bits.DET_Flag<<3|((~user
 	{
 		*factor= 1000;
 		 ret = Cal_OK;
-	}	
+	}
 	else if((syspara.SOC<socv)&&(syspara.IntegralPower_C<1000))//充电系数
 	{
 		*factor = 1000;
@@ -3067,7 +3067,7 @@ OCRA=0:不允许电流保护定时恢复，就是电流保护恢复必须断负�
 
 keil字体：Lucida Console  加粗，很好用
 
-cpu的供电管脚是vdd供电程序可运行，vbat是后备寄存器供电，保障bkg的数据不会消失，但是此时程序已经不会运行了--因为没有vdd 
+cpu的供电管脚是vdd供电程序可运行，vbat是后备寄存器供电，保障bkg的数据不会消失，但是此时程序已经不会运行了--因为没有vdd
 
 在Keil C51 v8.05的汉化版本里面有字体偏移的问题，在代码编辑器里面选择代码时发生错位偏移，让人感觉很不舒服。解决方法很简单，用记事本打开“TOOLS.INI”文件，在里面添加一行“ANSI=1”，问题就解决了。
 
@@ -3114,27 +3114,27 @@ u8 RTC_Init()
 	NVIC_InitTypeDef NVIC_InitStructure;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_BKP|RCC_APB1Periph_PWR,ENABLE);//电源时钟和背部时钟
 	PWR_BackupAccessCmd(ENABLE);                    //允许背部区域写
-	
-	if (BKP_ReadBackupRegister(BKP_DR1) != 0xC0B4)		
-		{	 			
- 
-		BKP_DeInit();	
-		RCC_LSEConfig(RCC_LSE_ON);	
-		while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)	
+
+	if (BKP_ReadBackupRegister(BKP_DR1) != 0xC0B4)
+		{
+
+		BKP_DeInit();
+		RCC_LSEConfig(RCC_LSE_ON);
+		while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)
 			{
 			    temp++;
 			    delay_ms(10);
 			}
-		if(temp>=250)return 1;   
-		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);		   
-		RCC_RTCCLKCmd(ENABLE);	 
-		RTC_WaitForLastTask();	
-		RTC_WaitForSynchro();		
-		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR, ENABLE);	//打开RTC的秒中断和闹钟中断	
-		RTC_WaitForLastTask();	
+		if(temp>=250)return 1;
+		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+		RCC_RTCCLKCmd(ENABLE);
+		RTC_WaitForLastTask();
+		RTC_WaitForSynchro();
+		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR, ENABLE);	//打开RTC的秒中断和闹钟中断
+		RTC_WaitForLastTask();
 		RTC_EnterConfigMode();                        //进入配置RTC模式
-		RTC_SetPrescaler(32767); 
-		
+		RTC_SetPrescaler(32767);
+
 		RTC_SetCounter(0);                            //初始值设定为0s
 	    RTC_WaitForLastTask();
 		RTC_SetAlarm(40);	                           //闹钟值设定为40s
@@ -3147,16 +3147,16 @@ u8 RTC_Init()
 	{
 		PWR_BackupAccessCmd(DISABLE);
 		RTC_WaitForSynchro();
-		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR,ENABLE); //打开RTC的秒中断和闹钟中断	
+		RTC_ITConfig(RTC_IT_SEC|RTC_IT_ALR,ENABLE); //打开RTC的秒中断和闹钟中断
 		RTC_WaitForLastTask();
 	}
-  
+
 	NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;		//RTC全局中断的中断配置
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;	
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;		
-	NVIC_Init(&NVIC_InitStructure);		
- 
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 	return 0;
 }
 //此初始化函数在主函数中的用法
@@ -3164,7 +3164,7 @@ while(RTC_Init())
 {
 	printf("INIT Programing is ERROR!!\r\n");
 }
-	
+
 中断处理函数：
 void RTC_IRQHandler()
 {
@@ -3173,11 +3173,11 @@ void RTC_IRQHandler()
 		printf("THE ALARM  READY =%d \r\n",RTC_GetCounter());//输出此时的秒数
 		RTC_ClearITPendingBit(RTC_IT_ALR);
 		PWR_BackupAccessCmd(ENABLE);
-		RTC_EnterConfigMode();	
+		RTC_EnterConfigMode();
 	    RTC_WaitForLastTask();
 		RTC_SetAlarm(40+RTC_GetCounter());	  //配置下次闹钟为40s后
 		RTC_WaitForLastTask();
-		RTC_ExitConfigMode();   
+		RTC_ExitConfigMode();
 		PWR_BackupAccessCmd(DISABLE);
 	}//要注意的一点就是在中断函数里面如果把判断秒中断的函数写在了判断闹钟中断的前面，就会得到THE ALARM READY=41。。。还有一点就是就算没有写反，下一次闹钟的时间是81秒，如图
     if(RTC_GetITStatus(RTC_IT_SEC)!=RESET)  //是否秒中断发生
@@ -3207,13 +3207,13 @@ void RTC_ALARM_Time_COnfig(FunctionalState NewState)
 
 	TimeCount= RTC_TimeNow.RTC_Minutes*60+RTC_TimeNow.RTC_Seconds+DEF_RTCALARM_sec-1;//定时5s后设置为唤醒时间
 	RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes =((TimeCount/60)%60);
-	RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds =(TimeCount%60);  
+	RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds =(TimeCount%60);
 	/* Alarm Date Settings : Date = 1st day of the month */
 	RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
 	RTC_AlarmStructure.RTC_AlarmDateWeekDay = 1;
 	/* Set the alarmA Masks 只要分与秒一样就可以进alarm中断，很好的功能*/*****
 	RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_All&(~(RTC_AlarmMask_Minutes|RTC_AlarmMask_Seconds));
-	
+
 	RTC_SetAlarm(RTC_Format_BIN, RTC_Alarm_A, &RTC_AlarmStructure);
 	/* Enable AlarmA interrupt */
 	RTC_AlarmCmd(RTC_Alarm_A,NewState);
@@ -3271,7 +3271,7 @@ void UART2SendIRQ(void )  发完一字节就会进来继续发下一字节
 		RS485sendLen= 0;
 		RS485sendFlag = 0;
 	}
-		
+
 }
 
 
@@ -3312,13 +3312,13 @@ while(rs485buf.dummy == 0)有数据待处理
 		{
 			根据cmd判断要读内部reg的数据还是要写
 			{
-				
+
 			}
 		}else
 		{
 			RS485Buf.headPosition++;将头位置向后偏移进入下次循环
 			RS485Buf.headPosition%=SIMUARTDATAMAX;
-		}	
+		}
 	}else
 	{
 		RS485Buf.headPosition++;将头位置向后偏移
@@ -3335,8 +3335,8 @@ ModBusReprocess(uint8_t cmd,uint16_t Addr, uint8_t len)
 		MaxRegAddOffset=15;
 		tongyongReg[0]= (RWSERVIN);
 		tongyongReg[1]= HARDCODE_M;
-		tongyongReg[x]= 5;	
-		tongyongReg[14]= 5;	
+		tongyongReg[x]= 5;
+		tongyongReg[14]= 5;
 	}
 	else if((Addr>=50)&&(Addr<=54) )
 	{
@@ -3381,7 +3381,7 @@ ModBusWrprocess(uint8_t cmd,uint16_t Addr, uint8_t len)
 		CRCValue = user_uart_crc(SendBuff,6);
 		SendBuff[6] = CRCValue;
 		SendBuff[7] = CRCValue>>8;
-	
+
 		USART2_SendByte(8);
 	}
 }
@@ -3399,7 +3399,7 @@ struct tm {
     int tm_isdst; /* Daylight Savings Time flag */
 };
 
-uint32_t reset_datetime(uint16_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t min,uint8_t sec) 
+uint32_t reset_datetime(uint16_t year,uint8_t month,uint8_t day,uint8_t hour,uint8_t min,uint8_t sec)
 {
     date_time_Now->tm_year = year-1900;//设置的时候month要减1900
     date_time_Now->tm_mon = month-1;//设置的时候month要减1
@@ -3431,15 +3431,15 @@ GD32F3  bootloader注意事项：
 void JumpToAppStartFun(uint32_t appAddr)
 {
 	__disable_irq();//关闭总中断
-//	if(((*(__IO uint32_t*)appAddr) & 0x2FFE0000 ) == 0x20000000)	---------									
-//	{		
+//	if(((*(__IO uint32_t*)appAddr) & 0x2FFE0000 ) == 0x20000000)	---------
+//	{
 		JumpAddress = *(__IO uint32_t*) (appAddr + 4);
 		JumpToApplication = (pFunction) JumpAddress;//这个只是给地址赋值
 		/* Initialize user application's Stack Pointer */
 		__set_MSP(*(__IO uint32_t*) appAddr);//加个括号就可以直接运行啦
 		SCB->VTOR = ADDR_RUN;
-		JumpToApplication();                             					
-//	}	
+		JumpToApplication();
+//	}
 	__enable_irq();//这句执行不到，所以app程序里面开始就要enable中断
 }
 
@@ -3464,12 +3464,12 @@ map文件分析：
 	main.o(i.main) refers to bms.o(.bss) for syspara main文件调用的bms文件中的变量与函数--
 	main.o(i.System_Initializes) refers to bsp.o(i.BSP_Initializes) for BSP_Initializes
 	main模块(main.o)中的System_Initializes函数(i.System_Initializes)，引用（或者说调用）了bsp模块(bsp.o)中的BSP_Initializes函数。
-2.Removing Unused input sections from the image：移除未调用模块	
+2.Removing Unused input sections from the image：移除未调用模块
 	Removing stm32f10x_gpio.o(i.GPIO_AFIODeInit), (20 bytes).
 	stm32f10x_gpio.c文件中GPIO_AFIODeInit模块（函数）未被调用，其代码大小20字节。
 3.Image Symbol Table：映射符号表
 	（局部symbols-函数变量）（全局symbols-函数变量）在内存中的地址位置
-	 0x0800xxxx指存储在FLASH里面的代码、变量等。---常量  
+	 0x0800xxxx指存储在FLASH里面的代码、变量等。---常量
 	 0x2000xxxx指存储在内存RAM中的变量Data等。
 	 全局、静态变量等位于0x2000xxxx的内存RAM中。****并不是位于flash中。
 4.Memory Map of the image：内存（映射）分布
@@ -3493,7 +3493,7 @@ static const uint8_t VERINFO[8] __attribute__((at(0x80018f8)))={var1,var2,var3,v
 
 
 复制应用程序向量表到SRAM的起始地址。对应于应用程序Flash，向量表为从0x08003000开始的48×4个字节。具体向量表的大小需要根据启动文件定义来计算。  查询.s文件可知 __Vectors_Size  EQU  __Vectors_End - __Vectors=48条指令，每条指令就是4 byte
-代码：memcpy((uint32_t*)0x20000000, (uint32_t*)0x08003000, 48*4);   
+代码：memcpy((uint32_t*)0x20000000, (uint32_t*)0x08003000, 48*4);
 2.设置为从SRAM启动，这样当发生异常时，就会跳转到SRAM的起始地址部分，而该部分放置的正好是向量表。
 代码：SYSCFG_MemoryRemapConfig(SYSCFG_MemoryRemap_SRAM);
 
@@ -3575,7 +3575,7 @@ void  ChgProcess(void)
 						staptime= 0;
 					}
 				}
-			}			
+			}
 			else//请求充电机电流一半  稳定了
 			{
 				sametime++;
@@ -3587,7 +3587,7 @@ void  ChgProcess(void)
 					dataCHG_step = 3;//进入case 3
 					sametime = 0;
 				}
-			}	
+			}
 		break;
 		case 3:
 			dataCHG_IC = 95;
@@ -3610,7 +3610,7 @@ void  ChgProcess(void)
 			{
 				sysflag.bits.CHG_OVER = 0;//充电未完成
 			}
-			
+
 		break;
 		default://不请求充电电流了
 			dataCHG_IC = 0;
@@ -3645,32 +3645,32 @@ void  ChgProcess(void)
 
 问题：延时函数一直用的HAL_Delay()毫秒级延时，但是在中断中调用延时函数却卡死在这里，从封装函数中可以发现函数中有中断获取系统时钟HAL_IncTick(void)，由于优先级系统给的低，所以在高优先级的中断中无法产生这个低级的中断，导致程序卡死在HAL_Delay()中。
 由此建议直接不用HAL_Delay()，直接自己写延时函数：
- void delay_ms(int32_t nms) 
+ void delay_ms(int32_t nms)
  {
 
-  int32_t temp; 
+  int32_t temp;
 
-  SysTick->LOAD = 8000*nms; 
+  SysTick->LOAD = 8000*nms;
 
-  SysTick->VAL=0X00;//清空计数器 
+  SysTick->VAL=0X00;//清空计数器
 
-  SysTick->CTRL=0X01;//使能，减到零是无动作，采用外部时钟源 
+  SysTick->CTRL=0X01;//使能，减到零是无动作，采用外部时钟源
 
-  do 
+  do
 
-  { 
+  {
 
-       temp=SysTick->CTRL;//读取当前倒计数值 
+       temp=SysTick->CTRL;//读取当前倒计数值
 
   }
 
-     while((temp&0x01)&&(!(temp&(1<<16))));//等待时间到达 
+     while((temp&0x01)&&(!(temp&(1<<16))));//等待时间到达
 
-     
 
-     SysTick->CTRL=0x00; //关闭计数器 
 
-     SysTick->VAL =0X00; //清空计数器 
+     SysTick->CTRL=0x00; //关闭计数器
+
+     SysTick->VAL =0X00; //清空计数器
 
  }
  代码直接用就可以，但是要注意根据自己单片机的系统时钟来配置
@@ -3690,14 +3690,14 @@ void iic_write(slaveaddr,regaddr,data)
 	I2c.I2cSta = 0xf0;
 	//等待从机接收完1个字节产生ack ack后中断挂起自动置位
 	while(!I2c.I2cCON&(1<<4));
-	//发送从机内部reg地址，先把数据放入DA reg中  
+	//发送从机内部reg地址，先把数据放入DA reg中
 	I2c.I2cDS = regaddr;
 	//清除中断标志位，开启下1字节regaddr的发送
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
 	//等待从机ack
 	while(!I2c.I2cCON&(1<<4));
-	
-	//发送data，先把数据放入DA reg中  
+
+	//发送data，先把数据放入DA reg中
 	I2c.I2cDS = data;
 	//清除中断标志位，开启下1字节regaddr的发送
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
@@ -3705,7 +3705,7 @@ void iic_write(slaveaddr,regaddr,data)
 	while(!I2c.I2cCON&(1<<4));
 	//发送stop信号,结束通信
 	I2c.I2cSta = 0xd0;
-	
+
 	//清除中断标志位
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
 	delay(10ms);//延时等待停止信号稳定
@@ -3724,14 +3724,14 @@ uint8_t iic_read(slaveaddr,regaddr)
 	I2c.I2cSta = 0xf0;
 	//等待从机接收完1个字节产生ack ack后中断挂起自动置位
 	while(!I2c.I2cCON&(1<<4));
-	
-	//发送从机内部reg地址，先把数据放入DA reg中  
+
+	//发送从机内部reg地址，先把数据放入DA reg中
 	I2c.I2cDS = regaddr;
 	//清除中断标志位，开启下1字节regaddr的发送
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
 	//等待从机ack
 	while(!I2c.I2cCON&(1<<4));
-	
+
 	//清除中断标志位 重新开始一次通信，更改数据传输方向restart
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
 	//发送从机地址,读
@@ -3740,20 +3740,20 @@ uint8_t iic_read(slaveaddr,regaddr)
 	I2c.I2cSta = 0xb0;
 	//等待从机接收完1个字节产生ack
 	while(!I2c.I2cCON&(1<<4));
-	
+
 	//禁止主机应答信号--开启非应答，因为只接收1字节数据--清除中断标志位
 	I2c.I2cCON = I2c.I2cCON&((~(1<<4)) &(~(1<<7)));
 	//等待从机发来数据
 	while(!I2c.I2cCON&(1<<4));
 	//读取数据
 	retdata = I2c.I2cDA;
-	
+
 	//发送stop信号,结束通信
 	I2c.I2cSta = 0xd0;
 	//清除中断标志位
 	I2c.I2cCON = I2c.I2cCON&(~(1<<4));
 	delay(10ms);//延时等待停止信号稳定
-	
+
 	return retdata;
 }
 
@@ -3806,7 +3806,7 @@ u8 I2C_ReadByte(slaveaddr,writeaddr)
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
 	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
-	
+
 	I2C_CMD(ENABLE);//开启I2C功能
 	I2C_SendData(writeaddr);//发送器件内部reg
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
@@ -3814,7 +3814,7 @@ u8 I2C_ReadByte(slaveaddr,writeaddr)
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
 	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Receiver);//发送从机地址，读读读状态
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECT));//等待完成
-	
+
 	I2C_AcknowledgeConfig(Disable);//最后有一个数据时关闭ack应答
 	I2C_GenerateSTOP();
 	retdata=I2C_ReceiveData();
@@ -3827,7 +3827,7 @@ void I2C_ReadBuffer(u8*rcvbuf,cnt)//要读cnt个数据到rcvbuf中
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
 	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Transmitter);//发送从机地址，写状态
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT));//等待完成
-	
+
 	I2C_CMD(ENABLE);//开启I2C功能
 	I2C_SendData(writeaddr);//发送器件内部reg
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTER));//等待完成
@@ -3835,8 +3835,8 @@ void I2C_ReadBuffer(u8*rcvbuf,cnt)//要读cnt个数据到rcvbuf中
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_MODE_SELECT));//等待发送信号发送完成
 	I2C_Send7bitAddr(slaveaddr,I2C_Direction_Receiver);//发送从机地址，读读读状态
 	while(!I2C_CheckEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECT));//等待完成
-	
-	
+
+
 	while(cnt)
 	{
 		if(cnt==1)//只剩1个要读得数据，读完就得返回nack了
@@ -3932,9 +3932,9 @@ int fputc(int ch, FILE *f)
 	RS485_RxDen();
 	LL_mDelay(1);//延时等管脚拉了
 
-	while (RESET == usart_flag_get(USART1, USART_FLAG_TBE));	
+	while (RESET == usart_flag_get(USART1, USART_FLAG_TBE));
 	usart_data_transmit(USART1, (uint8_t)ch);//发数据
-	
+
 	LL_mDelay(1);//延时等数据发完
 	RS485_RxEn();//改为接收模式
 	return ch;
@@ -3953,7 +3953,7 @@ can 下位机中的自己会继承can_send函数
 for(int i=0;i<100;i++)
 {
 	can_send();   只有第一次的数据能发出来  后面的i从1--99的can数据都发不出来  因为代码执行很快只有几us
-				前一帧can还没发送出去  下一帧又要发  所以需要延时等待一下  
+				前一帧can还没发送出去  下一帧又要发  所以需要延时等待一下
 }
 
 
@@ -3975,12 +3975,12 @@ jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片
 +  RCC_OscInitStruct.HSEState = RCC_HSE_ON;//若选则 hse 则hse 的state on  hse没啥其他属性
 
    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;//不关选hse 还是 hsi 最终选给 pll 上，pll都开
-   
+
 -  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI; //pll source 选择，上面配的那个就选择 哪个
 +  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 
 
-以下全是配置PLL 部分的分频配置 
+以下全是配置PLL 部分的分频配置
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
@@ -3988,8 +3988,8 @@ jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-  
-选择 system clock Mux ，确定选择 哪个时钟源 作为主时钟源 
+
+选择 system clock Mux ，确定选择 哪个时钟源 作为主时钟源
  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 
 
@@ -3997,11 +3997,11 @@ jlink下载怎么都链接失败，先将swd选成jtag。再选回来  则芯片
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
 总线时钟配置
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;  不知道是什么 
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;  不知道是什么
   PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;//fdcan 时钟源 配置
 
 
-总线时钟50M   
+总线时钟50M
 //主要起作用的配置未Nominal部分  50/2/(1+10+9)=250k
   hfdcan1.Init.NominalPrescaler = 5;
   hfdcan1.Init.NominalSyncJumpWidth = 9;//好像没啥用
@@ -4043,3 +4043,27 @@ BSS段：存放初始化为0或未初始化的全局或静态变量，可写
 初始时启动代码会加载内存四区的数据，为了让启动代码更加简单快速，编译链接器会直接按照分区读取数据到对应的程序段，
 比如直接复制全局区的初始化变量到数据段，或者直接将未初始化段的区域直接清零后读取到 .bbs段，简化启动流程
 -----------
+
+
+fdcan初始化：
+可以在开启can的时候去选择disable/classic mode/FD（可变data）
+classic 经典模式
+FD：可变数据长度
+波特率配置：
+sysclk/(nonalprescal+(1+seg1+seg2))==170/(17)=1m/(1+19+20)=250K
+normal jump with 随便配置不影响
+在NVIC中打对钩，即可开启接收中断
+void fdcan2_it0_irqhandle{
+  //rxheader 接收类型 rxdata 接收buf
+  hal_fdcan_getrxmessage(&hfdcan2,&rxheader,rxdata);将收到的can数据存起来
+}
+怎么开发送中断呢？开启一个定时器TIM3，配好中断频率
+txheader 发送类型，txdata 发送buf
+在中断中写：hal_fdcan_addmessageTotxFifo(&hfdcan2,&txheader,txdata);
+
+过滤配置：
+.Idtype=stdid
+.FilterType=fdcan_filter_range; 按照范围过滤
+.FilterId1=0;
+.FilterId2=0x7ff;  过滤从0到0x7ff的帧
+hal_fdcan_configFilter(&fdcan2,&struct);
