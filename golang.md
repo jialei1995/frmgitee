@@ -3016,5 +3016,85 @@ func main(){
 
 ```
 
+队列实现： 环形数组
+```go
+package main
+import (
+    "fmt"
+    "os"
+    "errors"
+)
 
+type Queue struct{
+    maxsize int
+    array [5]int
+    front int //head
+    rear int  //tail
+    length int //num of data 没有这个也行，计算太复杂了
+}
+
+func (this *Queue)AddQueue(val int)(err error){
+    if(this.length==this.maxsize){
+        return errors.New("queue full")
+    }
+    this.array[this.rear]=val
+    this.rear=((this.rear+1)%this.maxsize)
+    this.length++
+    return //直接return  相当于 return err  因为err是 nil
+}
+func (this *Queue)GetQueue()(val int,err error){
+    if(this.length==0){
+        return -1,errors.New("queue empty") //err 默认为空，如果发生错误 这里就赋值上去了
+    }
+    this.length--
+    val=this.array[this.front]
+    this.front=((this.front+1)%this.maxsize)
+    return val,err//不给err赋值，就是空的
+}
+
+//this.front do not contains head val
+func (this*Queue)showQueue(){
+    for i:= 0;i<this.length;i++{
+        fmt.Printf("arrayy[%d]=%d\t",this.front,this.array[this.front])
+        this.front++
+        this.front=this.front%this.maxsize
+    }
+    fmt.Println()
+}
+
+func main(){
+    queue := &Queue{
+        maxsize:5,
+        front:0,
+        rear:0,
+        length:0,
+    }
+    var key string
+    var val int
+    for{
+        fmt.Println("1.add 2.get 3.show 4.exit")
+        fmt.Scanln(&key)
+        switch key{  //case后不需要break 也可以跳出，与c 不一样
+        case "add":
+            fmt.Println("input data to Queue")
+            fmt.Scanln(&val)
+            err:=queue.AddQueue(val)
+            if err!=nil{
+                fmt.Println(err.Error()) //注意返回的是error类型数据，需要.Error()  才可以将错误字符串取出 注意有() 才可以
+            }
+        case "get":
+            val,err:=queue.GetQueue()
+            if err!=nil{
+                fmt.Println(err.Error())
+            }
+            fmt.Printf(" get val=%d\n ",val)
+        case "show":
+            queue.showQueue()
+        case "exit":
+            os.Exit(0)
+        }
+    }
+}
+
+```
 
