@@ -4067,3 +4067,10 @@ txheader 发送类型，txdata 发送buf
 .FilterId1=0;
 .FilterId2=0x7ff;  过滤从0到0x7ff的帧
 hal_fdcan_configFilter(&fdcan2,&struct);
+
+
+
+重要：
+增加唤醒源，会增加功耗。给 top的储能的13s 程序，增加load唤醒，增加40ua 功耗
+增加chgdet唤醒，增加100ua 功耗---------------------查了一上午 才发现，气死了
+板子无法进休眠（一直被485 det唤醒），结果是power_en的电没关 就进的休眠。但是以前的板子也是直接AIN 就可以进休眠
