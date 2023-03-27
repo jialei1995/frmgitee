@@ -8780,3 +8780,44 @@ U8 QueueInit(u8DataQueue  * Queue,U8 *uBuff,U16 uSize)
     Queue->lpBuffer=uBuff;//指针直接指向 全局变量数组地址 ，不用非得给这个地址malloc空间去操作 
     return 1;
 }
+
+指针操作：对于同一区域 往外读数据的时候  指针++ 到底+几个字节的地址呢？
+#include<stdio.h>
+unsigned char buf[100]={0};
+int main()
+{
+    for(int i=0;i<100;i++)
+    {
+        buf[i]=i;
+    }
+
+    unsigned char * charptr;
+    charptr = buf;
+
+    for(int i=0;i<100;i++)     每次i++ 偏移一个字节，因为charptr是单字节的指针
+    {
+        printf("%x--",*(charptr+i));   同样对于 charptr 类型的指针，用*取数据的时候 取的是单字节
+    }
+    printf("\n");
+    unsigned short * shortptr;
+    shortptr=buf;
+    for(int i=0;i<100;i++)
+    {
+        printf("%x--",*(shortptr+i)); 每次i++ 偏移2个字节，因为 shortptr 是4字节的指针
+										同样对于 shortptr 类型的指针，用*取数据的时候 取的是2字节
+    }
+    printf("\n");
+    printf("\n");
+
+    unsigned int * intptr;
+    intptr=buf;
+    for(int i=0;i<100;i++)
+    {
+        printf("%x--",*(intptr+i)); 每次i++ 偏移4个字节，因为 intptr 是4字节的指针
+									同样对于 intptr 类型的指针，用*取数据的时候 取的是4字节
+    }
+}
+
+
+通过串口1 设id，谁先上来 谁的id是1，各个板子通过串口1串联--主控给板子1设置id  板子1给板子2 设置id，板子2给板子3设置id
+在每个程序中都开串口1中断，while1中收到设置id的指令 则修改当前id 然后给下个板子发设置id的指令
