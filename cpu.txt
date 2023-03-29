@@ -271,7 +271,10 @@ static void CS_ISR(void)
 >
 > 4. RTC的alarmup作用，每次休眠之前调一下定时唤醒的函数，在隔特定时长后就会自己alarm把cpu唤醒。
 >    cubemx生成的工程是默认配置systick的，生成的systick隔1s会加1.不需要配置就自动隔1s加1.
->
+>    rtc的秒中断就是，32768次++后 reload的时候会进秒中断，也可以关闭秒中断
+     同样，rtc的闹钟中断就是告诉cpu 多少秒之后再触发中断
+     reload就是根据当前总线频率设置的，32768hz 就设置成32768 表示1s reload一次
+     
 > 5. systick也是可以配置时钟与reload的，ms/us的延时都可以做到，一般做成ms级别的
 >    Systick的中断是默认已经开启了的，直接使用即可，查看NVIC里面的time base:systick timer可以看到默认开中断的
 >
