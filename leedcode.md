@@ -1557,3 +1557,116 @@ public:
 
 
 
+1. 两数之和
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> hashtable;
+        for (int i = 0; i < nums.size(); ++i) {
+            auto it = hashtable.find(target - nums[i]);
+            if (it != hashtable.end()) {
+                return {it->second, i};
+            }
+            hashtable[nums[i]] = i;
+        }
+        return {};
+    }
+};
+
+func twoSum(nums []int, target int) []int {
+    //hashTable := map[int]int{}  这样初始化也可以
+    hashTable := make(map[int]int)
+    for i, x := range nums {
+        //if p, ok := hashTable[target-x]; ok {  查找是否有key为 target-x 的节点 相当于
+        p,ok:=mymap[target-val]
+        if ok{
+            return []int{p, i} //
+        }
+        hashTable[x] = i  //存的数据为数组当前位置的值 ： 当前位置索引
+    }
+    return nil
+}
+
+
+9. 回文数
+ func isPalindrome(x int) bool {
+    tmp:=x
+    cur:=0
+    if(tmp<0){  负数不可能是回文数
+        return false
+    }
+    for{
+        if(tmp!=0){   一位一位的获取最低位的数字 放到cur中，最后用cur与给的x对比是否一样  
+            cur=cur*10+tmp%10
+            tmp/=10
+        }else{
+            break
+        }
+    }
+    return cur==x
+}
+
+
+
+14. 最长公共前缀   
+将两个字符串的字串与第三个字符串再求字串，最后的字串再与第4个求子串
+```go
+func min(x,y int)int{
+    if x<y {
+        return x
+    }
+    return y
+}
+
+func issub(str1,str2 string)string{
+    leng:=min(len(str1),len(str2))
+    index:=0
+    for(index<leng && str1[index]==str2[index]){
+        index++
+    }
+    return str1[:index] //获取两个字符串的 最长字串
+}
+
+func longestCommonPrefix(strs []string) string {
+    size:=len(strs)
+    prefix:=strs[0]
+    for i:=1;i<size;i++ {  //不能带括号 带括号就会出错
+        prefix=issub(prefix,strs[i])
+        if(len(prefix)==0){
+            return ""
+        }
+    }
+    return prefix
+}
+```
+
+20. 有效的括号
+```go
+func isValid(s string) bool {
+mymap := map[int]int{//通过右括号  可以匹配到左括号，因为压入的左括号
+        ')':'(',        
+        ']':'[',
+        '}':'{',
+    }
+    stack := []byte{}
+    for i:=0;i<len(s);i++ {
+        if s[i]==byte('(') || s[i]==byte('[') || s[i]==byte('{'){
+            stack=append(stack,s[i])
+        }else{
+            if len(stack)==0 {
+                return false
+            }
+            if(stack[len(stack)-1]==byte(mymap[int(s[i])])){
+                stack=stack[:(len(stack)-1)]
+            }else{
+                return false
+            }
+        }
+    }
+    if(len(stack)==0){  //最后需要保证stack是空的才可以
+        return true
+    }else{
+        return false
+    }
+}
+```

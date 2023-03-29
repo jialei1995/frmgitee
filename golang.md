@@ -682,7 +682,7 @@ for i:=0;i<3;i++{
 
 
 
-## map
+## MAP
 
 键值对
 
@@ -715,9 +715,9 @@ map[no1:songjiang non:wuyong]
 ```
 
 + 直接make---推荐使用
-
 ```go
 val:=make(map[string]string)   //default size
+mymap := map[int]int{}    map初始化 不需要make也可以放数据 能用
 //赋值同上
 ```
 
@@ -738,6 +738,7 @@ val:=map[string]string{
 name:=""
 sex:=""
 stu:=make(map[string]string)
+
 for i:=0;i<3;i++{
     fmt.Printf("input %d name\n",i+1);
     fmt.Scanln(&name)
