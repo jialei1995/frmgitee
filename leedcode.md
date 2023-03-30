@@ -1656,7 +1656,7 @@ mymap := map[int]int{//通过右括号  可以匹配到左括号，因为压入�
             if len(stack)==0 {
                 return false
             }
-            if(stack[len(stack)-1]==byte(mymap[int(s[i])])){
+            if(stack[len(stack)-1]==byte(mymap[int(s[i])])){ //计算是否相等时 判断 栈顶元素 是否与遍历到的元素作为键对应的值相等
                 stack=stack[:(len(stack)-1)]
             }else{
                 return false
@@ -1664,6 +1664,36 @@ mymap := map[int]int{//通过右括号  可以匹配到左括号，因为压入�
         }
     }
     if(len(stack)==0){  //最后需要保证stack是空的才可以
+        return true
+    }else{
+        return false
+    }
+}
+```
+或者把map改成先
+```go
+func isValid(s string) bool {
+    mymap := map[int]int{
+        '(':')',
+        '[':']',
+        '{':'}',
+    }
+    stack := []byte{}
+    for i:=0;i<len(s);i++ {
+        if s[i]==byte('(') || s[i]==byte('[') || s[i]==byte('{'){
+            stack=append(stack,s[i])
+        }else{
+            if len(stack)==0 {
+                return false
+            }
+            if(mymap[int(stack[len(stack)-1])]==int(s[i])){ // 计算是否相等时 判断 栈顶元素作为键 对应的值是否与遍历到的元素一致
+                stack=stack[:(len(stack)-1)]
+            }else{
+                return false
+            }
+        }
+    }
+    if(len(stack)==0){
         return true
     }else{
         return false

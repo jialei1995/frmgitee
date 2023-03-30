@@ -51,3 +51,238 @@ linux驱动开发：
 访问内核资源：系统调用，陷入（软中断），中断
 
 ubuntu 的鼠标 中键  复制粘贴 功能很恶心怎么禁用?上网查一下即可
+
+函数的入口一定要做 判空 处理，否则后面执行 可能访问空指针，可能给野指针赋值 -- 好习惯要养成
+
+
+uboot是通过 if of 命令，将sd卡或emmc 插入到ubuntu 然后放进去的。
+拨动拨码开关选择 系统从哪里启动（sd卡 emmc u盘），然后在uboot中配置环境变量bootargs  bootcmd 去启动系统
+编译uboot：./mx6ull_emmc.sh  编译uboot  获得 uboot.bin
+通过 ./mxdownload uboot.bin /dev/sdf 将boot 放到emmc中
+setenv bootcmd 'tftp 80800000 zImage;tftp 83000000 zxx.dtb;bootz 80800000 - 83000000'
+setenv bootargs 'console=ttymxc0,115200 rw nfsroot=ip:/home/rootfs ip=本机ip:服务器ip:255.255.255.0::eth0:off'
+saveenv  保存设置
+boot 命令会执行bootcmd配置的命令
+
+modprobe xx.ko  ，此命令会默认去:/lib/modules/<内核版本>/ 中查找此模块，并安装
+所以我们需要把自己编译好的ko文件放到此目录中
+直接执行 modprobe 若报错，可以知道 寻找模块的目录，创建此目录即可
+
+第一次加载新的模块的时候会报缺少 dep
+需要执行depmod 去生成相关依赖  
+modprobe -r  xxx.ko   卸载某个模块
+
+一般在入口函数中注册设备： 以下并不会创建出文件  测试的时候还是要 mknode /dev/haha0 c 250 0  c:字符设备
+register_chrdev(major,devicename,&operations)  注册字符设备--与次设备号没关系-注册的是一类--这个函数现在不常用了
+也会 申请设备号，也会向内核注册 操作函数--功能多 但是不好
+unregister_chrdev(major,devicename);  注销
+
+裸机led实验就是直接操作：6ULL 的寄存器
+驱动的地址映射：可以操作寄存器，但是不能直接操作，需要将物理地址映射，映射后才能操作映射后的虚拟地址-因为linux有 mmu
+
+stm32没有mmu-所以不能跑linux
+现在新版本的linux已经支持无 mmu了，但是一般没有用没mmu的cpu 跑Linux
+
+虚拟地址是0-4G  开发板上的内存只有512M，怎么映射呢
+获取物理地址对应的虚拟地址的函数： 
+virtaddr=ioremap(phyaddr,len)
+iounmap(virtaddr) 取消映射，卸载模块的时候取消
+
+可以直接拷贝别的目录的.vscode 到当前目录，则C_CPP_.json中包含的 include path 就可以直接引用过来，方便看内核代码时 直接跳转
+
+led.c
+#incldue<linux/module.h>
+#incldue<linux/kernel.h>
+#incldue<linux/init.h>
+#incldue<linux/fs.h>
+#incldue<linux/io.h>
+
+#define LED_MAJOR 200
+#define LED_NAME  "led"
+
+//led的寄存器物理地址
+#define CCM_CCGR1_BASE  	(0x2222131)
+#define SW_MUX_GPIO1_BASE  (0x2222131)
+#define SW_PA0_GPIO1_BASE  (0x2222131)
+#define GPIO1_DR_BASE  		(0x2222131)
+#define GPIO1_GDIR_BASE  	(0x2222131)
+//地址映射后的虚拟地址　指针
+static void __iomem *vCCM_CCGR1;
+static void __iomem *vSW_MUX_GPIO1;
+static void __iomem *vSW_PA0_GPIO1;
+static void __iomem *vGPIO1_DR;
+static void __iomem *vGPIO1_GDIR;
+
+led_write(file,buf,count,offset)
+{
+	int ret;
+	char databuf[1];//要传地址直接声明为1个数据的数组 可以直接传
+	ret=copy_from_user(databuf,buf,count);
+	if(ret<0)
+	{
+		printk("write err\n");
+		return -1;
+	}
+	if(databuf[0]==LEDON){
+		val=readl(vGPIO1_DR);
+		val &= ~(1<<3); //第三位 置0 开灯
+		writel(val,vGPIO1_DR);
+	}else{
+		val=readl(vGPIO1_DR);
+		val|=(1<<3); //开灯  置1 关灯
+		writel(val,vGPIO1_DR);
+	}
+	return 0;
+}
+led_open()
+{
+	nothing
+}
+led_close()
+{
+	nothing
+}
+//哪些函数需要实现 根据应用程序 需要实现的功能 去实现需要的函数
+static struct file_operations led_fops={
+	.owner=THIS_MODULE,
+	.write = led_write,
+	.open = led_open,
+	.release=led_close,
+};
+
+//加载模块的时候灯亮  卸载的时候灯灭
+static int __init led_init() //__init 只是个修饰符
+{
+	int ret=0;
+	int val=0;
+	//有的人把 led的初始化放到 init 入口，有的人放到open的时候初始化，看实际情况
+	//初始化led 的配置  映射过来的都是4字节长度的寄存器
+	vCCM_CCGR1=ioremap(CCM_CCGR1_BASE,4);  
+	vSW_MUX_GPIO1=ioremap(SW_MUX_GPIO1_BASE,4);
+	vSW_PA0_GPIO1=ioremap(SW_PA0_GPIO1_BASE,4);
+	vGPIO1_DR=ioremap(GPIO1_DR_BASE,4);
+	vGPIO1_GDIR=ioremap(GPIO1_GDIR_BASE,4);
+	
+	//gpio 初始化 操作，就是裸机操作
+	//时钟 初始化 不建议的操作就是直接（*vCCM_CCGR1）去操作，但是好像并没有错
+	val=readl(vCCM_CCGR1);
+	val&=~(3<<26);//清除bit26-27  只操作对应的bit 不要更改其他bit
+	val|=3<<26; //在将bit26 27置1
+	writel(val,vCCM_CCGR1);
+	
+	//设置复用 别的位没啥影响 直接设
+	writel(0x6,vSW_MUX_GPIO1);
+	//设置电气属性 别的位没啥影响 直接设
+	writel(0x6,vSW_PA0_GPIO1);
+	
+	//设置为输出模式
+	val=readl(vGPIO1_GDIR);
+	val&=~(3<<26);//清除bit26-27  只操作对应的bit 不要更改其他bit
+	val|=3<<26; //在将bit26 27置1
+	writel(val,vGPIO1_GDIR);
+
+	//初始化为输出 高电平
+	val=readl(vGPIO1_DR);
+	val|=(1<<3); //开灯
+	writel(val,vGPIO1_DR);
+	
+	ret=register_chrdev(LED_MAJOR,LED_NAME,&led_fops)
+	if(ret<0)
+	{printk("注册失败\n");return -1;}
+	
+	printk("in led_init\n");
+	return 0;
+}
+
+static void __exit led_exit()
+{
+	iounmap(vCCM_CCGR1);
+	iounmap(vSW_MUX_GPIO1);
+	iounmap(vSW_PA0_GPIO1);
+	iounmap(vGPIO1_DR);
+	iounmap(vGPIO1_GDIR);
+	
+	printk("in led_exit\n");
+}
+
+module_init(led_init);
+module_exit(led_exit);
+MODULE_LICENSE("GPL");  //必须支持GPL协议
+------------------
+makefile:
+KERNELDIR:=/linux-imx-4.3.x   存的内核的makefile
+CURRPATH:=$(shell pwd)
+obj-m:=led.o  xxx.o xxx必须与.c 文件的文件名一致 否则报错
+build:kernel_modules 
+
+kernel_modules:
+	$(MAKE) -C $(KERNELDIR) M=$(CURRPATH) modules
+clean:
+	$(MAKE) -C $(KERNELDIR) M=$(CURRPATH) clean
+---------------------
+
+u-boot tftp 下载失败，查看ubuntu 网络是否正常，是否主机或单板 ip 重复了
+关闭单板与ubuntu，在windows ping 两个ip 看是否有ip 重复 
+改重复的ip的 主机的ip/找到重复ip的设备，更改他的ip
+重启tftp服务
+
+
+内核中提供了专门的读写操作函数：最好不要直接去写虚拟内存
+u8  readb(vaddr)
+u16 readw(vaddr)
+u32 readl(vaddr)
+写操作函数：
+void writeb(u8 val,vaddr)
+void writew(u16 val,vaddr)
+void writel(u32 val,vaddr)
+
+-----------------------------------------
+优化上面的程序，
+register_chrdev(LED_MAJOR,LED_NAME,&led_fops) 根据主设备号创建驱动，浪费次设备号--但是很简洁 一行顶多行代码
+1.	
+	好一点的创建驱动方法，动态向内核申请：
+	alloc_chrdev_region(&devno, mi,count,"hello")
+	unregister_chrdev_region(devno,count); 释放申请的设备号 申请几个就释放几个
+2.	
+	int register_chrdev_region(dev_t from,count,name);
+	指定主设备号，使用 MKDEV 构建完整的设备号，一般次设备号用0开始++
+	卸载 unregister_chrdev_region 与上面一样的
+3. 两个申请设备号的方法优化方法：
+	if(major>0){//给定主设备号
+		register_chrdev_region(MKDEV(major,0),count,name);
+	}else{//啥都没给 自己申请
+		alloc_chrdev_region(&devno, minor,count,"hello")
+	}
+
+newchrled.c
+struct newchrled_dev{
+	dev_t devid;	设备号
+	int major;		主设备号
+	int minor;		次设备号
+	struct cdev cdev;//变量名就是类型名  c里面是可以的
+};
+
+struct newchrled_dev newchrled; 定义描述设备号的结构体变量
+
+if(newchrled.major>0){//给定主设备号
+	newchrled.devid=MKDEV(newchrled.major,0);
+	ret=register_chrdev_region(newchrled.devid,count,name);
+}else{//没给主设备号 自己申请  minorbase次设备号基地址，一般从0开始写
+	alloc_chrdev_region(&newchrled.devid, minorbase,count,"hello")
+	newchrled.major = MAJOR(newchrled.devid);
+	newchrled.minor = MINOR	(newchrled.devid);
+}
+struct cdev{ //字符设备结构体  将设备号与操作 联系起来
+	设备号，
+	.owner,
+	操作集,
+	count,
+}
+newchrled.owner=THIS_MODULE;
+cdev_init(&newchrled.cdev,operations);
+cdev_add(&newchrled.cdev,newchrled.devid,count);  count 添加几个
+
+
+dev_del(&newchrled.cdev);  注销的时候用
+
+--------------------------------------------
