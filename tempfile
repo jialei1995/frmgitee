@@ -278,11 +278,132 @@ struct cdev{ //字符设备结构体  将设备号与操作 联系起来
 	操作集,
 	count,
 }
-newchrled.owner=THIS_MODULE;
+newchrled.cdev.owner=THIS_MODULE;
 cdev_init(&newchrled.cdev,operations);
 cdev_add(&newchrled.cdev,newchrled.devid,count);  count 添加几个
 
 
 dev_del(&newchrled.cdev);  注销的时候用
-
 --------------------------------------------
+以前的内核没有代码创建设备节点的功能，2.6以后的内核引入了udev 机制，提供热插拔管理，加载驱动时创建，卸载驱动时删除
+
+用代码创建设备节点： 
+//创建类 
+newchrled.ledclass=class_create(THIS_MODULE,"led");
+if(IS_ERR(newchrled.ledclass))  
+	return PTR_ERR(newchrled.ledclass);
+//根据类 创建设备
+newchrled.leddev=device_create(newchrled.ledclass,NULL,newchrled.devid,NULL,"led");
+if(IS_ERR(newchrled.ledclass))  
+	return PTR_ERR(newchrled.leddev);
+	
+
+出口函数：
+device_destroy(newchrled.leddev,newchrled.devid)  销毁设备
+class_destroy(newchrled.ledclass);  销毁类
+
+----------------------------文件私有数据  很好用  建议多使用
+struct file{
+	xxx;
+	yyy;
+	void *private_data;  //file 结构体中有个重要成员 很好用
+};
+
+一般在open的时候设置
+int newchrled_open(struct inod*inode,struct file*filp)
+{
+	filp->private_data=&newchrled;//将程序中 用的最多的 newchrled 赋值给私有数据，然后直接通过 struct file*filp 就可以访问当前驱动的所有属性
+	return 0;
+}
+//在read write close 函数中，可以直接读取私有数据
+newchrled_read(struct file*filp)
+{
+	struct newchrled_dev *dev=filp->private_data;
+	操作 dev即可；
+}
+int newchrled_release(struct inod*inode,struct file*filp)
+{
+	struct newchrled_dev *dev=(struct newchrled_dev*)filp->private_data;
+	return 0;
+}
+
+------------------------------设备树
+单片机驱动中SPI，速度都是在.c 里面写死的，板级信息都写到 .c中，导致linux 内核描述板子信息的.c 太多。所以引入.dts文件
+
+imx：nxp 恩智浦
+hisi：海思 
+
+dts 相当于 .c文件
+DTC 工具相当于 gcc 将dts文件编译成 dtb文件（相当于bin文件）
+
+在内核根目录：make dtbs  编译所有的dts 文件 ，在arch/arm/boot/dts/目录找自己需要的编译好的dtb文件
+在内核根目录：make xxx.dtb  编译指定dts 文件，编译成对应的dtb文件，只编译这一个dts 文件
+arch/arm/boot/dts/makefile 中制定了编译的时候会编译哪些dts 文件 
+要编译自己写的dts文件，将自己的dts 放到 makefile中
+
+dtsi 是 头文件
+
+dts文件：
+/dts-v1/;
+#include "x.dtsi";
+#include *.h;
+当前root中的修改 ，如果 x.dtsi文件已经存在 则就是用当前的属性覆盖dtsi中的属性
+/{ 	//根节点之内描述设备信息
+	model="this is freescal board11.1"; 属性
+	compatible=""; 属性
+	chosen{ //一级子节点
+	};
+	memory{
+		reg=<0x8000000 0x2000000>;起始地址+长度512M
+	}; 
+	spi4{
+	};
+	soc{
+		apb1:apb1@addr{}
+		apb2:apb1@addr{
+			i2c1@addr{  i2c上挂了两个设备 
+				dev1@03{
+				};
+				dev2@13{
+				};
+			};
+		};
+		apb3:apb1@addr{}
+	};
+	led{  我们一般加到一级子节点 比较容易找
+		编译运行后在/proc/device-tree 可以看到新加的节点
+	};
+	alphaled{
+		#address-cell =<1>;
+		#size-cell=<1>;
+		status="okay";
+		reg=<0x20c405 0x04  /*led 的各种寄存器，长度*/
+			0x20c405 0x04	/**/
+			0x20c405 0x04	/**/
+			0x20c405 0x04	/**/
+			0x20c405 0x04>;
+	};
+	intc:interrupt-controller@00100100{
+		冒号前 intc 是标签。
+		完整节点名字为：interrupt-controller@00100100
+	};
+};
+
+//根节点之外 还可以放东西  是追加
+&label{  在根节点之外 &+label 可以追加 属性
+};
+&intc{
+};
+
+设备树在系统中的体现：
+内核启动后，可以在根文件系统看到设备的节点信息 在 /proc/device-tree 存放设备树信息  
+属性对应单个文件，节点对应一个目录，目录里面好多文件对应节点的属性
+软链接：/sys/firmware/devicetree/base/
+
+特殊节点：
+chose：主要目的是将 uboot 中bootargs 环境变量值，传递给内核 作为命令行参数，可以在/proc/device-tree中看到chose的属性就与boot中一样
+多会设置的呢？在uboot中
+
+
+
+
