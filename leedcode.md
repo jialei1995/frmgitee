@@ -1700,3 +1700,202 @@ func isValid(s string) bool {
     }
 }
 ```
+
+26. 删除有序数组中的重复项
+```c++
+//双指针，p 指向开头 q指向1
+int removeDuplicates(vector<int>& nums) {
+    int p=0;int q=1;
+    int retlen=1;
+    if(nums.size()<=1)return nums.size();
+    while(q<nums.size())
+    {
+        if(nums[p]==nums[q]){ //将q向后偏移
+            q++;
+            continue;
+        }
+        //p != q位置数据  将q位置数据放到p+1位置  两个指针向后偏移
+        retlen++;
+        nums[p+1]=nums[q];
+        p++;q++;
+    }
+    return retlen;
+}
+```
+
+27. 移除元素
+
+```c++
+int removeElement(vector<int>& nums, int val) {
+    int p=0;int q=0;
+    if(nums.size()==0)return 0;
+    int retlen=0;
+    while(q<nums.size())//确保 [0-q)位置都是不为 val 的数据，q一直向后指 直到结尾
+    {
+        if(nums[q]==val)
+        {
+            q++;
+            continue;
+        }
+        nums[p]=nums[q];
+        p++;q++;
+        retlen++;
+    }
+    return retlen;
+}
+```
+
+66. 加一
+
+```c
+ vector<int> plusOne(vector<int>& digits) {
+    int n = digits.size();
+    for (int i = n - 1; i >= 0; --i) {
+        if (digits[i] != 9) { //找到第一个不为9 的位置
+            ++digits[i];//将当前位数据++  低位全部置0
+            for (int j = i + 1; j < n; ++j) {
+                digits[j] = 0;
+            }
+            return digits;
+        }
+        //else 当前是9 则继续往更高位 遍历
+    }
+
+    // digits 中所有的元素均为 9 则会走到此分支
+    vector<int> ans(n + 1);
+    ans[0] = 1;
+    return ans;
+}
+```
+
+
+剑指 Offer 63. 股票的最大利润
+```c
+class Solution {
+public:
+    int dp[1000000]={0};   //动态规划
+    int mincost(vector<int>& prices,int n)
+    {
+        int minv=prices[0];
+        for(int i=0;i<=n;i++){
+            if(minv>prices[i]){
+                minv=prices[i];
+            }
+        }
+        return minv;
+    }
+    int maxval(int a,int b){
+        return (a>b)?a:b;
+    }
+    int maxProfit(vector<int>& prices) {
+        if(prices.size()==0)return 0;
+        dp[0]=0;
+        for(int i=1;i<prices.size();i++)//指定状态转移方程 
+        {
+            //第i天的最大利润=最大值(i-1最大利润，当前卖出价格-前面最小买入价格)
+            dp[i] = maxval(dp[i-1],prices[i]-mincost(prices,i-1));
+        }
+        return dp[prices.size()-1];
+    }
+};
+```
+
+剑指 Offer 62. 圆圈中最后剩下的数字
+```c
+int lastRemaining(int n, int m) {
+   vector<int> arr;
+   for(int i=0;i<n;i++)
+       arr.push_back(i);
+
+   int lastone=0;
+   int cur=-1;//第一次遍历从第0 索引开始
+   int remain=n;//所有数字都删除后 为0
+   int cnt=0;
+   //遍历
+   while(1)
+   {
+       cur++;
+       cur=cur%n;
+       if(arr[cur]!=-1 )//遍历的时候 如果为-1 无效数字，继续往后遍历
+       {
+           cnt++;
+           if((cnt==m))
+           {
+               lastone=arr[cur];//满足 数了 cnt次，遍历的都不是-1 ，删除当前数字--置-1
+               arr[cur]=-1;
+               remain--;//剩余数字--
+               cnt=0;
+           }
+       }
+       if(remain==0)
+           break;
+   }
+   return lastone;
+}
+以上代码测试如下用例时  半天运行不完  不知道原因
+cout<<lastRemaining(70866,116922)
+```
+
+剑指 Offer 60. n个骰子的点数
+```c
+
+//动态规划方法
+vector<double> dicesProbability(int n) {
+    vector<double> dp(6, 1.0 / 6.0);//表示筛子只有一个的数组
+    //从第2个骰子开始，这里n表示n个骰子，先从第二个的情况算起，然后再逐步求3个、4个···n个的情况，i表示当总共i个骰子时的结果
+    for(int i=2;i<=n;i++)
+    {
+        //每次的点数之和范围会有点变化，点数之和的值最大是i*6，最小是i*1，i之前的结果值是不会出现的；比如i=3个骰子时，最小就是3了，不可能是2和1，所以点数之和的值的个数是6*i-(i-1)，化简：5*i+1 //当有i个骰子时的点数之和的值数组先假定是temp
+        vector<double> temp(5*i+1,0); //每次进入循环分配空间，循环结束会销毁--所以不会重定义
+        for(int j=0;j<dp.size();j++)//利用源数组中的值各自+m,双重循环给temp数组赋值
+        {
+            for(int m=0;m<6;m++)
+            {
+                temp[j+m]+=dp[j]*(1.0/6.0);//+= temp[j+m] 在循环内部，会多次赋值 需要+=
+            }
+        }
+        dp=temp;//每轮循环结束 更新dp 
+    }
+    return dp;
+}
+//c++ 语法
+vector<double> dp(6, 1.0 / 6.0);//表示筛子只有一个的数组
+vector<double> temp(10+1,0);
+dp=temp;//直接将temp赋给dp，则dp就成了11个0的容器，不再指向原来的6个数的容器
+```
+
+剑指 Offer 48. 最长不含重复字符的子字符串
+https://leetcode.cn/problems/zui-chang-bu-han-zhong-fu-zi-fu-de-zi-zi-fu-chuan-lcof/solutions/210129/mian-shi-ti-48-zui-chang-bu-han-zhong-fu-zi-fu-d-9/
+```c
+不用建立dp数组，但是dp的计算需要利用上一个dp值的算法  也属于动态规划，动态规划不一定非要建立dp 数组去推理后面的值
+int lengthOfLongestSubstring(string s) {
+    map<int,int> dic;
+    int res, dp = 0;
+    int i=0;
+    //dp 表示 以当前位置结尾 最长的字串
+    for(int j=0;j<s.size();j++)
+    {
+        i=(dic.find(s[j])==dic.end())?-1:(dic.find(s[j])->second);
+        dic[s[j]] = j; //更新dic
+        //dp[j−1]<j−i,说明字符s[i]在子字符串 dp[j−1] 区间之外,则 dp[j]=dp[j−1]+1 否则
+        //说明字符 s[i] 在子字符串dp[j−1] 区间之中 ，则 dp[j] 的左边界由 s[i] 决定，即 dp[j]=j−i
+
+        dp = (dp < (j - i))?(dp + 1):(j - i);//必须带括号
+        res = max(res, dp);
+    }
+    return res;
+}
+```
+
+```python
+ def lengthOfLongestSubstring(self, s: str) -> int:
+    dic = {}
+    res = dp = 0
+    for j in range(len(s)):
+        i = dic.get(s[j], -1) # 获取索引 i
+        print(i)
+        dic[s[j]] = j # 更新哈希表
+        dp = dp + 1 if dp < j - i else j - i #python中可以不带括号
+        res = max(res, dp) # max(dp[j - 1], dp[j])
+    return res
+```
