@@ -1,0 +1,456 @@
+led.c
+#incldue<linux/module.h>
+#incldue<linux/kernel.h>
+#incldue<linux/init.h>
+#incldue<linux/fs.h>
+#incldue<linux/io.h>
+
+#define LED_MAJOR 200
+#define LED_NAME  "led"
+
+//led的寄存器物理地址
+#define CCM_CCGR1_BASE  	(0x2222131)
+#define SW_MUX_GPIO1_BASE  (0x2222131)
+#define SW_PA0_GPIO1_BASE  (0x2222131)
+#define GPIO1_DR_BASE  		(0x2222131)
+#define GPIO1_GDIR_BASE  	(0x2222131)
+//地址映射后的虚拟地址　指针
+static void __iomem *vCCM_CCGR1;
+static void __iomem *vSW_MUX_GPIO1;
+static void __iomem *vSW_PA0_GPIO1;
+static void __iomem *vGPIO1_DR;
+static void __iomem *vGPIO1_GDIR;
+
+led_write(file,buf,count,offset)
+{
+	int ret;
+	char databuf[1];//要传地址直接声明为1个数据的数组 可以直接传
+	ret=copy_from_user(databuf,buf,count);
+	if(ret<0)
+	{
+		printk("write err\n");
+		return -1;
+	}
+	if(databuf[0]==LEDON){
+		val=readl(vGPIO1_DR);
+		val &= ~(1<<3); //第三位 置0 开灯
+		writel(val,vGPIO1_DR);
+	}else{
+		val=readl(vGPIO1_DR);
+		val|=(1<<3); //开灯  置1 关灯
+		writel(val,vGPIO1_DR);
+	}
+	return 0;
+}
+led_open()
+{
+	nothing
+}
+led_close()
+{
+	nothing
+}
+//哪些函数需要实现 根据应用程序 需要实现的功能 去实现需要的函数
+static struct file_operations led_fops={
+	.owner=THIS_MODULE,
+	.write = led_write,
+	.open = led_open,
+	.release=led_close,
+};
+
+//加载模块的时候灯亮  卸载的时候灯灭
+static int __init led_init() //__init 只是个修饰符
+{
+	int ret=0;
+	int val=0;
+	//有的人把 led的初始化放到 init 入口，有的人放到open的时候初始化，看实际情况
+	//初始化led 的配置  映射过来的都是4字节长度的寄存器
+	vCCM_CCGR1=ioremap(CCM_CCGR1_BASE,4);
+	vSW_MUX_GPIO1=ioremap(SW_MUX_GPIO1_BASE,4);
+	vSW_PA0_GPIO1=ioremap(SW_PA0_GPIO1_BASE,4);
+	vGPIO1_DR=ioremap(GPIO1_DR_BASE,4);
+	vGPIO1_GDIR=ioremap(GPIO1_GDIR_BASE,4);
+
+	//gpio 初始化 操作，就是裸机操作
+	//时钟 初始化 不建议的操作就是直接（*vCCM_CCGR1）去操作，但是好像并没有错
+	val=readl(vCCM_CCGR1);
+	val&=~(3<<26);//清除bit26-27  只操作对应的bit 不要更改其他bit
+	val|=3<<26; //在将bit26 27置1
+	writel(val,vCCM_CCGR1);
+
+	//设置复用 别的位没啥影响 直接设
+	writel(0x6,vSW_MUX_GPIO1);
+	//设置电气属性 别的位没啥影响 直接设
+	writel(0x6,vSW_PA0_GPIO1);
+
+	//设置为输出模式
+	val=readl(vGPIO1_GDIR);
+	val&=~(3<<26);//清除bit26-27  只操作对应的bit 不要更改其他bit
+	val|=3<<26; //在将bit26 27置1
+	writel(val,vGPIO1_GDIR);
+
+	//初始化为输出 高电平
+	val=readl(vGPIO1_DR);
+	val|=(1<<3); //开灯
+	writel(val,vGPIO1_DR);
+
+	ret=register_chrdev(LED_MAJOR,LED_NAME,&led_fops)
+	if(ret<0)
+	{printk("注册失败\n");return -1;}
+
+	printk("in led_init\n");
+	return 0;
+}
+
+static void __exit led_exit()
+{
+	iounmap(vCCM_CCGR1);
+	iounmap(vSW_MUX_GPIO1);
+	iounmap(vSW_PA0_GPIO1);
+	iounmap(vGPIO1_DR);
+	iounmap(vGPIO1_GDIR);
+
+	printk("in led_exit\n");
+}
+
+module_init(led_init);
+module_exit(led_exit);
+MODULE_LICENSE("GPL");  //必须支持GPL协议
+------------------
+makefile:
+KERNELDIR:=/linux-imx-4.3.x   存的内核的makefile
+CURRPATH:=$(shell pwd)
+obj-m:=led.o  xxx.o xxx必须与.c 文件的文件名一致 否则报错
+build:kernel_modules
+
+kernel_modules:
+	$(MAKE) -C $(KERNELDIR) M=$(CURRPATH) modules
+clean:
+	$(MAKE) -C $(KERNELDIR) M=$(CURRPATH) clean
+---------------------
+
+u-boot tftp 下载失败，查看ubuntu 网络是否正常，是否主机或单板 ip 重复了
+关闭单板与ubuntu，在windows ping 两个ip 看是否有ip 重复
+改重复的ip的 主机的ip/找到重复ip的设备，更改他的ip
+重启tftp服务
+
+内核中提供了专门的读写操作函数：最好不要直接去写虚拟内存
+u8  readb(vaddr)
+u16 readw(vaddr)
+u32 readl(vaddr)
+写操作函数：
+void writeb(u8 val,vaddr)
+void writew(u16 val,vaddr)
+void writel(u32 val,vaddr)
+
+-----------------------------------------优化上面的程序
+register_chrdev(LED_MAJOR,LED_NAME,&led_fops) 根据主设备号创建驱动，浪费次设备号--但是很简洁 一行顶多行代码
+1.
+	好一点的创建驱动方法，动态向内核申请：
+	alloc_chrdev_region(&devno, mi,count,"hello")
+	unregister_chrdev_region(devno,count); 释放申请的设备号 申请几个就释放几个
+2.
+	int register_chrdev_region(dev_t from,count,name);
+	指定主设备号，使用 MKDEV 构建完整的设备号，一般次设备号用0开始++
+	卸载 unregister_chrdev_region 与上面一样的
+3. 两个申请设备号的方法优化方法：
+	if(major>0){//给定主设备号
+		register_chrdev_region(MKDEV(major,0),count,name);
+	}else{//啥都没给 自己申请
+		alloc_chrdev_region(&devno, minor,count,"hello")
+	}
+
+newchrled.c
+struct newchrled_dev{
+	dev_t devid;	设备号
+	int major;		主设备号
+	int minor;		次设备号
+	struct cdev cdev;//变量名就是类型名  c里面是可以的
+};
+
+struct newchrled_dev newchrled; 定义描述设备号的结构体变量
+
+if(newchrled.major>0){//给定主设备号
+	newchrled.devid=MKDEV(newchrled.major,0);
+	ret=register_chrdev_region(newchrled.devid,count,name);
+}else{//没给主设备号 自己申请  minorbase次设备号基地址，一般从0开始写
+	alloc_chrdev_region(&newchrled.devid, minorbase,count,"hello")
+	newchrled.major = MAJOR(newchrled.devid);
+	newchrled.minor = MINOR	(newchrled.devid);
+}
+struct cdev{ //字符设备结构体  将设备号与操作 联系起来
+	设备号，
+	.owner,
+	操作集,
+	count,
+}
+newchrled.cdev.owner=THIS_MODULE;
+cdev_init(&newchrled.cdev,operations);
+cdev_add(&newchrled.cdev,newchrled.devid,count);  count 添加几个
+
+
+dev_del(&newchrled.cdev);  注销的时候用
+--------------------------------------------
+以前的内核没有代码创建设备节点的功能，2.6以后的内核引入了udev 机制，提供热插拔管理，加载驱动时创建，卸载驱动时删除
+
+用代码创建设备节点：
+//创建类
+newchrled.ledclass=class_create(THIS_MODULE,"led");
+if(IS_ERR(newchrled.ledclass))
+	return PTR_ERR(newchrled.ledclass);
+//根据类 创建设备
+newchrled.leddev=device_create(newchrled.ledclass,NULL,newchrled.devid,NULL,"led");
+if(IS_ERR(newchrled.ledclass))
+	return PTR_ERR(newchrled.leddev);
+
+
+出口函数：
+device_destroy(newchrled.leddev,newchrled.devid)  销毁设备
+class_destroy(newchrled.ledclass);  销毁类
+
+----------------------------文件私有数据  很好用  建议多使用
+struct file{
+	xxx;
+	yyy;
+	void *private_data;  //file 结构体中有个重要成员 很好用
+};
+
+一般在open的时候设置
+int newchrled_open(struct inod*inode,struct file*filp)
+{
+	filp->private_data=&newchrled;//将程序中 用的最多的 newchrled 赋值给私有数据，然后直接通过 struct file*filp 就可以访问当前驱动的所有属性
+	return 0;
+}
+//在read write close 函数中，可以直接读取私有数据
+newchrled_read(struct file*filp)
+{
+	struct newchrled_dev *dev=filp->private_data;
+	操作 dev即可；
+}
+int newchrled_release(struct inod*inode,struct file*filp)
+{
+	struct newchrled_dev *dev=(struct newchrled_dev*)filp->private_data;
+	return 0;
+}
+
+------------------------------设备树
+单片机驱动中SPI，速度都是在.c 里面写死的，板级信息都写到 .c中，导致linux 内核描述板子信息的.c 太多。所以引入.dts文件
+
+imx：nxp 恩智浦
+hisi：海思
+
+dts 相当于 .c文件
+DTC 工具相当于 gcc 将dts文件编译成 dtb文件（相当于bin文件）
+
+在内核根目录：make dtbs  编译所有的dts 文件 ，在arch/arm/boot/dts/目录找自己需要的编译好的dtb文件
+在内核根目录：make xxx.dtb  编译指定dts 文件，编译成对应的dtb文件，只编译这一个dts 文件
+arch/arm/boot/dts/makefile 中制定了编译的时候会编译哪些dts 文件
+要编译自己写的dts文件，将自己的dts 放到 makefile中
+
+dtsi 是 头文件
+
+dts文件：
+/dts-v1/;
+#include "x.dtsi";
+#include *.h;
+当前root中的修改 ，如果 x.dtsi文件已经存在 则就是用当前的属性覆盖dtsi中的属性
+/{ 	//根节点之内描述设备信息
+	model="this is freescal board11.1"; 属性
+	compatible=""; 属性
+	chosen{ //一级子节点
+	};
+	memory{
+		reg=<0x8000000 0x2000000>;起始地址+长度512M
+	};
+	spi4{
+	};
+	soc{
+		apb1:apb1@addr{}
+		apb2:apb1@addr{
+			i2c1@addr{  i2c上挂了两个设备
+				dev1@03{
+				};
+				dev2@13{
+				};
+			};
+		};
+		apb3:apb1@addr{}
+	};
+	led{  我们一般加到一级子节点 比较容易找
+		编译运行后在/proc/device-tree 可以看到新加的节点
+	};
+	alphaled{
+		#address-cell =<1>;
+		#size-cell=<1>;
+		status="okay";
+		reg=<0x20c405 0x04  /*led 的各种寄存器，长度*/
+			0x20c405 0x04	/**/
+			0x20c405 0x04	/**/
+			0x20c405 0x04	/**/
+			0x20c405 0x04>;
+	};
+	intc:interrupt-controller@00100100{
+		冒号前 intc 是标签。
+		完整节点名字为：interrupt-controller@00100100
+	};
+};
+
+//根节点之外 还可以放东西  是追加
+&label{  在根节点之外 &+label 可以追加 属性
+};
+&intc{
+};
+
+设备树在系统中的体现：
+内核启动后，可以在根文件系统看到设备的节点信息 在 /proc/device-tree 存放设备树信息
+属性对应单个文件，节点对应一个目录，目录里面好多文件对应节点的属性
+软链接：/sys/firmware/devicetree/base/
+
+特殊节点：
+chose：主要目的是将 uboot 中bootargs 环境变量值，传递给内核 作为命令行参数，可以在/proc/device-tree中看到chose的属性就与boot中一样
+多会设置的呢？在uboot中
+
+----------------------pinctl子系统 与 gpio子系统
+添加dts节点
+gpioled{
+  compatible="alientek,gpioled";
+  pinctl-names="default";
+  pinctl-0=<&pinctrl_gpioled>;/*此模块有几个pin 就添加几个pinctl-x*/
+  //pinctrl_gpioled 对应后面的很多配置
+
+  led-gpios=<&gpio1 3 GPIO_ACTIVE_LOW>; 自己添加的属性，表示低电平有效
+  status="okay";
+}
+pinctrl_gpioled: ledgrp{
+  fsl,pins=<
+    MX6UL_PA0_GPIO1_IO03_GPIO1_IO03  0x10b0 用作普通的gpio
+
+  >;
+};
+
+直接编译dts，启动即可  pinctl驱动是nxp等等芯片厂商提供的，不搞内核的人不用纠结
+写驱动的工程师，大概知道pinctl怎么匹配设置这些pin属性的即可
+
+驱动编写：
+led.c
+//创建设备结构体
+struct gpioled_dev{
+  dev_t devid;
+  int major;
+  int minor;
+  struct cdev cdev;//c 可以变量名与类型名一样
+  struct class*class;
+  struct devide*device;
+  struct device_node *nd;
+};
+#define GPIOLED_CNT 1
+#define GPIOLED_NAME "gpioled"
+struct gpioled_dev gpioled;
+static int __init led_init()
+{
+  gpioled.major=0;
+  //申请设备号
+  if(gpioled.major)//给定主设备号
+  {
+    gpioled.devid=MKDEV(gpioled.major,0);
+    register_chrdev_region(gpioled.devid,GPIOLED_CNT,GPIOLED_NAME);
+  }else{ //没给主设备号
+    alloc_chrdev_region(&gpioled.devid,0,GPIOLED_CNT,GPIOLED_NAME);
+    gpioled.major=MAJOR();
+    gpioled.minor=MINOR();
+  }
+  //初始化cdev
+  gpioled.cdev.owner=THIS_MODULE;
+  cdev_init(&gpioled.cdev,&led_ops);//初始化cdev led_ops为操作集
+  //添加cdev 至内核  返回值要做处理
+  cdev_add(&gpioled.cdev,gpioled.devid,GPIOLED_CNT);
+
+  //创建 /dev/gpioled 设备
+  gpioled.class=class_create(THIS_MODULE,"led");
+  if(IS_ERR(gpioled.class))
+  	return PTR_ERR(gpioled.class);
+  gpioled.device=device_create(gpioled.class,NULL,gpioled.devid,NULL,"led");
+  if(IS_ERR(gpioled.device))
+  	return PTR_ERR(gpioled.device);
+
+  //获取设备节点信息--从设备树
+  gpioled.nd=of_find_node_by_path("/gpioled");//设备树的根节点下一级子节点
+  if(gpioled.nd==NULL){
+    ret=-1;
+    goto fail_findnode;
+  }
+  //获取led 对应的pin
+  gpioled.led_gpio=of_get_name_gpio(gpioled.nd,"led-gpios",0);//第二个参数：从设备树获取有效电平，
+  if(gpioled.led_gpio<0){                                     //索引0，只有1个
+    ret=-2;
+    goto fail_findnode;
+  }
+  //申请 其实也可以直接使用，但是无法检测此io是否被别的设备使用，因此使用之前最好申请一下。如果
+  //已经被其他设备使用就会申请失败，我们就知道不能使用这个io 重新分配io 去使用
+  ret = gpio_request(gpioled.led_gpio,"led-gpio"); 第二个参数表示给gpio设置名字，随便取
+  if(ret){
+    //若申请失败 检查设备树文件中是否有别的设备用到了此io口，屏蔽它
+    //搜索 &gpio1_3  与  GPIO1_IO03 屏蔽
+    goto fail_findnode;
+  }
+
+  //使用io
+  //设置输出模式 默认输出电平设置为高电平
+  gpio_direction_output(gpioled.led_gpio,1);
+  //设置输出低电平  低电平有效 则点亮led
+  gpio_set_value(gpioled.led_gpio,0);
+  return 0;
+fail_findnode:
+  return ret;
+}
+
+led_write(struct file*filp,const char __user *buf,count,*offset)
+{
+  //获取led 的所有属性结构体  在filp中存着
+  //filp->private_data 在open的时候赋值
+  struct gpioled_dev *dev=filp->private_data;
+  unsigned char databuf[1];
+  copy_from_user(databuf,buf,count);
+  根据接收到的数据去操作gpio1-3为高还是低
+  gpio_set_value(gpioled.led_gpio,1/0);
+  return 0;
+}
+static void __init led_exit()
+{
+  //注销驱动
+  cdev_del(&gpioled.cdev);
+  unregister_chrdev_region(gpioled.devid,GPIOLED_CNT);
+  device_destroy();
+  class_destroy();
+
+  gpio_free(gpioled.led_gpio);//申请了io 释放io
+}
+---------------------------
+/dev/xxx 类似这种设备节点并不是操控硬件设备的唯一途径，还可以通过sysfs对硬件
+设备进行操控；
+sysfs devfs proc都是虚拟文件系统，作用是将内核信息 以文件的方式提供给用户层使用
+sysfs的主要功能就是对系统设备进行管理
+sysfs挂载在/sys目录下，
+/dev/目录下的是设备文件（设备节点）
+/sys/目录下是设备的属性文件
+具体使用哪种方式需要根据不同功能类型设备进行选择
+  有些设备只能通过设备节点进行操控
+  而有些设备只能通过 sysfs 方式进行操控  --- 一般简单的设备这样做
+
+misc 对应杂散类设备，不易分类的就放到misc类里面
+/sys/class/led/sys-led/ ： cat trigger
+none:无触发方式
+rc-feedback:
+nand-disk:
+mmc0：对mmc0设备发起读写操作的时候 led会闪烁
+timer：被定时器控制的闪烁
+oneshot:
+[heartbeat]:被[]括起来的表示 当前的led的触发方式
+backlight：
+gpio:
+通常板子启动之后会将一颗led 作为心跳灯
+可以通过：
+echo timer > trigger 更改当前led的触发方式
+/sys/class/led/sys-led/ ： cat brightness
+0表示关 其他表示亮度，数值越大亮度越高  要控制亮灭的时候需要关闭led的触发方式，设置为none
+写程序控制led 用的是同样的原理 就是往对应的文件中写入对应的字符串
