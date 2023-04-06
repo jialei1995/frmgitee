@@ -6738,12 +6738,16 @@ wait_running 检查
 	+ 默认（轮询server）
 	+ weight（调节每个server的权重去均衡）
 
-
+apt install openjdk-8-jdk tomcat的启动需要先下载openjdk
 下载apache后，直接启动服务
 在局域网之内可以直接 在浏览器中输入:http://ip:8080 去访问到服务器
 若修改 conf/server.xml文件，将port 改成80，则不需要“:8080” 就可以访问到服务器
 服务器中显示的内容就是 webapps/ROOT/ 目录中的东西--默认是tomcat的网站
 直接修改此目录中的数据，刷新一下网页  网页的数据就是新的ROOT 目录中的内容--不需重启apache
+
+对于腾讯云上：
+需要在自己的实例的防火墙中开启对应的端口，才可以在任何网页中 通过ip登录自己的apache主页
+防火墙->添加规则->ip填0.0.0.0/0  端口填8080->开启
 -----rc.d
 rc.d下有7个目录，分别放置os启动到不同启动级别对应的脚本。
 修复磁盘后必须记得更改fstab中对应的磁盘的uuid，不然os就起不来了。
