@@ -4127,3 +4127,31 @@ mqtt:
 发送CONNECT链接报文 ，查看阿里云mqtt服务器 的返回数据  全是16进制的协议
 
 本地搭建mqtt服务器：EMQ 服务器
+
+
+usb 接鼠标：可调式鼠标数据
+USBH_Process(&hUsbHostFS);
+	//接入不同设备phost->pActiveClass 赋值不同，调的BgndProcess不同
+	phost->pActiveClass->BgndProcess(phost);
+		//对于hid 类的BgndProcess 为 USBH_HID_Process 
+			USBH_ClassTypeDef  HID_Class =
+			{
+			  "HID",
+			  USB_HID_CLASS,
+			  USBH_HID_InterfaceInit,
+			  USBH_HID_InterfaceDeInit,
+			  USBH_HID_ClassRequest,
+			  USBH_HID_Process,
+			  USBH_HID_SOFProcess,
+			  NULL,
+			};
+		USBH_HID_Process();
+			USBH_HID_EventCallback(phost);  重写收到数据的回调
+
+
+定时器再理解：
+TIM_InitStruct.Prescaler = 15;//根据预分频系数 可以知道是16/16=1us ++ 1次
+TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+TIM_InitStruct.Autoreload = 999;//根据reload值 可以知道是1us*1000=1ms 进一次定时器中断
+LL_TIM_EnableIT_UPDATE(TIM16);  //是否开始定时器计数    
+LL_TIM_EnableCounter(TIM16);	//是否开启定时器中断   开启计数不开中断是可以的，要开中断必须先开启计数

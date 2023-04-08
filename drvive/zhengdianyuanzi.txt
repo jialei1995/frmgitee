@@ -454,3 +454,6 @@ echo timer > trigger 更改当前led的触发方式
 /sys/class/led/sys-led/ ： cat brightness
 0表示关 其他表示亮度，数值越大亮度越高  要控制亮灭的时候需要关闭led的触发方式，设置为none
 写程序控制led 用的是同样的原理 就是往对应的文件中写入对应的字符串
+
+
+getconf CLK_TCK  查看内核定时器频率  100  表示10ms 定时器中断一次

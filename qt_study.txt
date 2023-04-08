@@ -210,7 +210,7 @@ setLayout(gridLayout);最后通过setlayout启用设置结果
 QGridLayout* layout = new QGridLayout();
 /这里create几个控件，设置好属性/
 layout->setSpacing(10);//设置控件之间的间距
-layout->addWidget(&TestBtn1, 0, 0);//往网格的不同坐标添加不同的组件
+layout->addWidget(&TestBtn1, 0, 0);//往网格的不同坐标添加不同的组件 得一个一个加
 layout->addWidget(&TestBtn2, 0, 1);
 layout->addWidget(&TestBtn3, 1, 0);
 layout->addWidget(&TestBtn4, 1, 1);
@@ -223,6 +223,44 @@ layout->addWidget(&TestBtn2, 0, 1, 2, 1);//坐标（0，1）的组件占用两�
 layout->addWidget(&TestBtn3, 2, 0, 1, 2);//坐标（2，0）的组件占用一行两列
 layout->addWidget(&TestBtn4, 3, 0, 1, 2);//坐标（3，0）的组件占用一行两列
 setLayout(layout);//最后通过setlayout启用设置结果
+
+--------------
+QBoxLayout、QGridLayout、QFormLayout 和 QStackedLayout。这些类都从 QLayout 继承而来
+Vertical Layout 		垂直
+Horizontal Layout		水平
+Grid Layout				网格 
+Form Layout				表单布局
+QBoxLayout  分为水平与垂直
+/* 创建水平 垂直两个 Widget */
+hWidget = new QWidget(this);hWidget->setGeometry(0, 0, 800, 240);
+vWidget = new QWidget(this);vWidget->setGeometry(0, 240, 800, 240);
+//创建两个布局的Layout 布局器
+hLayout = new QHBoxLayout();vLayout = new QVBoxLayout();
+/* QList<T>是 Qt 的一种泛型容器类。 它以链表方式存储一组值，
+* 并能对这组数据进行快速索引 */
+QList <QString>list;
+/* 将字符串值插入 list */
+list<<"one"<<"two"<<"three"<<"four"<<"five"<<"six";
+/* 用一个循环实例化 6 个按钮 */
+for(int i = 0; i < 6; i++){
+	pushButton[i] = new QPushButton();
+	pushButton[i]->setText(list[i]);
+	pushButton[i]->setSizePolicy(  //控件 充满 widget
+	QSizePolicy::Expanding,
+	QSizePolicy::Expanding);
+	if(i < 3) {
+		/* 将按钮添加至 hLayout 中 */
+		hLayout->addWidget(pushButton[i]);
+	} else {
+		/* 将按钮添加至 vLayout 中 */
+		vLayout->addWidget(pushButton[i]);
+	}
+}
+/*hLayout中设置水平间隔 设置间隔为 50 */
+hLayout->setSpacing(100);
+/* hWidget 与 vWidget 的布局设置为 hLayout/vLayout */
+hWidget->setLayout(hLayout);  vWidget->setLayout(vLayout);
+
 
 -----------槽函数集成-----------
 不同的按钮按下可以调用同一个槽函数：
@@ -554,6 +592,12 @@ mythread.join();   意思就是等其他线程结束后，由主线程来回收�
 std::thread  mythread(fun);mythread线程变量的初始化函数与执行函数就是fun
 
 
+1.继承 QThread 的线程
+线程运行完 emit resultReady(result)信号，将入参传给槽函数 槽函数可以访问收到的数据
+继承QThread 的类只需要重写void run() override 方法即可
+connect(workerThread, SIGNAL(resultReady(QString)),this, SLOT(handleResults(QString)));
+2.继承QObject类的线程
+
 ----------------------------内存回收机制
 在 C++ Primer 中读到 new 是在堆里面申请一段内存资源，new 必须与 delete 成对使用，否则就会造成内存泄漏。但是在Qt中经常可以看见只 new 而不 delete 的情况，这并没有错，Qt 的内存管理机制允许这样的情况存在。
 qt 对 c++ 的内存管理机制进行了扩充，所有继承自QObject的类new出来的成员都会自动delete，而手动delete反而会造成不必要的麻烦
@@ -793,6 +837,26 @@ Qt内置图标封装在QStyle中，大概七十多个图标，可以直接拿来
     layout->setMargin(0);
     layout->addStretch();
     layout->addWidget(btn);
+工具按钮（QToolButton）区别于普通按钮（QPushButton）的一点是，工具按钮（QToolButton）可以带图标。
+这里区别下图标和按钮的背景图片是不一样的。通常我们在 QToolBar 这种工具条（工具栏）上设置不同的按钮，
+如果这些按钮还带图标和文本，那么 QToolButton 是个不错的选择。
+	tobtn=new QToolButton(this);
+    toolBar=new QToolBar(this);
+    /* 设置 toolBar 的位置和大小 */
+     toolBar->setGeometry(0, 0, 800, 100);
+     /* 实例化 QStyle 类对象，用于设置风格，调用系统类自带的图标 */
+     QStyle *style = QApplication::style();
+     /* 使用 Qt 自带的标准图标，可以在帮助文档里搜索 QStyle::StandardPixmap 设置icon的风格*/
+     QIcon icon = style->standardIcon(QStyle::SP_TitleBarContextHelpButton);
+     /* 给toolbutton 设置图标 */
+     tobtn->setIcon(icon);
+     /* 给toolbutton 设置要显示的文本 */
+     tobtn->setText("帮助");
+     /* 调用 setToolButtonStyle()方法，设置 toolButoon 的样式，设置为文本置于  图标下方 */
+     tobtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+     /* 最后将 toolButton 添加到 ToolBar 里 显示 */
+     toolBar->addWidget(tobtn);
+
 	
 巧妙的使用inherits判断是否属于某种类。
 	QTimer *timer = new QTimer;         		  // QTimer inherits QObject
@@ -917,6 +981,7 @@ Qt版本以及位数和Qt Creator的版本完全一致才行，否则基本不�
 
 很多控件都带有 viewport，比如QTextEdit/QTableWidget/QScrollArea，有时候对这些控件直接处理的时候发现不起作用，
 需要对其 viewport()设置才行
+//ScrollArea  横向纵向都带有滚轮的窗口
 ui->scrollArea->viewport()->setStyleSheet("background-color:yellow;");
 ui->scrollArea->setStyleSheet("background-color:yellow;");
 
@@ -989,6 +1054,8 @@ Qt中的QString和const char *之间转换，最好用toStdString().c_str(),支�
 
 
 setPixmap是最糟糕的贴图方式，一般只用来简单的不是很频繁的贴图，频繁的建议painter绘制，默认双缓冲，在高级点用opengl绘制，利用GPU。
+
+
 
 QString的replace函数会改变原字符串，他在返回替换后的新字符串的同时也会改变原字符串，我的乖乖！
 
@@ -2393,4 +2460,41 @@ QMessageBox::Save|QMessageBox::Apply|QMessageBox::Ok 等等提示按钮
 后续可以根据 box 下方按钮 值作操作，执行apply 还是 save  还是ok
 
 
+QRadioButton 不好看 怎么切换呢？
+添加qss文件：
+文件里面默认有两行需要删除，不删除setStyleSheet时无法解析：
+<!DOCTYPE RCC>
+<RCC version="1.0"/>
+然后写入：
+QRadioButton{
+    spacing: 2px;
+    color: white;
+}
+QRadioButton::indicator {
+    width: 45px;
+    height: 30px;
+}
+QRadioButton::indicator:unchecked{  对于未选中的radio用off的图片
+    image: url(:/img/switch_off.png);
+}
+QRadioButton::indicator:checked{
+选中的radio 用on的图片
+    image: url(:/img/switch_on.png);
+}
+
+主程序中调用qss的时机：创建窗口之前就得设置QRadioButton 的qss样式
+QApplication a(argc, argv);
+QFile file(":/style.qss");
+/* 判断文件是否存在 */
+if (file.exists() ) {
+	file.open(QFile::ReadOnly);
+	/* 以字符串的方式保存读出的结果 */
+	QString styleSheet = QLatin1String(file.readAll());
+	/*qApp 设置全局 QRadioButton 样式 */
+	qApp->setStyleSheet(styleSheet);
+	file.close();
+}
+Widget w;
+w.setGeometry(500,300,200,200);
+w.show();
 
