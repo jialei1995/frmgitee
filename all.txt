@@ -2291,6 +2291,22 @@ linux内核移植：
 		git rm --cached GJC4824_01_145_V101_V100.*  删除新add的所有GJC4824_01_145_V101_V100开头的文件
 		git rm --cached dir/  -r   递归删除add的dir目录
 
+
+.git 目录删除大文件 会将大文件存到.git中，导致.git目录过大，怎么删除这个文件的记录呢？
+
+1.间接过滤已经删除的大文件
+git verify-pack -v .git/objects/pack/pack-*.idx | sort -k 3 -g | tail -5 //过滤出文件大小前5 的文件
+git rev-list --objects --all | grep  3a64985638133180772aada337da5d6283d9a988  根据文件id获取文件名
+3a64985638133180772aada337da5d6283d9a988 driver/day1/第二期实验手册.pdf
+
+git rev-list --objects --all | grep "$(git verify-pack -v .git/objects/pack/*.idx | sort -k 3 -n | tail -5 | awk '{print$1}')"   2.直接过滤已经删除的大文件
+
+git filter-branch -f --prune-empty --index-filter 'git rm -rf --cached --ignore-unmatch driver/day1/第二期实验手册.pdf' --tag-name-filter cat -- --all    重置此文件的所有log
+git reflog expire --expire=now --all   重新标记过期的缓存文件
+git gc --prune=now					回收过期的缓存
+git push -f             更新到远程
+
+git clone   xxx.git   重新下载git仓库  不要在当前仓库操作了
 ********************************makefile********************************************
 $@:目标文件
 $<:第一个依赖文件
@@ -2372,6 +2388,79 @@ obj-y += yyy/   表示要编译当前目录下的yyy子目录
 		CFLAGS+=-s -ftrapv -g等等。
 
 		#program comment  编译期间可以打印调试信息。
+cmake 跨平台的自动编译构建工具
+开发者可以写好与平台无关的CmakeLists.txt文件，cmake解析此文件，
+根据当前平台生成本地化的Makefile与工程文件，最终还是通过make编译的
+cmake ./  生成makefile，然后执行make 编译文件
+
+语法：
+	1.# 是注释
+	2.命令是不区分大小写的
+	3.内置变量其名称都是使用大写字母组成的
+	4.set(MY_VAL "Hello World!")  设置变量   
+	5.message(${MY_VAL})	打印数据，${MY_VAL} 引用变量
+	6.https://cmake.org/cmake/help/v3.5/manual/cmake-commands.7.html 查用法
+project(HELLO)  设置工程名称，并不是强制性的，但是最好加上
+add_executable(hello ./main.c)  生成hello二进制  依赖main.c 
+
+使用out-of-source的方式构建：将编译的中间文件与CMake的中间文件分开存放
+	1.创建build目录
+	2.在build目录中执行 cmake ../
+
+
+多个源文件编译：
+	project(HELLO)
+	set(SRC_LIST main.c hello.c)   设置变量为多个.c文件
+	add_executable(hello ${SRC_LIST})   生成的二进制依赖之前设置的变量
+	
+生成库文件：
+	project(HELLO)
+	add_library(libhello hello.c) 先生成libhello库文件
+	add_executable(hello main.c)  二进制只依赖main一个c文件
+	target_link_libraries(hello libhello)   二进制还依赖libhello库文件
+	
+	add_library(libhello SHARED 1.c 2.c 3.c)#生成动态库文件 liblibhello.so 
+	add_library(libhello STATIC 1.c 2.c 3.c)#生成静态库文件 liblibhello.a 
+	
+	修改生成的库文件名字：
+		set_target_properties(libhello PROPERTIES OUTPUT_NAME "hello")
+		set_target_properties 命令对 libhello 目标的OUTPUT_NAME 属性进行了设置，将其设置为 hello
+
+多个目录组织，怎么开发：
+├──build    #build 目录
+├──CMakeLists.txt
+├──libhello
+│    ├── CMakeLists.txt
+│    ├── hello.c
+│    └── hello.h
+└──src
+	├── CMakeLists.txt
+	└── main.c
+	
+	顶层cmakelists：
+		cmake_minimum_required(VERSION 3.5)
+		project(HELLO)
+		add_subdirectory(libhello)	进入libhello解析新的makelists
+		add_subdirectory(src)	    进入src解析新的makelists
+	src目录下的cmakelists
+		include_directories(${PROJECT_SOURCE_DIR}/libhello)  指明头文件路径，在源码目录下的/libhello目录中
+		add_executable(hello main.c)
+		target_link_libraries(hello libhello)
+	libhello 目录下的cmakelists	
+		add_library(libhello hello.c)  
+		set_target_properties(libhello PROPERTIES OUTPUT_NAME "hello") 重命名生成的lib库文件的文件名
+
+将生成的可执行文件与库文件放到单独的目录下：build/lib   build/bin   
+	配置可执行文件，库文件 放到add_executable add_library之前即可
+	修改src目录的makelists
+	include_directories(${PROJECT_SOURCE_DIR}/libhello)
+	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  配置生成的可执行文件路径
+	add_executable(hello main.c)
+	target_link_libraries(hello libhello)
+	然后再对 libhello 目录下的 CMakeList.txt 文件进行修改，如下所示：
+	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)		配置生成的库文件路径
+	add_library(libhello hello.c)
+	set_target_properties(libhello PROPERTIES OUTPUT_NAME "hello")	
 **************************************驱动开发******************************************
 		make modules 编译板子中需要用到的modules。
 		//如果直接make modules_install会将编译的模块放到当前所在的系统中，这是不对的。
